@@ -4,7 +4,9 @@ export type MaterialSection =
   | 'drafts'
   | 'figures'
   | 'tables'
-  | 'templates';
+  | 'templates'
+  | 'equations'
+  | 'diagrams';
 
 /** A single uploaded research material */
 export interface Material {
@@ -22,7 +24,7 @@ export interface Material {
 
 /** File-level metadata attached to a material */
 export interface MaterialMetadata {
-  fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex';
+  fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex' | 'latex' | 'mermaid';
   fileSize: number;
   pageCount?: number;
   /** e.g. "Fig. 1", "Table 2" */
@@ -31,6 +33,7 @@ export interface MaterialMetadata {
   doi?: string;
   authors?: string[];
   year?: number;
+  order?: number;
 }
 
 export type CreateMaterialInput = Omit<Material, 'id' | 'createdAt'>;
@@ -43,6 +46,8 @@ export const SECTION_LABELS: Record<MaterialSection, string> = {
   figures: 'Figures',
   tables: 'Tables',
   templates: 'Templates',
+  equations: 'Equations',
+  diagrams: 'Diagrams',
 };
 
 /** CSS variable accent color per section */
@@ -52,4 +57,6 @@ export const SECTION_ACCENT: Record<MaterialSection, string> = {
   figures:    'var(--accent-figures)',
   tables:     'var(--accent-tables)',
   templates:  'var(--accent-template)',
+  equations:  'var(--accent-equations)',
+  diagrams:   'var(--accent-diagrams)',
 };

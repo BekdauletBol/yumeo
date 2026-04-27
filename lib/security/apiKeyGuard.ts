@@ -13,12 +13,29 @@ export function assertServerSide(): void {
     }
   }
   
+  import { createServiceClient } from '@/lib/db/supabase';
+
   /**
-   * Retrieve the Anthropic API key from environment variables.
+   * Retrieve the Anthropic API key from user settings or environment variables.
    * Must only be called on the server.
    */
-  export function getAnthropicKey(): string {
+  export async function getAnthropicKey(userId?: string): Promise<string> {
     assertServerSide();
+    
+    if (userId) {
+      const supabase = createServiceClient();
+      const { data } = await supabase
+        .from('user_settings')
+        .select('encrypted_claude_key')
+        .eq('user_id', userId)
+        .single();
+        
+      if (data?.encrypted_claude_key) {
+        // In a real app, you would decrypt this key.
+        return data.encrypted_claude_key;
+      }
+    }
+
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) {
       throw new Error('ANTHROPIC_API_KEY is not set. Add it to .env.local');

@@ -8,8 +8,12 @@ export const runtime = 'nodejs';
 interface AgentRequest {
   messages: Anthropic.MessageParam[];
   systemPrompt: string;
+  projectId: string;
+  userQuery: string;
   model?: 'claude-opus-4-5' | 'claude-sonnet-4-5';
 }
+
+import { retrieveRelevantChunks } from '@/lib/agent/rag';
 
 /**
  * POST /api/agent
@@ -42,23 +46,36 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const { messages, systemPrompt, model = 'claude-sonnet-4-5' } = body;
+  const { messages, systemPrompt, projectId, userQuery, model = 'claude-sonnet-4-5' } = body;
 
-  if (!systemPrompt || !messages || messages.length === 0) {
+  if (!systemPrompt || !messages || messages.length === 0 || !projectId || !userQuery) {
     return new Response(
-      JSON.stringify({ error: 'Missing systemPrompt or messages', code: 'BAD_REQUEST' }),
+      JSON.stringify({ error: 'Missing required fields', code: 'BAD_REQUEST' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
+  // ── RAG Retrieval ────────────────────────────────────────────────────────
+  let finalSystemPrompt = systemPrompt;
+  try {
+    const chunks = await retrieveRelevantChunks(projectId, userQuery, 5);
+    if (chunks && chunks.length > 0) {
+      const chunkContext = chunks.map((c: any) => `[REF FROM VECTOR SEARCH]\n${c.content}`).join('\n\n');
+      finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${chunkContext}`;
+    }
+  } catch (err) {
+    console.error('RAG Retrieval failed:', err);
+  }
+
   // ── Stream ──────────────────────────────────────────────────────────────
   try {
-    const client = new Anthropic({ apiKey: getAnthropicKey() });
+    const apiKey = await getAnthropicKey(userId);
+    const client = new Anthropic({ apiKey });
 
     const stream = client.messages.stream({
       model,
       max_tokens: 4096,
-      system: systemPrompt,
+      system: finalSystemPrompt,
       messages,
     });
 

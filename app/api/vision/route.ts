@@ -45,7 +45,8 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    const client = new Anthropic({ apiKey: getAnthropicKey() });
+    const apiKey = await getAnthropicKey(userId);
+    const client = new Anthropic({ apiKey });
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-5',

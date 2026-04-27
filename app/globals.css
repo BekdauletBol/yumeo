@@ -31,6 +31,8 @@
   --accent-figures:  #5fcf80;
   --accent-tables:   #f0a050;
   --accent-template: #f07070;
+  --accent-equations: #5fa0cf;
+  --accent-diagrams:  #ec4899;
 
   /* Semantic status */
   --status-success: #4ade80;

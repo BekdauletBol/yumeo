@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -46,44 +47,36 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
         {/* Logo */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="1" y="1" width="5" height="5" fill="rgba(255,255,255,0.7)" />
-                <rect x="8" y="1" width="5" height="5" fill="rgba(255,255,255,0.4)" />
-                <rect x="1" y="8" width="5" height="5" fill="rgba(255,255,255,0.4)" />
-                <rect x="8" y="8" width="5" height="5" fill="rgba(255,255,255,0.2)" />
-              </svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Image
+              src="/logo.png"
+              alt="Yumeo logo"
+              width={36}
+              height={36}
+              style={{ filter: 'invert(1)', objectFit: 'contain' }}
+              priority
+            />
+            <div>
+              <span style={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: '16px',
+                fontWeight: '500',
+                color: 'rgba(255,255,255,0.9)',
+                letterSpacing: '-0.01em',
+                display: 'block',
+              }}>
+                Yumeo
+              </span>
+              <span style={{
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.35)',
+                letterSpacing: '0.04em',
+              }}>
+                Research IDE
+              </span>
             </div>
-            <span style={{
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '16px',
-              fontWeight: '500',
-              color: 'rgba(255,255,255,0.9)',
-              letterSpacing: '-0.01em',
-            }}>
-              Yumeo
-            </span>
           </div>
-          <p style={{
-            fontFamily: 'Inter, system-ui, sans-serif',
-            fontSize: '12px',
-            color: 'rgba(255,255,255,0.35)',
-            letterSpacing: '0.04em',
-            marginLeft: '38px',
-          }}>
-            Research IDE
-          </p>
         </div>
 
         {/* Feature list */}
@@ -138,7 +131,15 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Right panel — auth form */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Mobile logo */}
-        <div className="lg:hidden mb-10 text-center">
+        <div className="lg:hidden mb-10 text-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <Image
+            src="/logo.png"
+            alt="Yumeo logo"
+            width={44}
+            height={44}
+            style={{ filter: 'invert(1)', objectFit: 'contain' }}
+            priority
+          />
           <h1 style={{
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '20px',

@@ -1,14 +1,16 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { BookOpen, Plus, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { Plus, ArrowRight } from 'lucide-react';
 import { getProjects } from '@/lib/db/projects';
+import type { Project } from '@/lib/types';
 
 export default async function HomePage() {
   const { userId } = auth();
   if (!userId) redirect('/sign-in');
 
-  let projects = [];
+  let projects: Project[] = [];
   try {
     projects = await getProjects(userId);
   } catch {
@@ -25,7 +27,14 @@ export default async function HomePage() {
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}
       >
         <div className="flex items-center gap-2">
-          <BookOpen size={18} style={{ color: 'var(--text-accent)' }} aria-hidden="true" />
+          <Image
+            src="/logo.png"
+            alt="Yumeo logo"
+            width={24}
+            height={24}
+            style={{ filter: 'invert(1)', objectFit: 'contain' }}
+            priority
+          />
           <span
             className="font-medium"
             style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}

@@ -34,6 +34,8 @@ const SECTIONS: {
   { key: 'figures',    icon: Image,      accent: 'var(--accent-figures)' },
   { key: 'tables',     icon: Table2,     accent: 'var(--accent-tables)' },
   { key: 'templates',  icon: LayoutTemplate, accent: 'var(--accent-template)' },
+  { key: 'equations',  icon: Sigma,      accent: 'var(--accent-equations)' },
+  { key: 'diagrams',   icon: Workflow,   accent: 'var(--accent-diagrams)' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -50,6 +52,8 @@ export function Sidebar() {
     figures: false,
     tables: false,
     templates: false,
+    equations: false,
+    diagrams: false,
   });
 
   const [uploadingSection, setUploadingSection] = useState<MaterialSection | null>(null);

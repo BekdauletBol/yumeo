@@ -11,6 +11,7 @@ import { validateFileMagicBytes } from '@/lib/security/sanitize';
 import { formatFileSize } from '@/lib/utils/truncate';
 import { cn } from '@/lib/utils/cn';
 import type { MaterialSection, CreateMaterialInput } from '@/lib/types';
+import { createMaterialAction } from '@/app/actions/materials';
 
 interface FileUploadZoneProps {
   section: MaterialSection;
@@ -33,6 +34,8 @@ const ACCEPTED_TYPES: Record<MaterialSection, string[]> = {
   figures:    ['.png', '.jpg', '.jpeg', '.webp', '.gif'],
   tables:     ['.pdf', '.txt', '.csv', '.md'],
   templates:  ['.txt', '.md'],
+  equations:  ['.tex', '.txt', '.md'],
+  diagrams:   ['.mmd', '.txt', '.md'],
 };
 
 const MAX_FILE_SIZE_MB = 50;
@@ -113,7 +116,7 @@ export function FileUploadZone({ section, compact = false, onUploadComplete }: F
         setProgress([...results]);
 
         // Add to store (in a real app, also persist to Supabase here)
-        const material: CreateMaterialInput = {
+        const materialInput: CreateMaterialInput = {
           projectId: activeProject.id,
           section,
           name: file.name,
@@ -121,7 +124,8 @@ export function FileUploadZone({ section, compact = false, onUploadComplete }: F
           metadata,
         };
 
-        addMaterial({ id: nanoid(), ...material, createdAt: new Date() });
+        const createdMaterial = await createMaterialAction(materialInput);
+        addMaterial(createdMaterial);
 
         results[i] = { filename: file.name, status: 'done' };
         setProgress([...results]);

@@ -49,7 +49,8 @@ TEMPLATE:
 ${templateBody}`;
 
   try {
-    const client = new Anthropic({ apiKey: getAnthropicKey() });
+    const apiKey = await getAnthropicKey(userId);
+    const client = new Anthropic({ apiKey });
 
     const stream = client.messages.stream({
       model,

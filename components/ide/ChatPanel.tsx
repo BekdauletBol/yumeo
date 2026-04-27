@@ -81,6 +81,8 @@ export function ChatPanel() {
           body: JSON.stringify({
             messages: history,
             systemPrompt,
+            projectId: activeProject.id,
+            userQuery: userText,
             model: activeProject.settings.agentModel,
           }),
         });

@@ -24,7 +24,7 @@ create table if not exists projects (
 create table if not exists materials (
   id          uuid primary key default gen_random_uuid(),
   project_id  uuid not null references projects(id) on delete cascade,
-  section     text not null check (section in ('references','drafts','figures','tables','templates')),
+  section     text not null check (section in ('references','drafts','figures','tables','templates','equations','diagrams')),
   name        text not null,
   content     text not null default '',
   storage_url text,
@@ -115,3 +115,75 @@ create policy "users read own plan"
 -- create policy "users own their files"
 --   on storage.objects for all
 --   using (bucket_id = 'materials' and auth.uid()::text = (storage.foldername(name))[1]);
+-- ─── User Settings (API Keys) ───────────────────────────────────────────────
+
+create table if not exists user_settings (
+  user_id text primary key,
+  encrypted_claude_key text,
+  updated_at timestamptz not null default now()
+);
+
+alter table user_settings enable row level security;
+create policy "users manage own settings"
+  on user_settings for all
+  using (user_id = auth.uid()::text)
+  with check (user_id = auth.uid()::text);
+
+-- ─── RAG pgvector ───────────────────────────────────────────────────────────
+
+create extension if not exists vector;
+
+create table if not exists chunks (
+  id uuid primary key default gen_random_uuid(),
+  material_id uuid not null references materials(id) on delete cascade,
+  project_id uuid not null references projects(id) on delete cascade,
+  content text not null,
+  embedding vector(1536), -- Assuming 1536 for common embeddings, or 1024 for voyage/claude
+  metadata jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_chunks_project on chunks(project_id);
+-- create index if not exists idx_chunks_embedding on chunks using hnsw (embedding vector_cosine_ops);
+
+alter table chunks enable row level security;
+create policy "users own chunks"
+  on chunks for all
+  using (
+    project_id in (
+      select id from projects where user_id = auth.uid()::text
+    )
+  );
+
+-- ─── Vector Search RPC ──────────────────────────────────────────────────────
+
+create or replace function match_chunks (
+  query_embedding vector(1536),
+  match_threshold float,
+  match_count int,
+  p_project_id uuid
+)
+returns table (
+  id uuid,
+  material_id uuid,
+  content text,
+  metadata jsonb,
+  similarity float
+)
+language plpgsql
+as $$
+begin
+  return query
+  select
+    chunks.id,
+    chunks.material_id,
+    chunks.content,
+    chunks.metadata,
+    1 - (chunks.embedding <=> query_embedding) as similarity
+  from chunks
+  where chunks.project_id = p_project_id
+    and 1 - (chunks.embedding <=> query_embedding) > match_threshold
+  order by chunks.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;

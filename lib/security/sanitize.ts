@@ -7,8 +7,10 @@
 export function sanitizeHtml(dirty: string): string {
     if (typeof window === 'undefined') return dirty; // server: no DOM
     // Dynamic import so DOMPurify only loads in the browser
-    const DOMPurify = require('dompurify') as typeof import('dompurify');
-    return DOMPurify.sanitize(dirty, {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const DOMPurifyModule = require('dompurify');
+    const purify = (DOMPurifyModule.default ?? DOMPurifyModule) as { sanitize: (dirty: string, config?: Record<string, unknown>) => string };
+    return purify.sanitize(dirty, {
       ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'code', 'pre'],
       ALLOWED_ATTR: ['href', 'target', 'rel'],
     });

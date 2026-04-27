@@ -3,6 +3,9 @@
 import { useMemo } from 'react';
 import katex from 'katex';
 import { useUIStore } from '@/stores/uiStore';
+import { useMaterialsStore } from '@/stores/materialsStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { createMaterialAction } from '@/app/actions/materials';
 
 interface Segment {
   kind: 'text' | 'inline-math' | 'block-math';
@@ -54,6 +57,28 @@ function parseSegments(source: string): Segment[] {
 export function LatexSection() {
   const source = useUIStore((s) => s.latexSource);
   const setSource = useUIStore((s) => s.setLatexSource);
+  const addMaterial = useMaterialsStore((s) => s.addMaterial);
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const equations = useMaterialsStore((s) => s.materials.filter(m => m.section === 'equations'));
+
+  const handleSave = async () => {
+    if (!activeProject || !source.trim()) return;
+    const count = equations.length + 1;
+    const name = `Equation ${count}`;
+    try {
+      const material = await createMaterialAction({
+        projectId: activeProject.id,
+        section: 'equations',
+        name,
+        content: source,
+        metadata: { fileType: 'latex', fileSize: source.length, figureNumber: name }
+      });
+      addMaterial(material);
+      setSource('');
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const renderedHtml = useMemo(() => {
     const segments = parseSegments(source);
@@ -80,14 +105,25 @@ export function LatexSection() {
         <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
           LaTeX Editor
         </span>
-        <button
-          onClick={() => window.print()}
-          className="px-2 py-1 text-xs border"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
-          aria-label="Export rendered LaTeX as PDF"
-        >
-          Export PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={!source.trim()}
+            className="px-2 py-1 text-xs border transition-colors disabled:opacity-50"
+            style={{ borderColor: 'var(--accent-equations)', color: 'var(--accent-equations)', fontFamily: 'var(--font-mono)', background: 'rgba(95,160,207,0.1)' }}
+            aria-label="Save as Equation material"
+          >
+            Save as Equation
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="px-2 py-1 text-xs border"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+            aria-label="Export rendered LaTeX as PDF"
+          >
+            Export PDF
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 grid grid-cols-2">

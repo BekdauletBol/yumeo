@@ -1,7 +1,9 @@
 'use client';
 
 import { UserButton } from '@clerk/nextjs';
-import { BookOpen, FileText, Keyboard } from 'lucide-react';
+import Image from 'next/image';
+import { FileText, Keyboard } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -16,6 +18,7 @@ interface TopBarProps {
  * 48px top bar with: Logo | Project name | Source counter | Plan badge | User
  */
 export function TopBar({ className }: TopBarProps) {
+  const router = useRouter();
   const activeProject = useProjectStore((s) => s.activeProject);
   const totalMaterials = useMaterialsStore((s) => s.materials.length);
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
@@ -25,12 +28,27 @@ export function TopBar({ className }: TopBarProps) {
       className={cn('flex items-center px-4 gap-4 h-full border-b', className)}
       style={{ background: 'var(--bg-surface)' }}
     >
+      {/* Back button */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center justify-center w-7 h-7 rounded hover:bg-white/10 transition-colors"
+        style={{ color: 'var(--text-secondary)' }}
+        aria-label="Go back"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0">
-        <BookOpen
-          size={14}
-          style={{ color: 'var(--text-secondary)' }}
-          aria-hidden="true"
+        <Image
+          src="/logo.png"
+          alt="Yumeo logo"
+          width={20}
+          height={20}
+          style={{ filter: 'invert(1)', objectFit: 'contain' }}
+          priority
         />
         <span
           className="text-xs tracking-[0.22em] uppercase"

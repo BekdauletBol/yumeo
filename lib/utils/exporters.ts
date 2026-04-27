@@ -46,7 +46,7 @@ export async function exportAsDocx(content: string, title: string): Promise<Blob
   });
 
   const buffer = await Packer.toBuffer(doc);
-  return new Blob([buffer], {
+  return new Blob([new Uint8Array(buffer)], {
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
 }
