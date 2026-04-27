@@ -23,7 +23,7 @@ const nextConfig = {
                 "default-src 'self'",
                 "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.com https://*.clerk.accounts.dev",
                 "style-src 'self' 'unsafe-inline'",
-                "img-src 'self' blob: data: https://*.supabase.co",
+                "img-src 'self' blob: data: https://*.supabase.co https://img.clerk.com https://*.clerk.com https://*.clerk.accounts.dev",
                 "font-src 'self' data:",
                 "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://clerk.com https://*.clerk.accounts.dev",
                 "worker-src 'self' blob:",

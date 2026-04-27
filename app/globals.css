@@ -273,26 +273,25 @@
   min-height: 40px !important;
 }
 
-.cl-socialButtonsProviderIcon {
+.cl-socialButtonsProviderIcon,
+.cl-socialButtonsProviderIcon img {
   width: 18px !important;
   height: 18px !important;
   min-width: 18px !important;
   min-height: 18px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+
+/* Force Google icon to render (fixes broken image) */
+.cl-socialButtonsProviderIcon__google img[src] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .cl-socialButtonsBlockButtonText {
   color: var(--text-primary) !important;
   white-space: nowrap !important;
   line-height: 1.2 !important;
-}
-
-/* Hide split first/last name row on sign up */
-.cl-formFieldRow:has(input[name='firstName']),
-.cl-formFieldRow:has(input[name='lastName']),
-.cl-formField:has(input[name='firstName']),
-.cl-formField:has(input[name='lastName']) {
-  display: none !important;
 }
