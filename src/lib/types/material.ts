@@ -34,6 +34,8 @@ export interface MaterialMetadata {
   authors?: string[];
   year?: number;
   order?: number;
+  /** GitHub repo URL for imported materials */
+  repoUrl?: string;
 }
 
 export type CreateMaterialInput = Omit<Material, 'id' | 'createdAt'>;

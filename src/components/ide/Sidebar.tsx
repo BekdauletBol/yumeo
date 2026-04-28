@@ -7,16 +7,14 @@ import {
   Image,
   Table2,
   LayoutTemplate,
-  Workflow,
   Sigma,
+  Workflow,
   ChevronRight,
   Plus,
   Trash2,
-  MoreHorizontal,
 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
-import { useUIStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils/cn';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import type { MaterialSection } from '@/lib/types';
@@ -41,7 +39,6 @@ const SECTIONS: {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Sidebar() {
-  const setRightPanelTab = useUIStore((s) => s.setRightPanelTab);
   const activeProject = useProjectStore((s) => s.activeProject);
   const { materials, activeSection, selectedMaterialId, setActiveSection, setSelectedMaterialId, removeMaterial } =
     useMaterialsStore();
@@ -228,100 +225,7 @@ export function Sidebar() {
           );
         })}
 
-        <div className="mt-3 px-3">
-          <p className="text-section-label pb-2" style={{ fontFamily: 'var(--font-mono)' }}>
-            Workspace Tools
-          </p>
-          <div className="space-y-1">
-            <button
-              onClick={() => setRightPanelTab('mermaid')}
-              className="w-full flex items-center gap-2 px-2 py-2 text-left border"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-              aria-label="Open Mermaid editor"
-            >
-              <Workflow size={12} aria-hidden="true" />
-              <span className="text-xs" style={{ fontFamily: 'var(--font-mono)' }}>
-                Mermaid
-              </span>
-            </button>
-            <button
-              onClick={() => setRightPanelTab('latex')}
-              className="w-full flex items-center gap-2 px-2 py-2 text-left border"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-              aria-label="Open LaTeX editor"
-            >
-              <Sigma size={12} aria-hidden="true" />
-              <span className="text-xs" style={{ fontFamily: 'var(--font-mono)' }}>
-                LaTeX
-              </span>
-            </button>
-          </div>
-
-          <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-            <p className="text-section-label pb-2" style={{ fontFamily: 'var(--font-mono)' }}>
-              Integrations
-            </p>
-            <form 
-              className="flex items-center gap-2"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const form = e.target as HTMLFormElement;
-                const input = form.elements.namedItem('repo') as HTMLInputElement;
-                const repo = input.value.trim();
-                if (!repo || !activeProject) return;
-                
-                try {
-                  const btn = form.querySelector('button');
-                  if (btn) btn.disabled = true;
-                  
-                  const res = await fetch('/api/github/import', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repo, projectId: activeProject.id })
-                  });
-                  
-                  if (!res.ok) {
-                    const data = await res.json();
-                    alert(data.error || 'Failed to import repository');
-                  } else {
-                    alert('Successfully imported repository files!');
-                    input.value = '';
-                    // Reload page to reflect new materials, or trigger a fetch
-                    window.location.reload();
-                  }
-                } catch (err) {
-                  alert('Network error');
-                } finally {
-                  const btn = form.querySelector('button');
-                  if (btn) btn.disabled = false;
-                }
-              }}
-            >
-              <input
-                name="repo"
-                type="text"
-                placeholder="owner/repo"
-                className="flex-1 bg-transparent border px-2 py-1.5 text-xs outline-none"
-                style={{ 
-                  borderColor: 'var(--border-subtle)', 
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-mono)'
-                }}
-              />
-              <button 
-                type="submit"
-                className="px-2 py-1.5 text-xs border transition-colors hover:opacity-80"
-                style={{ 
-                  borderColor: 'var(--border-subtle)', 
-                  color: 'var(--text-secondary)',
-                  background: 'var(--bg-elevated)'
-                }}
-              >
-                Import
-              </button>
-            </form>
-          </div>
-        </div>
+        {/* Workspace Tools and Integrations removed — live in right panel tabs & Settings page */}
       </div>
 
       {/* Footer: total count */}
@@ -330,7 +234,7 @@ export function Sidebar() {
         style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
       >
         {totalCount === 0
-          ? '0 materials loaded — upload a reference to begin'
+          ? '0 materials — upload a reference to begin'
           : `${totalCount} material${totalCount !== 1 ? 's' : ''} loaded`}
       </div>
     </div>

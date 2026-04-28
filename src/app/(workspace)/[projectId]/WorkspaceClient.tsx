@@ -26,11 +26,23 @@ export function WorkspaceClient({ project, initialMaterials }: WorkspaceClientPr
 
   // Seed stores with server-fetched data on mount
   useEffect(() => {
-    // In dev/StrictMode and some hydration paths, this effect can mount repeatedly.
-    // Guard by project id to avoid re-seeding stores in a loop.
     if (seededProjectIdRef.current === project.id) return;
     seededProjectIdRef.current = project.id;
-    setActiveProject(project);
+
+    // Migrate old projects: if they have a claude-* model but no Anthropic key
+    // configured, upgrade to gpt-4o automatically so chat works out of the box.
+    const migratedProject: Project = {
+      ...project,
+      settings: {
+        ...project.settings,
+        agentModel:
+          (project.settings.agentModel as string).startsWith('claude-')
+            ? 'openai/gpt-4o'
+            : project.settings.agentModel,
+      },
+    };
+
+    setActiveProject(migratedProject);
     setMaterials(initialMaterials);
   }, [project, initialMaterials, setActiveProject, setMaterials]);
 

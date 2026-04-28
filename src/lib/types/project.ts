@@ -11,7 +11,7 @@ export interface Project {
   
   /** Per-project AI and export configuration */
   export interface ProjectSettings {
-    agentModel: 'claude-opus-4-5' | 'claude-sonnet-4-5';
+    agentModel: 'openai/gpt-4o' | 'openai/gpt-4o-mini' | 'openai/gpt-5' | 'claude-opus-4-5' | 'claude-sonnet-4-5';
     /** When true, AI only uses uploaded materials — never external knowledge */
     strictGrounding: boolean;
     language: string;

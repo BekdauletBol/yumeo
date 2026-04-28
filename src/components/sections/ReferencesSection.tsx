@@ -54,7 +54,7 @@ export function ReferencesSection() {
               >
                 <div className="flex items-start gap-2 group relative">
                   <BookMarked size={12} className="mt-0.5 shrink-0" style={{ color: 'var(--accent-refs)' }} />
-                  <div className="flex-1 min-w-0 pr-6">
+                   <div className="flex-1 min-w-0 pr-6">
                     <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                       {ref.name}
                     </p>
@@ -64,7 +64,7 @@ export function ReferencesSection() {
                         {truncate(ref.metadata.authors.join(', '), 40)}
                       </p>
                     )}
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {ref.metadata.year && (
                         <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                           <Calendar size={10} aria-hidden="true" />
@@ -85,6 +85,19 @@ export function ReferencesSection() {
                         </span>
                       )}
                     </div>
+                    {/* Warn if no readable text was extracted */}
+                    {(!ref.content || ref.content.trim().length < 50) && (
+                      <p
+                        className="text-xs mt-1.5 px-1.5 py-0.5 rounded inline-block"
+                        style={{
+                          background: 'rgba(251,146,60,0.12)',
+                          border: '1px solid rgba(251,146,60,0.3)',
+                          color: 'rgb(251,146,60)',
+                        }}
+                      >
+                        ⚠ No readable text — delete &amp; re-upload
+                      </p>
+                    )}
                   </div>
                   
                   {/* Delete button (visible on hover) */}

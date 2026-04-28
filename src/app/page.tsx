@@ -23,7 +23,7 @@ export default async function HomePage() {
       style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
     >
       <header
-        className="h-12 flex items-center px-6 border-b"
+        className="h-12 flex items-center justify-between px-6 border-b"
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}
       >
         <div className="flex items-center gap-2">
@@ -42,6 +42,22 @@ export default async function HomePage() {
             Yumeo
           </span>
         </div>
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/docs"
+            className="text-xs transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+          >
+            Docs
+          </Link>
+          <Link
+            href="/pricing"
+            className="text-xs transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+          >
+            Pricing
+          </Link>
+        </nav>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-12">

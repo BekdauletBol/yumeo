@@ -12,7 +12,7 @@ create table if not exists projects (
   name        text not null,
   description text,
   settings    jsonb not null default '{
-    "agentModel": "claude-sonnet-4-5",
+    "agentModel": "openai/gpt-4o",
     "strictGrounding": true,
     "language": "en",
     "exportFormat": "markdown"

@@ -2,7 +2,10 @@
 const nextConfig = {
     reactStrictMode: true,
     experimental: {
-      serverComponentsExternalPackages: ['pdfjs-dist'],
+    serverComponentsExternalPackages: ['pdfjs-dist'],
+      serverActions: {
+        bodySizeLimit: '10mb',
+      },
     },
     images: {
       remotePatterns: [
@@ -25,7 +28,7 @@ const nextConfig = {
                 "style-src 'self' 'unsafe-inline'",
                 "img-src 'self' blob: data: https://*.supabase.co https://img.clerk.com https://*.clerk.com https://*.clerk.accounts.dev",
                 "font-src 'self' data:",
-                "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://clerk.com https://*.clerk.accounts.dev",
+                "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.openai.com https://models.github.ai https://models.inference.ai.azure.com https://api.github.com https://clerk.com https://*.clerk.accounts.dev https://cdnjs.cloudflare.com",
                 "worker-src 'self' blob:",
               ].join('; '),
             },

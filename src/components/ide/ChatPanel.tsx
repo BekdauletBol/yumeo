@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -10,18 +10,13 @@ import { useProjectStore } from '@/stores/projectStore';
 import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
 import type { ChatMessage, AnthropicMessage } from '@/lib/types';
-
 import { EmptyState } from '@/components/ide/EmptyState';
+import { showToast } from '@/lib/utils/toast';
 
 /**
  * The central chat panel.
- *
- * Manages the full streaming lifecycle:
- * 1. Add user message to store
- * 2. Build system prompt from materials
- * 3. POST to /api/agent with full conversation history
- * 4. Stream response chunks into the store
- * 5. Finalize message and parse citations
+ * Shows onboarding EmptyState until at least one reference is uploaded,
+ * then reveals the full chat interface.
  */
 export function ChatPanel() {
   const {
@@ -31,17 +26,25 @@ export function ChatPanel() {
     setIsStreaming,
     appendStreamingContent,
     finalizeStreamingMessage,
-    streamingContent,
   } = useChatStore();
 
   const materials = useMaterialsStore((s) => s.materials);
   const activeProject = useProjectStore((s) => s.activeProject);
 
+  // Track when the first reference is uploaded to show the toast once
+  const prevRefCount = useRef(0);
+  const references = materials.filter((m) => m.section === 'references');
+  useEffect(() => {
+    if (references.length > 0 && prevRefCount.current === 0) {
+      showToast('Reference added. Ask me anything about it.');
+    }
+    prevRefCount.current = references.length;
+  }, [references.length]);
+
   const handleSubmit = useCallback(
     async (userText: string) => {
       if (!activeProject) return;
 
-      // Add user message
       const userMessage: ChatMessage = {
         id: nanoid(),
         projectId: activeProject.id,
@@ -52,7 +55,6 @@ export function ChatPanel() {
       };
       addMessage(userMessage);
 
-      // Placeholder assistant message (will be filled by stream)
       const assistantId = nanoid();
       const assistantMessage: ChatMessage = {
         id: assistantId,
@@ -67,10 +69,8 @@ export function ChatPanel() {
       addMessage(assistantMessage);
       setIsStreaming(true);
 
-      // Build system prompt with all loaded materials
       const systemPrompt = buildSystemPrompt(materials, activeProject.settings);
 
-      // Build Anthropic-format conversation history (exclude the blank assistant placeholder)
       const history: AnthropicMessage[] = messages
         .filter((m) => m.role !== 'system' && m.content)
         .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
@@ -99,7 +99,6 @@ export function ChatPanel() {
           return;
         }
 
-        // Stream response chunks
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
@@ -112,7 +111,6 @@ export function ChatPanel() {
           appendStreamingContent(chunk);
         }
 
-        // Finalize: parse citations, strip SOURCES USED block
         const finalMessage: ChatMessage = {
           ...assistantMessage,
           content: fullContent,
@@ -147,7 +145,8 @@ export function ChatPanel() {
     ],
   );
 
-  if (materials.length === 0) {
+  // Show onboarding until at least one reference exists
+  if (references.length === 0) {
     return <EmptyState />;
   }
 

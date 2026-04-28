@@ -49,6 +49,10 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
     .select()
     .single();
 
+  if (error || !data) {
+    throw new Error(error?.message ?? 'Failed to save material to database');
+  }
+
   const material = rowToMaterial(data);
 
   // Fire-and-forget chunking/embedding
