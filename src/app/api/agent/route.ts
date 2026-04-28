@@ -138,7 +138,9 @@ async function streamGitHubModels(
 ): Promise<Response> {
   const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_MODELS_TOKEN'];
   if (!token) {
-    throw new Error('GITHUB_TOKEN is not set in .env.local');
+    throw new Error(
+      'GITHUB_TOKEN is not configured. Go to Vercel → Project → Settings → Environment Variables and add GITHUB_TOKEN with your GitHub personal access token.',
+    );
   }
 
   const ghMessages: GHMessage[] = [
