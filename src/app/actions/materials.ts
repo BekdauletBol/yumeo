@@ -4,18 +4,17 @@ import { auth } from '@clerk/nextjs/server';
 import { createServiceClient } from '@/lib/db/supabase';
 import type { CreateMaterialInput, Material } from '@/lib/types';
 import { chunkAndEmbedMaterial } from '@/lib/agent/rag';
-import { nanoid } from 'nanoid';
 
 // Supabase row-to-material helper
 function rowToMaterial(row: Record<string, unknown>): Material {
   return {
     id: row['id'] as string,
     projectId: row['project_id'] as string,
-    section: row['section'] as any,
+    section: row['section'] as Material['section'],
     name: row['name'] as string,
     content: row['content'] as string,
     storageUrl: (row['storage_url'] as string | null) ?? undefined,
-    metadata: row['metadata'] as any,
+    metadata: row['metadata'] as Material['metadata'],
     createdAt: new Date(row['created_at'] as string),
   };
 }
@@ -65,7 +64,7 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
   return material;
 }
 
-export async function updateMaterialOrderAction(projectId: string, updates: { id: string, metadata: any }[]) {
+export async function updateMaterialOrderAction(projectId: string, updates: { id: string, metadata: Material['metadata'] }[]) {
   const { userId } = auth();
   if (!userId) throw new Error('Unauthorized');
 
@@ -91,7 +90,7 @@ export async function updateMaterialOrderAction(projectId: string, updates: { id
   }
 }
 
-export async function updateMaterialAction(id: string, updates: { metadata?: any, content?: string }) {
+export async function updateMaterialAction(id: string, updates: { metadata?: Material['metadata'], content?: string }) {
   const { userId } = auth();
   if (!userId) throw new Error('Unauthorized');
 

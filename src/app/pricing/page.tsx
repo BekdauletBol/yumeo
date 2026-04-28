@@ -2,7 +2,6 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { PricingCards } from '@/components/sections/PricingCards';
-import { createCheckoutSession } from '@/lib/stripe/client';
 
 export default async function PricingPage() {
   const { userId } = auth();

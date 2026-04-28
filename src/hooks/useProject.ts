@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getProjects, getProject } from '@/lib/db/projects';
+import { getProject } from '@/lib/db/projects';
 import { getMaterials } from '@/lib/db/materials';
 import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';

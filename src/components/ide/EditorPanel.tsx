@@ -2,7 +2,6 @@
 
 import { useUIStore } from '@/stores/uiStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
-import { cn } from '@/lib/utils/cn';
 import { ReferencesSection } from '@/components/sections/ReferencesSection';
 import { FiguresSection } from '@/components/sections/FiguresSection';
 import { TablesSection } from '@/components/sections/TablesSection';

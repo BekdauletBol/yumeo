@@ -25,7 +25,7 @@ const BLOCKED_TOPICS = [
  */
 export function buildSystemPrompt(
   materials: Material[],
-  settings: ProjectSettings,
+  _settings: ProjectSettings,
 ): string {
   const materialContext = buildMaterialContext(materials);
   const hasContent = materials.length > 0 && materials.some((m) => (m.content ?? '').trim().length > 50);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Play, X, Save, Loader2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useMaterialsStore } from '@/stores/materialsStore';

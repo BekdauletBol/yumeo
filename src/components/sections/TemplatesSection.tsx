@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { LayoutTemplate, Play, Plus, Trash2 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
-import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { TemplateEditor } from '@/components/template/TemplateEditor';
 import { formatFileSize } from '@/lib/utils/truncate';
 

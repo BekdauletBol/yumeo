@@ -18,9 +18,9 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
   // Dynamic import to avoid SSR issues with PDF.js
   const pdfjsLib = await import('pdfjs-dist');
 
-  // Required: set the worker source
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  // Use the locally bundled worker served from /public — avoids CSP issues
+  // and external CDN failures on mobile / Vercel deployments.
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
   const arrayBuffer = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -56,7 +56,7 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
  */
 export function extractPDFMetadataHints(
   firstPageText: string,
-  filename: string,
+  _filename: string,
 ): {
   year?: number;
   doi?: string;

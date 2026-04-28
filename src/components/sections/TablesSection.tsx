@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Table2, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useUIStore } from '@/stores/uiStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';

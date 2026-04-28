@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { BookMarked, ExternalLink, Calendar, Users, Trash2 } from 'lucide-react';
+import { BookMarked, Calendar, Users, Trash2 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useUIStore } from '@/stores/uiStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';

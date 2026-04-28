@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useRef, useCallback, useId } from 'react';
-import { UploadCloud, File, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { UploadCloud, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { parsePDF, extractPDFMetadataHints } from '@/lib/parsers/pdfParser';
 import { parseDocx } from '@/lib/parsers/docxParser';
 import { analyzeImage } from '@/lib/parsers/imageAnalyzer';
-import { formatFileSize } from '@/lib/utils/truncate';
 import { cn } from '@/lib/utils/cn';
 import type { MaterialSection, CreateMaterialInput } from '@/lib/types';
 import { createMaterialAction } from '@/app/actions/materials';
@@ -38,14 +37,6 @@ const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
  */
 const MAX_CONTENT_CHARS = 200_000;
 
-/** Detect section from file type when no explicit section is given */
-function guessSectionFromFile(file: File): MaterialSection {
-  if (file.type.startsWith('image/')) return 'figures';
-  if (file.name.endsWith('.csv')) return 'tables';
-  if (file.name.endsWith('.tex')) return 'equations';
-  if (file.name.endsWith('.mmd')) return 'diagrams';
-  return 'references'; // Default: treat as a reference
-}
 
 /** Extract text content from any file type */
 async function extractContent(file: File): Promise<{

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ExternalLink } from 'lucide-react';
 import type { Citation } from '@/lib/types';
 import { useUIStore } from '@/stores/uiStore';
 import { SECTION_LABELS, SECTION_ACCENT } from '@/lib/types/material';
@@ -127,7 +126,7 @@ export function CitationTag({ citation, className }: CitationTagProps) {
                   borderColor: 'var(--border-default)',
                 }}
               >
-                "{citation.excerpt}"
+                &ldquo;{citation.excerpt}&rdquo;
               </blockquote>
             )}
 

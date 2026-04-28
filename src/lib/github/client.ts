@@ -23,14 +23,19 @@ export async function fetchGitHubRepoFiles(repo: string, token?: string) {
 
   // 3. Filter for text/markdown files
   const validExtensions = ['.md', '.txt', '.ts', '.tsx', '.js', '.jsx', '.py'];
-  const files = treeData.tree.filter((item: any) => 
+interface GitHubTreeItem {
+    type: string;
+    path: string;
+    url: string;
+  }
+  const files = (treeData.tree as GitHubTreeItem[]).filter((item) =>
     item.type === 'blob' && validExtensions.some(ext => item.path.endsWith(ext))
   );
 
   // 4. Fetch content for a few files (limit to 10 for performance/MVP purposes)
   const filesToFetch = files.slice(0, 10);
   const contents = await Promise.all(
-    filesToFetch.map(async (file: any) => {
+    filesToFetch.map(async (file: GitHubTreeItem) => {
       const contentRes = await fetch(file.url, { headers });
       const contentData = await contentRes.json();
       // GitHub API returns base64 encoded content for blobs

@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
  * Creates a Stripe Checkout session for upgrading to Pro.
  * Returns the checkout URL for client-side redirect.
  */
-export async function POST(req: Request): Promise<Response> {
+export async function POST(_req: Request): Promise<Response> {
   const { userId } = auth();
   if (!userId) {
     return new Response(

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  BookOpen,
   Upload,
   MessageSquare,
   Download,
@@ -360,7 +359,7 @@ export default function DocsPage() {
               Have a question?
             </h2>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              We're here to help researchers get the most out of Yumeo.
+              We&apos;re here to help researchers get the most out of Yumeo.
             </p>
           </div>
           <a

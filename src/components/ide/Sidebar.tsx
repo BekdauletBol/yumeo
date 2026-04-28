@@ -161,7 +161,7 @@ export function Sidebar() {
                       return (
                         <div
                           key={material.id}
-                          role="button"
+                          role="option"
                           tabIndex={0}
                           aria-selected={isSelected}
                           aria-label={material.name}
