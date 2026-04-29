@@ -1,28 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Settings, Shield, Zap, Globe } from 'lucide-react';
+import { X, Settings, Shield, Zap, Globe, Key, Check } from 'lucide-react';
 import { useProjectStore } from '@/stores/projectStore';
 import { updateProjectAction } from '@/app/actions/projects';
+import { saveClaudeKeyAction, hasClaudeKeyAction } from '@/app/actions/settings';
+import { showToast } from '@/lib/utils/toast';
 
 export function SettingsDialog() {
   const { activeProject, setActiveProject } = useProjectStore();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [hasKey, setHasKey] = useState(false);
+  const [isSavingKey, setIsSavingKey] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      hasClaudeKeyAction().then(setHasKey);
+    }
+  }, [open]);
 
   if (!activeProject) return null;
 
-  const handleSave = async (updates: any) => {
+  const handleSaveSettings = async (updates: any) => {
     setIsSaving(true);
     try {
       const newSettings = { ...activeProject.settings, ...updates };
       const updatedProject = { ...activeProject, settings: newSettings };
-      
       await updateProjectAction(activeProject.id, { settings: newSettings });
       setActiveProject(updatedProject);
     } catch (err) {
       console.error(err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveKey = async () => {
+    if (!apiKey) return;
+    setIsSavingKey(true);
+    try {
+      await saveClaudeKeyAction(apiKey);
+      setHasKey(true);
+      setApiKey('');
+      showToast('API key saved successfully');
+    } catch (err) {
+      showToast('Failed to save API key');
+    } finally {
+      setIsSavingKey(false);
     }
   };
 
@@ -46,7 +71,7 @@ export function SettingsDialog() {
         >
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-lg font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-              Project Settings
+              Settings
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-1 rounded hover:bg-white/10" style={{ color: 'var(--text-tertiary)' }}>
@@ -55,22 +80,52 @@ export function SettingsDialog() {
             </Dialog.Close>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+            {/* API Key Section */}
+            <div className="space-y-3">
+              <label className="text-xs font-medium uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
+                <Key size={14} style={{ color: hasKey ? 'var(--status-success)' : 'var(--status-error)' }} />
+                Anthropic API Key
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={hasKey ? '••••••••••••••••' : 'sk-ant-api03-...'}
+                  className="flex-1 p-2.5 rounded-xl bg-transparent border outline-none text-sm"
+                  style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                />
+                <button
+                  onClick={handleSaveKey}
+                  disabled={!apiKey || isSavingKey}
+                  className="px-4 py-2 rounded-xl text-xs font-medium transition-all bg-white text-black hover:opacity-90 disabled:opacity-50"
+                >
+                  {isSavingKey ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+              <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                {hasKey ? '✓ Your key is configured.' : 'Add your key to enable AI features.'} Keys are stored securely.
+              </p>
+            </div>
+
+            <div className="h-px" style={{ background: 'var(--border-subtle)' }} />
+
             {/* Model Selection */}
             <div className="space-y-3">
               <label className="text-xs font-medium uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
                 <Zap size={14} style={{ color: 'var(--accent-refs)' }} />
-                AI Intelligence
+                AI Intelligence (GitHub Models)
               </label>
               <div className="grid grid-cols-1 gap-2">
                 {[
-                  { id: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet', desc: 'Best for research & writing' },
-                  { id: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku', desc: 'Fastest for quick queries' },
-                  { id: 'claude-3-opus-latest', label: 'Claude 3 Opus', desc: 'Deepest reasoning' },
+                  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Fastest & most capable for research' },
+                  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', desc: 'Reliable academic reasoning' },
+                  { id: 'o1-preview', label: 'o1 Preview', desc: 'Deep logical processing' },
                 ].map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => handleSave({ agentModel: m.id })}
+                    onClick={() => handleSaveSettings({ agentModel: m.id })}
                     className={`text-left p-3 rounded-xl border transition-all ${
                       activeProject.settings.agentModel === m.id 
                         ? 'ring-1' 
@@ -98,7 +153,7 @@ export function SettingsDialog() {
                 <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Only use uploaded materials for answers</p>
               </div>
               <button
-                onClick={() => handleSave({ strictGrounding: !activeProject.settings.strictGrounding })}
+                onClick={() => handleSaveSettings({ strictGrounding: !activeProject.settings.strictGrounding })}
                 className={`w-10 h-5 rounded-full transition-colors relative`}
                 style={{ background: activeProject.settings.strictGrounding ? 'var(--accent-refs)' : 'var(--bg-base)' }}
               >

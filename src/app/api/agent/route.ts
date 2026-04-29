@@ -1,13 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { checkRateLimit, rateLimitResponse } from '@/lib/security/rateLimit';
 import { retrieveRelevantChunks } from '@/lib/agent/rag';
 import { BLOCKED_TOPICS } from '@/lib/agent/buildSystemPrompt';
-import { getAnthropicKey } from '@/lib/security/apiKeyGuard';
 
 export const runtime = 'nodejs';
-
-type ModelId = 'claude-3-5-sonnet-latest' | 'claude-3-5-haiku-latest' | 'claude-3-opus-latest';
 
 interface AgentRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -19,7 +16,7 @@ interface AgentRequest {
 
 /**
  * POST /api/agent
- * Streams a grounded AI response via direct Anthropic Claude API.
+ * Streams a grounded AI response via GitHub Models (GPT-4o).
  */
 export async function POST(req: Request): Promise<Response> {
   const { userId } = auth();
@@ -43,7 +40,7 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const { messages, systemPrompt, projectId, userQuery, model = 'claude-3-5-sonnet-latest' } = body;
+  const { messages, systemPrompt, projectId, userQuery, model = 'gpt-4o' } = body;
 
   if (!systemPrompt || !messages || messages.length === 0 || !projectId || !userQuery) {
     return new Response(
@@ -79,30 +76,28 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    const apiKey = await getAnthropicKey(userId);
-    const client = new Anthropic({ apiKey });
-    
-    // Map old model names to new Claude models if necessary
-    let selectedModel = model;
-    if (model.includes('gpt') || model.includes('openai')) {
-      selectedModel = 'claude-3-5-sonnet-latest';
-    } else if (model.includes('sonnet')) {
-      selectedModel = 'claude-3-5-sonnet-latest';
-    } else if (model.includes('opus')) {
-      selectedModel = 'claude-3-opus-latest';
-    }
+    const githubToken = process.env.GITHUB_MODELS_TOKEN;
+    if (!githubToken) throw new Error('GITHUB_MODELS_TOKEN is not configured');
 
-    console.log('[agent] Starting stream for user:', userId);
+    const client = new OpenAI({
+      apiKey: githubToken,
+      baseURL: 'https://models.inference.ai.azure.com',
+    });
 
-    const stream = await client.messages.create({
-      model: selectedModel,
-      max_tokens: 4096,
-      system: finalSystemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
+    console.log('[agent] Starting GitHub Models stream for user:', userId, 'model:', model);
+
+    const stream = await client.chat.completions.create({
+      model: model.includes('gpt') ? model : 'gpt-4o',
+      messages: [
+        { role: 'system', content: finalSystemPrompt },
+        ...messages.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+      ],
       stream: true,
+      max_tokens: 4096,
+      temperature: 0.7,
     });
 
     const outStream = new ReadableStream({
@@ -110,8 +105,9 @@ export async function POST(req: Request): Promise<Response> {
         const encoder = new TextEncoder();
         try {
           for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              controller.enqueue(encoder.encode(chunk.delta.text));
+            const content = chunk.choices[0]?.delta?.content || '';
+            if (content) {
+              controller.enqueue(encoder.encode(content));
             }
           }
           controller.close();
@@ -126,11 +122,11 @@ export async function POST(req: Request): Promise<Response> {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no', // Disable buffering for Nginx/Vercel
+        'X-Accel-Buffering': 'no',
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Claude API error';
+    const message = err instanceof Error ? err.message : 'GitHub Models error';
     console.error('[agent] Fatal error:', err);
     return new Response(
       JSON.stringify({ error: message, code: 'AI_ERROR' }),
