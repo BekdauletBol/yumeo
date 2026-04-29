@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FileText, Clock, Trash2, ArrowLeft, Plus } from 'lucide-react';
+import { FileText, Clock, Trash2, ArrowLeft } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { formatFileSize } from '@/lib/utils/truncate';

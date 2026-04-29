@@ -8,6 +8,7 @@ import { TablesSection } from '@/components/sections/TablesSection';
 import { TemplatesSection } from '@/components/sections/TemplatesSection';
 import { MermaidSection } from '@/components/sections/MermaidSection';
 import { LatexSection } from '@/components/sections/LatexSection';
+import { DraftsSection } from '@/components/sections/DraftsSection';
 
 const TABS = [
   { key: 'drafts'     as const, label: 'Draft', accent: 'var(--accent-drafts)', sectionKey: 'drafts' },

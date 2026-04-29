@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Settings, Shield, Zap, Globe, Key, Check } from 'lucide-react';
+import { X, Settings, Shield, Zap, Globe, Key } from 'lucide-react';
 import { useProjectStore } from '@/stores/projectStore';
 import { updateProjectAction } from '@/app/actions/projects';
 import { saveClaudeKeyAction, hasClaudeKeyAction } from '@/app/actions/settings';
@@ -9,7 +9,6 @@ import { showToast } from '@/lib/utils/toast';
 export function SettingsDialog() {
   const { activeProject, setActiveProject } = useProjectStore();
   const [open, setOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [hasKey, setHasKey] = useState(false);
   const [isSavingKey, setIsSavingKey] = useState(false);
@@ -22,17 +21,14 @@ export function SettingsDialog() {
 
   if (!activeProject) return null;
 
-  const handleSaveSettings = async (updates: any) => {
-    setIsSaving(true);
+  const handleSaveSettings = async (updates: Partial<typeof activeProject.settings>) => {
     try {
       const newSettings = { ...activeProject.settings, ...updates };
       const updatedProject = { ...activeProject, settings: newSettings };
       await updateProjectAction(activeProject.id, { settings: newSettings });
       setActiveProject(updatedProject);
     } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSaving(false);
+      console.error('[settings] Save failed:', err);
     }
   };
 
@@ -44,7 +40,7 @@ export function SettingsDialog() {
       setHasKey(true);
       setApiKey('');
       showToast('API key saved successfully');
-    } catch (err) {
+    } catch {
       showToast('Failed to save API key');
     } finally {
       setIsSavingKey(false);
@@ -118,11 +114,13 @@ export function SettingsDialog() {
                 AI Intelligence (GitHub Models)
               </label>
               <div className="grid grid-cols-1 gap-2">
-                {[
-                  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Fastest & most capable for research' },
-                  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', desc: 'Reliable academic reasoning' },
-                  { id: 'o1-preview', label: 'o1 Preview', desc: 'Deep logical processing' },
-                ].map((m) => (
+                {(
+                  [
+                    { id: 'gpt-4o', label: 'GPT-4o', desc: 'Fastest & most capable for research' },
+                    { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', desc: 'Reliable academic reasoning' },
+                    { id: 'o1-preview', label: 'o1 Preview', desc: 'Deep logical processing' },
+                  ] as const
+                ).map((m) => (
                   <button
                     key={m.id}
                     onClick={() => handleSaveSettings({ agentModel: m.id })}
@@ -171,7 +169,7 @@ export function SettingsDialog() {
               </label>
               <select
                 value={activeProject.settings.language}
-                onChange={(e) => handleSave({ language: e.target.value })}
+                onChange={(e) => handleSaveSettings({ language: e.target.value })}
                 className="w-full p-3 rounded-xl bg-transparent border outline-none text-sm"
                 style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
               >

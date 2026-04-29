@@ -45,7 +45,7 @@ WORKSPACE CONTEXT
 Uploaded references: ${references.length > 0 ? references.map(r => r.name).join(', ') : 'None.'}
 
 ${drafts.length > 0 
-  ? `Current draft:\n${drafts[0].content}` 
+  ? `Current draft:\n${drafts[0]?.content || ''}` 
   : 'No draft yet.'}
 
 ${figures.length > 0 

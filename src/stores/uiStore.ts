@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 interface UIState {
   rightPanelTab:
+    | 'drafts'
     | 'references'
     | 'figures'
     | 'tables'
@@ -26,7 +27,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  rightPanelTab: 'references',
+  rightPanelTab: 'drafts',
   mobileTab: 'chat',
   isMobileSidebarOpen: false,
   isCommandPaletteOpen: false,

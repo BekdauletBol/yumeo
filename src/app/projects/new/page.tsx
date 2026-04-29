@@ -9,7 +9,7 @@ import { createProject } from '@/lib/db/projects';
 import type { ProjectSettings } from '@/lib/types';
 
 const DEFAULT_SETTINGS: ProjectSettings = {
-  agentModel: 'openai/gpt-4o',
+  agentModel: 'gpt-4o',
   strictGrounding: true,
   language: 'en',
   exportFormat: 'markdown',

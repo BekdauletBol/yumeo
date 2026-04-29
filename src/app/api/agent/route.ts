@@ -84,8 +84,6 @@ export async function POST(req: Request): Promise<Response> {
       baseURL: 'https://models.inference.ai.azure.com',
     });
 
-    console.log('[agent] Starting GitHub Models stream for user:', userId, 'model:', model);
-
     const stream = await client.chat.completions.create({
       model: model.includes('gpt') ? model : 'gpt-4o',
       messages: [
