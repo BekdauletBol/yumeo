@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 interface GenerateRequest {
   templateBody: string;
   systemPrompt: string;
-  model?: 'claude-opus-4-5' | 'claude-sonnet-4-5';
+  model?: 'claude-3-5-sonnet-latest' | 'claude-3-5-haiku-latest' | 'claude-3-opus-latest';
 }
 
 /**
@@ -39,7 +39,7 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const { templateBody, systemPrompt, model = 'claude-sonnet-4-5' } = body;
+  const { templateBody, systemPrompt, model = 'claude-3-5-sonnet-latest' } = body;
 
   const userMessage = `Fill in the following research template using ONLY the provided materials.
 Replace each {{ placeholder }} with relevant content from the materials.

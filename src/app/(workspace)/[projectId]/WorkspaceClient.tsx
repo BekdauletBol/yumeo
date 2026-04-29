@@ -29,20 +29,7 @@ export function WorkspaceClient({ project, initialMaterials }: WorkspaceClientPr
     if (seededProjectIdRef.current === project.id) return;
     seededProjectIdRef.current = project.id;
 
-    // Migrate old projects: if they have a claude-* model but no Anthropic key
-    // configured, upgrade to gpt-4o automatically so chat works out of the box.
-    const migratedProject: Project = {
-      ...project,
-      settings: {
-        ...project.settings,
-        agentModel:
-          (project.settings.agentModel as string).startsWith('claude-')
-            ? 'openai/gpt-4o'
-            : project.settings.agentModel,
-      },
-    };
-
-    setActiveProject(migratedProject);
+    setActiveProject(project);
     setMaterials(initialMaterials);
   }, [project, initialMaterials, setActiveProject, setMaterials]);
 

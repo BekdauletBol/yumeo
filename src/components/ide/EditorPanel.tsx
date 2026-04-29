@@ -10,6 +10,7 @@ import { MermaidSection } from '@/components/sections/MermaidSection';
 import { LatexSection } from '@/components/sections/LatexSection';
 
 const TABS = [
+  { key: 'drafts'     as const, label: 'Draft', accent: 'var(--accent-drafts)', sectionKey: 'drafts' },
   { key: 'references' as const, label: 'Refs', accent: 'var(--accent-refs)', sectionKey: 'references' },
   { key: 'figures'    as const, label: 'Figs', accent: 'var(--accent-figures)', sectionKey: 'figures' },
   { key: 'tables'     as const, label: 'Tables', accent: 'var(--accent-tables)', sectionKey: 'tables' },
@@ -78,6 +79,7 @@ export function EditorPanel() {
           id={`panel-${rightPanelTab}`}
           aria-label={rightPanelTab}
         >
+          {rightPanelTab === 'drafts'     && <DraftsSection />}
           {rightPanelTab === 'references' && <ReferencesSection />}
           {rightPanelTab === 'figures'    && <FiguresSection />}
           {rightPanelTab === 'tables'     && <TablesSection />}

@@ -10,6 +10,7 @@ import { useMaterialsStore } from '@/stores/materialsStore';
 import { useUIStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils/cn';
 import { PlanBadge } from '@/components/sections/PlanBadge';
+import { SettingsDialog } from './SettingsDialog';
 
 interface TopBarProps {
   className?: string;
@@ -36,10 +37,10 @@ export function TopBar({ className }: TopBarProps) {
     >
       {/* Back button */}
       <button
-        onClick={() => router.back()}
+        onClick={() => router.push('/')}
         className="flex items-center justify-center w-7 h-7 rounded hover:bg-white/10 transition-colors"
         style={{ color: 'var(--text-secondary)' }}
-        aria-label="Go back"
+        aria-label="Back to dashboard"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -121,6 +122,7 @@ export function TopBar({ className }: TopBarProps) {
         <kbd className="text-xs" style={{ fontFamily: 'var(--font-mono)' }}>⌘K</kbd>
       </button>
 
+      <SettingsDialog />
       {/* Plan badge */}
       <PlanBadge />
 
