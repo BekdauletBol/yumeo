@@ -92,7 +92,9 @@ export async function POST(req: Request): Promise<Response> {
       selectedModel = 'claude-3-opus-latest';
     }
 
-    const stream = client.messages.stream({
+    console.log('[agent] Starting stream for user:', userId);
+
+    const stream = await client.messages.create({
       model: selectedModel,
       max_tokens: 4096,
       system: finalSystemPrompt,
@@ -100,18 +102,21 @@ export async function POST(req: Request): Promise<Response> {
         role: m.role as 'user' | 'assistant',
         content: m.content,
       })),
+      stream: true,
     });
 
     const outStream = new ReadableStream({
       async start(controller) {
+        const encoder = new TextEncoder();
         try {
           for await (const chunk of stream) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              controller.enqueue(new TextEncoder().encode(chunk.delta.text));
+              controller.enqueue(encoder.encode(chunk.delta.text));
             }
           }
           controller.close();
         } catch (err) {
+          console.error('[agent] Stream processing error:', err);
           controller.error(err);
         }
       },
@@ -120,14 +125,13 @@ export async function POST(req: Request): Promise<Response> {
     return new Response(outStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-        'X-Model': selectedModel,
-        'X-RateLimit-Remaining': String(limit.remaining),
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no', // Disable buffering for Nginx/Vercel
       },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Claude API error';
-    console.error('[agent] Error:', message);
+    console.error('[agent] Fatal error:', err);
     return new Response(
       JSON.stringify({ error: message, code: 'AI_ERROR' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },

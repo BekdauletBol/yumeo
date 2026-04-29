@@ -96,7 +96,16 @@ export async function updateMaterialAction(id: string, updates: { metadata?: Mat
 
   const supabase = createServiceClient();
   
-  // We should verify ownership, but for simplicity of this MVP:
+  // Verify ownership via join or subquery
+  const { data: material, error: matErr } = await supabase
+    .from('materials')
+    .select('id, projects!inner(user_id)')
+    .eq('id', id)
+    .eq('projects.user_id', userId)
+    .single();
+
+  if (matErr || !material) throw new Error('Material not found or unauthorized');
+
   const { error } = await supabase
     .from('materials')
     .update(updates)
