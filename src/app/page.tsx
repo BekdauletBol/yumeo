@@ -89,7 +89,7 @@ export default function HomePage() {
                 <span className="text-sm font-medium text-[var(--text-secondary)]">Materials Processed</span>
                 <BarChart3 size={16} className="text-[var(--text-tertiary)]" />
               </div>
-              <div className="text-3xl font-semibold">124</div>
+              <div className="text-3xl font-semibold">0</div>
               <p className="text-xs text-[var(--text-tertiary)] mt-1">This month</p>
             </div>
             <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
