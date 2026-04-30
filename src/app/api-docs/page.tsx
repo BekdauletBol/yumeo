@@ -1,17 +1,43 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Menu } from 'lucide-react';
 import { GlobalSidebar } from '@/components/ui/GlobalSidebar';
 
-export default async function ApiDocsPage() {
-  const { userId } = auth();
-  if (!userId) redirect('/sign-in');
+export default function ApiDocsPage() {
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, user, router]);
+
+  if (!isLoaded || !user) return null;
 
   return (
     <div className="flex h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
-      <GlobalSidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-8 py-10">
-          <header className="mb-8">
+      <GlobalSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        {/* Top Header */}
+        <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
+          <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
+            <button 
+              className="md:hidden p-2 rounded-md hover:bg-[var(--bg-elevated)] transition-colors"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <span className="hidden sm:inline">API Documentation</span>
+          </div>
+        </header>
+
+        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10 w-full">
+          <header className="mb-6 md:mb-8">
             <h1 className="text-2xl font-semibold">API Documentation</h1>
             <p className="text-sm text-[var(--text-secondary)]">
               Quickstart guides and request formats for the Yumeo research API.
@@ -47,7 +73,7 @@ export default async function ApiDocsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">POST /api/agent</p>
-                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto">
+                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto whitespace-pre-wrap word-break">
 {`{
   "projectId": "...",
   "userQuery": "Summarize the methodology",
@@ -60,11 +86,11 @@ export default async function ApiDocsPage() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">POST /api/generate</p>
-                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto">
+                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto whitespace-pre-wrap word-break">
 {`{
   "projectId": "...",
   "userQuery": "Generate report",
-  "templateBody": "# {{title}}\n\n## Abstract\n{{abstract}}"
+  "templateBody": "# {{title}}\\n\\n## Abstract\\n{{abstract}}"
 }`}
                     </pre>
                   </div>
@@ -77,24 +103,24 @@ export default async function ApiDocsPage() {
                   The API runs server-side and uses environment variables for provider access.
                 </p>
                 <ul className="text-sm space-y-2">
-                  <li className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2">
-                    <span>GITHUB_MODELS_TOKEN</span>
-                    <span className="text-[var(--text-tertiary)]">required for gpt-4o</span>
+                  <li className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2 flex-wrap gap-2">
+                    <span className="font-mono text-xs break-all">GITHUB_MODELS_TOKEN</span>
+                    <span className="text-[var(--text-tertiary)] text-xs text-right">required for gpt-4o</span>
                   </li>
-                  <li className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2">
-                    <span>OPENAI_API_KEY</span>
-                    <span className="text-[var(--text-tertiary)]">embeddings</span>
+                  <li className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2 flex-wrap gap-2">
+                    <span className="font-mono text-xs break-all">OPENAI_API_KEY</span>
+                    <span className="text-[var(--text-tertiary)] text-xs text-right">embeddings</span>
                   </li>
-                  <li className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2">
-                    <span>NEXT_PUBLIC_SUPABASE_URL</span>
-                    <span className="text-[var(--text-tertiary)]">storage + metadata</span>
+                  <li className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2 flex-wrap gap-2">
+                    <span className="font-mono text-xs break-all">NEXT_PUBLIC_SUPABASE_URL</span>
+                    <span className="text-[var(--text-tertiary)] text-xs text-right">storage + metadata</span>
                   </li>
                 </ul>
               </div>
 
               <div id="rag-rules" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
                 <h2 className="text-lg font-semibold mb-3">RAG Rules</h2>
-                <ul className="text-sm text-[var(--text-secondary)] space-y-2">
+                <ul className="text-sm text-[var(--text-secondary)] space-y-2 list-disc pl-5 marker:text-[var(--text-tertiary)]">
                   <li>All answers come from retrieved chunks (no external knowledge).</li>
                   <li>Missing knowledge returns: “I don’t have information about this in your uploaded materials.”</li>
                   <li>Every response ends with a Sources line listing filename + page.</li>
@@ -107,7 +133,7 @@ export default async function ApiDocsPage() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Chat Response</p>
-                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto">
+                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto whitespace-pre-wrap word-break">
 {`The method follows a two-stage encoder... [REF:chunk_id]
 
 Sources: [paper.pdf, p.12]`}
@@ -115,7 +141,7 @@ Sources: [paper.pdf, p.12]`}
                   </div>
                   <div>
                     <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Report JSON</p>
-                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto">
+                    <pre className="text-xs rounded-lg p-3 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto whitespace-pre-wrap word-break">
 {`{
   "draft": { "sections": [...], "citedChunkIds": [...] },
   "audit": [ { "sentence": "...", "status": "SUPPORTED" } ],
