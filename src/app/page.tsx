@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useUser, UserButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, BarChart3, MessageSquare, HardDrive, Menu } from 'lucide-react';
@@ -54,6 +54,9 @@ export default function HomePage() {
               <Menu size={20} />
             </button>
             <span className="hidden sm:inline">Command Menu <kbd className="hidden sm:inline-block ml-1 px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs">⌘K</kbd></span>
+          </div>
+          <div className="flex items-center gap-3">
+            <UserButton afterSignOutUrl="/sign-in" />
           </div>
         </header>
 

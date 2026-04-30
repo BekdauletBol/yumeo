@@ -93,7 +93,7 @@ export function TopBar({ className }: TopBarProps) {
       {activeProject && (
         <button
           aria-label={`${totalMaterials} source files loaded`}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs border transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs border transition-colors hidden sm:flex"
           style={{
             background: 'var(--bg-elevated)',
             color: 'var(--text-secondary)',
@@ -111,7 +111,7 @@ export function TopBar({ className }: TopBarProps) {
       <button
         onClick={() => setCommandPaletteOpen(true)}
         aria-label="Open command palette (⌘K)"
-        className="flex items-center gap-1 px-2 py-1 text-xs border transition-colors hover:opacity-80"
+        className="flex items-center gap-1 px-2 py-1 text-xs border transition-colors hover:opacity-80 hidden sm:flex"
         style={{
           background: 'var(--bg-elevated)',
           color: 'var(--text-tertiary)',

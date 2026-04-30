@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useUser, UserButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
@@ -33,6 +33,9 @@ export default function ApiDocsPage() {
               <Menu size={20} />
             </button>
             <span className="hidden sm:inline">API Documentation</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <UserButton afterSignOutUrl="/sign-in" />
           </div>
         </header>
 
