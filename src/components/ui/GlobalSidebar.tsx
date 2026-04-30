@@ -1,109 +1,136 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Settings, BookOpen, CreditCard, MessageSquare, Plus, UserCircle } from 'lucide-react';
+import {
+  Home,
+  BarChart3,
+  Key,
+  CreditCard,
+  Settings,
+  BookOpen,
+  MessageSquare,
+} from 'lucide-react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import { ThemeToggle } from './ThemeToggle';
 
-const NAV_ITEMS = [
-  { label: 'Home', href: '/', icon: Home },
-  { label: 'Overview', href: '/', icon: LayoutGrid },
-];
-
-const SETTINGS_ITEMS = [
-  { label: 'Integrations', href: '#', icon: Settings },
-  { label: 'Billing', href: '/pricing', icon: CreditCard },
-  { label: 'Docs', href: '/docs', icon: BookOpen },
-];
-
-const COMMUNITY_ITEMS = [
-  { label: 'Discord', href: '#', icon: MessageSquare },
+const NAVIGATION_GROUPS = [
+  {
+    title: 'Main',
+    items: [
+      { label: 'Home', href: '/', icon: Home },
+    ],
+  },
+  {
+    title: 'API',
+    items: [
+      { label: 'API Keys', href: '/docs', icon: Key },
+    ],
+  },
+  {
+    title: 'Billing',
+    items: [
+      { label: 'Billing', href: '/pricing', icon: CreditCard },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [
+      { label: 'Integrations & Providers', href: '/docs', icon: Settings },
+    ],
+  },
 ];
 
 export function GlobalSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
 
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+
   return (
-    <div className="flex flex-col h-full bg-bg-surface border-r border-border-subtle w-60">
-      {/* Brand */}
-      <div className="p-6 flex items-center gap-3">
-        <div className="w-8 h-8 bg-text-primary rounded-lg flex items-center justify-center">
-          <span className="text-bg-surface font-bold text-lg">Y</span>
-        </div>
-        <span className="text-display text-lg tracking-tight">Yumeo</span>
+    <div className="flex flex-col h-screen bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] w-64 overflow-y-auto">
+      {/* Brand Header */}
+      <div className="px-6 py-6 pt-8">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg overflow-hidden bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+            <Image src="/logo.png" alt="Yumeo logo" width={24} height={24} priority />
+          </span>
+          <span className="text-lg font-semibold text-[var(--text-primary)]">Yumeo</span>
+        </Link>
       </div>
 
-      {/* Nav Sections */}
-      <div className="flex-1 px-4 py-2 space-y-6 overflow-y-auto">
-        <div>
-          <div className="text-section-label px-2 mb-2">Main</div>
-          <div className="space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-bg-elevated text-text-primary shadow-sm' 
-                    : 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary'
-                }`}
-              >
-                <item.icon size={18} />
-                {item.label}
-              </Link>
-            ))}
+      {/* Navigation Sections */}
+      <nav className="flex-1 px-4 py-2 space-y-6">
+        {NAVIGATION_GROUPS.map((group, idx) => (
+          <div key={idx}>
+            <h3 className="px-4 mb-2 text-xs font-semibold tracking-wider text-[var(--text-tertiary)]">
+              {group.title}
+            </h3>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+                    }`}
+                  >
+                    <item.icon size={18} className="flex-shrink-0 opacity-70" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        <div className="pt-4">
+          <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">API Access</span>
+              <span className="text-xs font-bold text-[var(--text-primary)]">Pro</span>
+            </div>
+            <div className="text-sm font-medium">Unlimited</div>
           </div>
         </div>
 
-        <div>
-          <div className="text-section-label px-2 mb-2">Settings</div>
-          <div className="space-y-1">
-            {SETTINGS_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors"
-              >
-                <item.icon size={18} />
-                {item.label}
-              </Link>
-            ))}
-          </div>
+        <div className="pt-2 space-y-1">
+          <Link href="/docs" className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all">
+            <MessageSquare size={18} className="opacity-70" />
+            Join Discord
+          </Link>
+          <Link href="/docs" className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all">
+            <MessageSquare size={18} className="opacity-70" />
+            Give Feedback
+          </Link>
         </div>
+      </nav>
 
-        <div>
-          <div className="text-section-label px-2 mb-2">Support</div>
-          <div className="space-y-1">
-            {COMMUNITY_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors"
-              >
-                <item.icon size={18} />
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="p-4 mt-auto border-t border-border-subtle space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <span className="text-xs text-text-tertiary">Theme</span>
+      {/* Footer Actions */}
+      <div className="p-4 space-y-4 pb-6">
+        {/* Theme Toggle */}
+        <div className="flex items-center justify-between px-4 py-2 text-[var(--text-secondary)]">
+          <span className="text-sm font-medium">Theme</span>
           <ThemeToggle />
         </div>
-        
-        <div className="p-2 rounded-xl bg-bg-elevated flex items-center justify-between">
-          <div className="flex items-center gap-3">
+
+        {/* User Profile */}
+        <div className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer border border-transparent hover:border-[var(--border-subtle)]">
+          <div className="w-8 h-8 rounded-full bg-[var(--accent-template)] flex items-center justify-center flex-shrink-0 text-white font-bold">
             <UserButton afterSignOutUrl="/sign-in" />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">{user?.firstName || 'User'}</p>
-              <p className="text-[10px] text-text-tertiary truncate">{user?.primaryEmailAddress?.emailAddress}</p>
-            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+              {user?.firstName || 'User'}
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] truncate">
+              {user?.primaryEmailAddress?.emailAddress}
+            </p>
           </div>
         </div>
       </div>

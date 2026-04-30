@@ -53,6 +53,7 @@ async function extractContent(file: File): Promise<{
         fileType: 'pdf',
         fileSize: file.size,
         pageCount: result.pageCount,
+        pageText: result.pages,
         ...hints,
       },
     };

@@ -69,7 +69,13 @@ export function useStreamingChat() {
         const res = await fetch('/api/agent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: history, systemPrompt, model: activeProject.settings.agentModel }),
+          body: JSON.stringify({
+            messages: history,
+            systemPrompt,
+            model: activeProject.settings.agentModel,
+            projectId: activeProject.id,
+            userQuery: userText,
+          }),
         });
 
         if (!res.ok || !res.body) {

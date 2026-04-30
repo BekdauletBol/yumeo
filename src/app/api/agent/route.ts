@@ -14,6 +14,16 @@ interface AgentRequest {
   model?: string;
 }
 
+type RetrievedChunk = {
+  id: string;
+  content: string;
+  metadata?: {
+    file_name?: string;
+    page?: number;
+    page_end?: number;
+  };
+};
+
 /**
  * POST /api/agent
  * Streams a grounded AI response via GitHub Models (GPT-4o).
@@ -63,17 +73,35 @@ export async function POST(req: Request): Promise<Response> {
 
   // RAG retrieval
   let finalSystemPrompt = systemPrompt;
+  let retrievedChunks: RetrievedChunk[] = [];
   try {
-    const chunks = await retrieveRelevantChunks(projectId, userQuery, 5);
+    const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8)) as RetrievedChunk[];
     if (chunks && chunks.length > 0) {
+      retrievedChunks = chunks;
       const context = chunks
-        .map((c: { content: string }) => `[REFERENCE EXCERPT]\n${c.content}`)
+        .map((c) => `[REFERENCE EXCERPT]\n${c.content}`)
         .join('\n\n');
       finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${context}`;
     }
   } catch (err) {
     console.warn('RAG retrieval skipped:', err instanceof Error ? err.message : err);
   }
+
+  if (retrievedChunks.length === 0) {
+    const fallback = "I don't have information about this in your uploaded materials.";
+    const encoder = new TextEncoder();
+    return new Response(
+      new ReadableStream({
+        start(c) {
+          c.enqueue(encoder.encode(fallback));
+          c.close();
+        },
+      }),
+      { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RAG-Empty': 'true' } },
+    );
+  }
+
+  const sourcesLine = buildSourcesLine(retrievedChunks);
 
   try {
     const githubToken = process.env.GITHUB_MODELS_TOKEN;
@@ -108,6 +136,7 @@ export async function POST(req: Request): Promise<Response> {
               controller.enqueue(encoder.encode(content));
             }
           }
+          controller.enqueue(encoder.encode(`\n\n${sourcesLine}`));
           controller.close();
         } catch (err) {
           console.error('[agent] Stream processing error:', err);
@@ -131,4 +160,27 @@ export async function POST(req: Request): Promise<Response> {
       { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
   }
+}
+
+function buildSourcesLine(chunks: RetrievedChunk[]): string {
+  const seen = new Set<string>();
+  const items: string[] = [];
+
+  for (const chunk of chunks) {
+    const fileName = chunk.metadata?.file_name ?? 'Unknown file';
+    const pageStart = chunk.metadata?.page;
+    const pageEnd = chunk.metadata?.page_end;
+    const pageLabel =
+      pageStart && pageEnd && pageEnd !== pageStart
+        ? `p.${pageStart}-${pageEnd}`
+        : pageStart
+          ? `p.${pageStart}`
+          : 'p.?';
+    const label = `${fileName}, ${pageLabel}`;
+    if (seen.has(label)) continue;
+    seen.add(label);
+    items.push(label);
+  }
+
+  return `Sources: [${items.join('; ')}]`;
 }

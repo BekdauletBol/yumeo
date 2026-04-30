@@ -5,9 +5,14 @@ import { Play, X, Save, Loader2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
-import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { GeneratedOutput } from './GeneratedOutput';
-import type { Material } from '@/lib/types';
+import type { Material, ReportGenerationResponse } from '@/lib/types';
+
+function isReportGenerationResponse(
+  data: ReportGenerationResponse | { error?: string },
+): data is ReportGenerationResponse {
+  return typeof (data as ReportGenerationResponse).draft === 'object';
+}
 
 interface TemplateEditorProps {
   existingMaterial?: Material;
@@ -52,6 +57,7 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
   const [name, setName] = useState(existingMaterial?.name ?? 'New Template');
   const [body, setBody] = useState(existingMaterial?.content ?? DEFAULT_TEMPLATE);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [reportResult, setReportResult] = useState<ReportGenerationResponse | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -91,36 +97,43 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
     setIsGenerating(true);
     setGeneratedContent('');
 
-    const systemPrompt = buildSystemPrompt(materials, activeProject.settings);
-
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           templateBody: body,
-          systemPrompt,
           model: activeProject.settings.agentModel,
+          projectId: activeProject.id,
+          userQuery: body,
         }),
       });
 
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
         const err = (await response.json()) as { error?: string };
         setGeneratedContent(`Error: ${err.error ?? 'Generation failed'}`);
         return;
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        setGeneratedContent(accumulated);
+      const data = (await response.json()) as ReportGenerationResponse | { error?: string };
+      if ('error' in data && data.error) {
+        setGeneratedContent(data.error);
+        setReportResult(null);
+        return;
       }
+
+      if (!isReportGenerationResponse(data)) {
+        setGeneratedContent('Error: Invalid generation response');
+        setReportResult(null);
+        return;
+      }
+
+      setReportResult(data);
+
+      const bibliography = data.bibliography?.length
+        ? `\n\nReferences:\n${data.bibliography.map((ref) => `- ${ref}`).join('\n')}`
+        : '';
+      setGeneratedContent(`${data.draft.raw}${bibliography}`.trim());
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Network error';
       setGeneratedContent(`Error: ${msg}`);
@@ -242,6 +255,8 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
             content={generatedContent}
             templateName={name}
             isStreaming={isGenerating}
+            validation={reportResult?.validation ?? null}
+            bibliography={reportResult?.bibliography ?? []}
           />
         </div>
       )}

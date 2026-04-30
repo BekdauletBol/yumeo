@@ -27,6 +27,8 @@ export interface MaterialMetadata {
   fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex' | 'latex' | 'mermaid';
   fileSize: number;
   pageCount?: number;
+  /** Raw page text for server-side chunking (PDF only). */
+  pageText?: string[];
   /** e.g. "Fig. 1", "Table 2" */
   figureNumber?: string;
   caption?: string;

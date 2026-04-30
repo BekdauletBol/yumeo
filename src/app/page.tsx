@@ -1,10 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Plus, ArrowRight } from 'lucide-react';
+import { Plus, BarChart3, MessageSquare, HardDrive } from 'lucide-react';
 import { getProjects } from '@/lib/db/projects';
 import type { Project } from '@/lib/types';
+import { GlobalSidebar } from '@/components/ui/GlobalSidebar';
 
 export default async function HomePage() {
   const { userId } = auth();
@@ -14,142 +14,94 @@ export default async function HomePage() {
   try {
     projects = await getProjects(userId);
   } catch {
-    // Supabase not configured yet — show empty state
+    // Supabase not configured yet - empty state
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-    >
-      <header
-        className="h-12 flex items-center justify-between px-6 border-b"
-        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}
-      >
-        <div className="flex items-center gap-2">
-          <Image
-            src="/logo.png"
-            alt="Yumeo logo"
-            width={24}
-            height={24}
-            style={{ filter: 'invert(1)', objectFit: 'contain' }}
-            priority
-          />
-          <span
-            className="font-medium"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
-          >
-            Yumeo
-          </span>
-        </div>
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/docs"
-            className="text-xs transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-          >
-            Docs
-          </Link>
-          <Link
-            href="/pricing"
-            className="text-xs transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-          >
-            Pricing
-          </Link>
-        </nav>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        <div className="mb-10">
-          <h1
-            className="text-3xl font-medium mb-2"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
-          >
-            Your Research Projects
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Every AI response grounded exclusively in your uploaded materials.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link
-            href="/projects/new"
-            className="group flex flex-col items-center justify-center gap-3 p-8 rounded-xl transition-all hover:opacity-90"
-            style={{
-              background: 'var(--bg-surface)',
-              border: '2px dashed var(--border-default)',
-              color: 'var(--text-tertiary)',
-              minHeight: 160,
-            }}
-            aria-label="Create new research project"
-          >
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
-              style={{ background: 'var(--bg-elevated)' }}
-            >
-              <Plus size={20} aria-hidden="true" />
-            </div>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-              New Project
-            </span>
-          </Link>
-
-          {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={`/${project.id}`}
-              className="group flex flex-col justify-between p-5 rounded-xl transition-all hover:opacity-90"
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                minHeight: 160,
-              }}
-              aria-label={`Open project: ${project.name}`}
-            >
-              <div>
-                <h2
-                  className="font-medium text-base mb-1 truncate"
-                  style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
-                >
-                  {project.name}
-                </h2>
-                {project.description && (
-                  <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
-                    {project.description}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <time
-                  className="text-xs"
-                  style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-                  dateTime={project.updatedAt.toISOString()}
-                >
-                  {project.updatedAt.toLocaleDateString()}
-                </time>
-                <ArrowRight
-                  size={14}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: 'var(--text-accent)' }}
-                  aria-hidden="true"
-                />
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {projects.length === 0 && (
-          <div
-            className="mt-8 p-8 rounded-xl text-center"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
-          >
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Create your first research project to start grounding AI in your materials.
-            </p>
+    <div className="flex h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
+      <GlobalSidebar />
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        {/* Top Header */}
+        <header className="h-16 flex items-center justify-between px-8 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
+          <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
+            <span>Command Menu <kbd className="hidden sm:inline-block ml-1 px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs">⌘K</kbd></span>
           </div>
-        )}
+        </header>
+
+        <div className="flex-1 p-8 max-w-6xl mx-auto w-full">
+          {/* Header */}
+          <div className="flex justify-between items-end mb-8">
+            <div>
+              <h1 className="text-2xl font-semibold mb-1 tracking-tight">Dashboard</h1>
+              <p className="text-[var(--text-secondary)] text-sm">Welcome back</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mb-1 font-mono">Pro Plan</p>
+              <p className="text-sm font-medium">Unlimited access</p>
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-sm font-medium text-[var(--text-secondary)]">Projects Created</span>
+                <HardDrive size={16} className="text-[var(--text-tertiary)]" />
+              </div>
+              <div className="text-3xl font-semibold">{projects.length}</div>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">Total active projects</p>
+            </div>
+            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-sm font-medium text-[var(--text-secondary)]">Materials Processed</span>
+                <BarChart3 size={16} className="text-[var(--text-tertiary)]" />
+              </div>
+              <div className="text-3xl font-semibold">124</div>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">This month</p>
+            </div>
+            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-sm font-medium text-[var(--text-secondary)]">Active Chats</span>
+                <MessageSquare size={16} className="text-[var(--text-tertiary)]" />
+              </div>
+              <div className="text-3xl font-semibold">7</div>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">Ongoing sessions</p>
+            </div>
+          </div>
+
+          {/* Recent Activity / Projects */}
+          <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-medium">Recent Activity (Projects)</h2>
+              <Link href="/projects/new" className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-base)] text-xs font-medium rounded-md hover:opacity-90 transition-opacity">
+                <Plus size={14} /> New Project
+              </Link>
+            </div>
+            
+            <div className="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)] -mx-6 px-6">
+              {projects.length === 0 ? (
+                 <div className="py-8 text-center text-[var(--text-tertiary)] text-sm">No projects found. Create one to get started!</div>
+              ) : (
+                projects.map(project => (
+                  <div key={project.id} className="flex items-center justify-between py-4 group">
+                    <div className="flex flex-col">
+                      <Link href={`/${project.id}`} className="text-sm font-medium hover:underline text-[var(--text-primary)]">
+                        {project.name}
+                      </Link>
+                      <span className="text-xs text-[var(--text-tertiary)] mt-1">{project.description || 'No description provided'}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-mono text-[var(--text-tertiary)]">{new Date(project.updatedAt).toLocaleDateString()}</span>
+                      <Link href={`/${project.id}`} className="px-3 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors opacity-0 group-hover:opacity-100">
+                        Open
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );

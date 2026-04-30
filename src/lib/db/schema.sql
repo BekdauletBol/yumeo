@@ -139,11 +139,13 @@ create table if not exists chunks (
   project_id uuid not null references projects(id) on delete cascade,
   content text not null,
   embedding vector(1536), -- Assuming 1536 for common embeddings, or 1024 for voyage/claude
+  search_tsvector tsvector generated always as (to_tsvector('english', content)) stored,
   metadata jsonb not null default '{}',
   created_at timestamptz not null default now()
 );
 
 create index if not exists idx_chunks_project on chunks(project_id);
+create index if not exists idx_chunks_search on chunks using gin (search_tsvector);
 -- create index if not exists idx_chunks_embedding on chunks using hnsw (embedding vector_cosine_ops);
 
 alter table chunks enable row level security;
@@ -184,6 +186,42 @@ begin
   where chunks.project_id = p_project_id
     and 1 - (chunks.embedding <=> query_embedding) > match_threshold
   order by chunks.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
+
+-- ─── Hybrid Search RPC (vector + full-text) ───────────────────────────────
+
+create or replace function match_chunks_hybrid (
+  query_embedding vector(1536),
+  query_text text,
+  match_threshold float,
+  match_count int,
+  p_project_id uuid
+)
+returns table (
+  id uuid,
+  material_id uuid,
+  content text,
+  metadata jsonb,
+  similarity float,
+  text_rank float
+)
+language plpgsql
+as $$
+begin
+  return query
+  select
+    chunks.id,
+    chunks.material_id,
+    chunks.content,
+    chunks.metadata,
+    1 - (chunks.embedding <=> query_embedding) as similarity,
+    ts_rank(chunks.search_tsvector, websearch_to_tsquery('english', query_text)) as text_rank
+  from chunks
+  where chunks.project_id = p_project_id
+    and 1 - (chunks.embedding <=> query_embedding) >= match_threshold
+  order by (0.7 * (1 - (chunks.embedding <=> query_embedding)) + 0.3 * ts_rank(chunks.search_tsvector, websearch_to_tsquery('english', query_text))) desc
   limit match_count;
 end;
 $$;

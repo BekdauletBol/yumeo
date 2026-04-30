@@ -13,7 +13,7 @@ export default async function PricingPage() {
       style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
     >
       <Link
-        href="/"
+        href="/projects/new"
         className="absolute top-6 left-6 flex items-center gap-2 text-sm transition-colors hover:opacity-80"
         style={{ color: 'var(--text-secondary)' }}
       >

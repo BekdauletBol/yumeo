@@ -1,15 +1,40 @@
 import { auth } from '@clerk/nextjs/server';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { checkRateLimit, rateLimitResponse } from '@/lib/security/rateLimit';
-import { getAnthropicKey } from '@/lib/security/apiKeyGuard';
+import { retrieveRelevantChunks } from '@/lib/agent/rag';
+import { validateReport } from '@/lib/agent/reportValidation';
+import { createServiceClient } from '@/lib/db/supabase';
+import type { ReportAuditEntry, ReportGenerationResponse } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
 interface GenerateRequest {
   templateBody: string;
-  systemPrompt: string;
-  model?: 'claude-3-5-sonnet-latest' | 'claude-3-5-haiku-latest' | 'claude-3-opus-latest';
+  projectId: string;
+  userQuery: string;
+  model?: string;
 }
+
+type RetrievedChunk = {
+  id: string;
+  content: string;
+  metadata?: {
+    file_name?: string;
+    page?: number;
+  };
+};
+
+type ChunkRow = {
+  id: string;
+  content: string;
+  metadata?: {
+    author?: string;
+    authors?: string[];
+    year?: number;
+    doi?: string;
+    file_name?: string;
+  } | null;
+};
 
 /**
  * POST /api/generate
@@ -39,46 +64,122 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const { templateBody, systemPrompt, model = 'claude-3-5-sonnet-latest' } = body;
-
-  const userMessage = `Fill in the following research template using ONLY the provided materials.
-Replace each {{ placeholder }} with relevant content from the materials.
-Cite all sources using [REF:n] format.
-
-TEMPLATE:
-${templateBody}`;
+  const { templateBody, projectId, userQuery } = body;
 
   try {
-    const apiKey = await getAnthropicKey(userId);
-    const client = new Anthropic({ apiKey });
+    const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8)) as RetrievedChunk[];
+    if (!chunks || chunks.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "I don't have information about this in your uploaded materials.",
+          code: 'NO_SOURCES',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
 
-    const stream = client.messages.stream({
-      model,
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
+    const githubToken = process.env.GITHUB_MODELS_TOKEN;
+    if (!githubToken) throw new Error('GITHUB_MODELS_TOKEN is not configured');
+
+    const client = new OpenAI({
+      apiKey: githubToken,
+      baseURL: 'https://models.inference.ai.azure.com',
     });
 
-    const readableStream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            if (
-              chunk.type === 'content_block_delta' &&
-              chunk.delta.type === 'text_delta'
-            ) {
-              controller.enqueue(new TextEncoder().encode(chunk.delta.text));
-            }
-          }
-          controller.close();
-        } catch (err) {
-          controller.error(err);
-        }
+    const context = chunks
+      .map((chunk) => {
+        const fileName = chunk.metadata?.file_name ?? 'Unknown file';
+        const page = chunk.metadata?.page ? `Page ${chunk.metadata.page}` : 'Page ?';
+        return [
+          `CHUNK ${chunk.id}`,
+          `File: ${fileName}`,
+          `Page: ${page}`,
+          chunk.content,
+        ].join('\n');
+      })
+      .join('\n\n');
+
+    const pass1System = `You are Yumeo, a strict research assistant. You must only use the provided chunks.\n\nRULES:\n- Fill the template with grounded text only.\n- Every factual sentence must include [REF:chunk_id].\n- If content is missing, insert [SECTION_GAP].\n- Return JSON only, with keys: sections (array of {title, content}) and cited_chunk_ids (array).\n- Do not add references or bibliography.\n- Do not include any prose outside JSON.`;
+
+    const pass1User = `TEMPLATE:\n${templateBody}\n\nCHUNKS:\n${context}`;
+
+    const pass1 = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: pass1System },
+        { role: 'user', content: pass1User },
+      ],
+      temperature: 0.2,
+      max_tokens: 4096,
+    });
+
+    const pass1Text = pass1.choices[0]?.message?.content ?? '{}';
+    const pass1Json = safeParseJson<{ sections: Array<{ title: string; content: string }>; cited_chunk_ids: string[] }>(pass1Text);
+    if (!pass1Json || !Array.isArray(pass1Json.sections)) {
+      throw new Error('Pass 1 returned invalid JSON');
+    }
+
+    const draftRaw = pass1Json.sections
+      .map((section) => `## ${section.title}\n${section.content}`)
+      .join('\n\n');
+
+    const pass2System = `You are an auditor. Validate every sentence against chunk evidence.\n\nReturn JSON only as an array of { sentence, refs, status } where status is SUPPORTED | OVERSTATED | WRONG_REF | HALLUCINATED.\nUse the same [REF:chunk_id] tags in refs. Do not include any prose outside JSON.`;
+    const pass2User = `DRAFT:\n${draftRaw}\n\nCHUNKS:\n${context}`;
+
+    const pass2 = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: pass2System },
+        { role: 'user', content: pass2User },
+      ],
+      temperature: 0.1,
+      max_tokens: 4096,
+    });
+
+    const pass2Text = pass2.choices[0]?.message?.content ?? '[]';
+    const audit = safeParseJson<ReportAuditEntry[]>(pass2Text) ?? [];
+
+    const supabase = createServiceClient();
+    const citedIds = pass1Json.cited_chunk_ids ?? [];
+    const { data: chunkRows } = await supabase
+      .from('chunks')
+      .select('id, content, metadata')
+      .in('id', citedIds)
+      .eq('project_id', projectId);
+
+    const typedChunkRows = (chunkRows ?? []) as ChunkRow[];
+    const chunkRecords = typedChunkRows.map((chunk) => ({
+      id: chunk.id,
+      content: chunk.content,
+      metadata: chunk.metadata ?? undefined,
+    }));
+    const validation = validateReport(draftRaw, audit, chunkRecords);
+
+    const bibliography = typedChunkRows
+      .map((chunk) => {
+        const meta = chunk.metadata ?? {};
+        const author = meta.author ?? (meta.authors?.[0] ?? 'Unknown author');
+        const year = meta.year ? `(${meta.year})` : '';
+        const doi = meta.doi ? ` DOI: ${meta.doi}` : '';
+        const file = meta.file_name ?? 'Unknown file';
+        return `${author} ${year} ${file}.${doi}`.trim();
+      })
+      .filter(Boolean)
+      .filter((value, index, self) => self.indexOf(value) === index);
+
+    const response: ReportGenerationResponse = {
+      draft: {
+        sections: pass1Json.sections,
+        citedChunkIds: citedIds,
+        raw: draftRaw,
       },
-    });
+      audit,
+      validation,
+      bibliography,
+    };
 
-    return new Response(readableStream, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    return new Response(JSON.stringify(response), {
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -86,5 +187,19 @@ ${templateBody}`;
       JSON.stringify({ error: message, code: 'AI_ERROR' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
+  }
+}
+
+function safeParseJson<T>(raw: string): T | null {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as T;
+    } catch {
+      return null;
+    }
   }
 }

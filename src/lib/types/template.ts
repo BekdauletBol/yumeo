@@ -37,3 +37,36 @@ export interface Template {
     citationsUsed: string[];
     generatedAt: Date;
   }
+
+  export interface ReportSection {
+    title: string;
+    content: string;
+  }
+
+  export interface ReportDraft {
+    sections: ReportSection[];
+    citedChunkIds: string[];
+    raw: string;
+  }
+
+  export type ReportAuditStatus = 'SUPPORTED' | 'OVERSTATED' | 'WRONG_REF' | 'HALLUCINATED';
+
+  export interface ReportAuditEntry {
+    sentence: string;
+    refs: string[];
+    status: ReportAuditStatus;
+  }
+
+  export interface ReportValidationResult {
+    invalidRefs: string[];
+    missingCitations: string[];
+    phantomAuthors: Array<{ ref: string; author: string }>;
+    hasUnverified: boolean;
+  }
+
+  export interface ReportGenerationResponse {
+    draft: ReportDraft;
+    audit: ReportAuditEntry[];
+    validation: ReportValidationResult;
+    bibliography: string[];
+  }

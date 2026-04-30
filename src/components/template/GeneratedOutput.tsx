@@ -11,10 +11,14 @@ import {
 } from '@/lib/utils/exporters';
 import { cn } from '@/lib/utils/cn';
 
+import type { ReportValidationResult } from '@/lib/types';
+
 interface GeneratedOutputProps {
   content: string;
   templateName: string;
   isStreaming?: boolean;
+  validation?: ReportValidationResult | null;
+  bibliography?: string[];
 }
 
 /**
@@ -22,7 +26,15 @@ interface GeneratedOutputProps {
  * - Streaming: shows live text with blinking cursor
  * - Done: shows formatted content with export controls
  */
-export function GeneratedOutput({ content, templateName, isStreaming = false }: GeneratedOutputProps) {
+export function GeneratedOutput({
+  content,
+  templateName,
+  isStreaming = false,
+  validation,
+  bibliography,
+}: GeneratedOutputProps) {
+  const hasUnverified = validation?.hasUnverified ?? false;
+
   return (
     <div className="p-3">
       <div className="flex items-center justify-between mb-2">
@@ -35,9 +47,55 @@ export function GeneratedOutput({ content, templateName, isStreaming = false }: 
           )}
         </p>
         {!isStreaming && content && (
-          <ExportMenu content={content} templateName={templateName} />
+          <ExportMenu
+            content={content}
+            templateName={templateName}
+            disabled={hasUnverified}
+          />
         )}
       </div>
+
+      {validation && !isStreaming && (
+        <div
+          className="mb-2 rounded-lg px-2 py-1 text-xs"
+          style={{
+            border: '1px solid var(--border-subtle)',
+            background: hasUnverified ? 'rgba(250, 82, 82, 0.08)' : 'rgba(64, 192, 87, 0.08)',
+            color: hasUnverified ? 'var(--status-error)' : 'var(--status-success)',
+          }}
+        >
+          {hasUnverified
+            ? 'Validation failed. Resolve citations before exporting.'
+            : 'Validation passed. Export is enabled.'}
+        </div>
+      )}
+
+      {validation && hasUnverified && !isStreaming && (
+        <div
+          className="mb-3 rounded-lg px-2 py-2 text-xs space-y-1"
+          style={{
+            border: '1px solid var(--border-subtle)',
+            background: 'rgba(250, 82, 82, 0.06)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          {validation.invalidRefs.length > 0 && (
+            <p>
+              Invalid refs: {validation.invalidRefs.join(', ')}
+            </p>
+          )}
+          {validation.missingCitations.length > 0 && (
+            <p>
+              Missing citations: {validation.missingCitations.length} sentence(s)
+            </p>
+          )}
+          {validation.phantomAuthors.length > 0 && (
+            <p>
+              Phantom authors: {validation.phantomAuthors.map((p) => `${p.author} (${p.ref})`).join(', ')}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div
@@ -53,6 +111,20 @@ export function GeneratedOutput({ content, templateName, isStreaming = false }: 
       >
         {content || <span style={{ color: 'var(--text-tertiary)' }}>Generating…</span>}
       </div>
+
+      {bibliography && bibliography.length > 0 && !isStreaming && (
+        <div className="mt-3">
+          <p className="text-section-label" style={{ color: 'var(--accent-template)' }}>References</p>
+          <ul
+            className="mt-2 text-xs space-y-1"
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}
+          >
+            {bibliography.map((ref) => (
+              <li key={ref}>{ref}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -62,9 +134,10 @@ export function GeneratedOutput({ content, templateName, isStreaming = false }: 
 interface ExportMenuProps {
   content: string;
   templateName: string;
+  disabled?: boolean;
 }
 
-function ExportMenu({ content, templateName }: ExportMenuProps) {
+function ExportMenu({ content, templateName, disabled = false }: ExportMenuProps) {
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -81,12 +154,14 @@ function ExportMenu({ content, templateName }: ExportMenuProps) {
   }, [content]);
 
   const handleExportMd = useCallback(() => {
+    if (disabled) return;
     const md = exportAsMarkdown(content, templateName);
     const blob = new Blob([md], { type: 'text/markdown' });
     downloadBlob(blob, `${safeName}.md`);
-  }, [content, templateName, safeName]);
+  }, [content, templateName, safeName, disabled]);
 
   const handleExportDocx = useCallback(async () => {
+    if (disabled) return;
     setIsExporting(true);
     try {
       const blob = await exportAsDocx(content, templateName);
@@ -94,13 +169,14 @@ function ExportMenu({ content, templateName }: ExportMenuProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [content, templateName, safeName]);
+  }, [content, templateName, safeName, disabled]);
 
   const handleExportTex = useCallback(() => {
+    if (disabled) return;
     const tex = exportAsLatex(content, templateName);
     const blob = new Blob([tex], { type: 'text/plain' });
     downloadBlob(blob, `${safeName}.tex`);
-  }, [content, templateName, safeName]);
+  }, [content, templateName, safeName, disabled]);
 
   return (
     <div className="flex items-center gap-1">
@@ -116,17 +192,17 @@ function ExportMenu({ content, templateName }: ExportMenuProps) {
       </button>
 
       {/* Export .md */}
-      <ExportButton onClick={handleExportMd} label="Export .md" />
+      <ExportButton onClick={handleExportMd} label="Export .md" disabled={disabled} />
 
       {/* Export .docx */}
       <ExportButton
         onClick={() => void handleExportDocx()}
         label={isExporting ? 'Exporting…' : 'Export .docx'}
-        disabled={isExporting}
+        disabled={isExporting || disabled}
       />
 
       {/* Export .tex */}
-      <ExportButton onClick={handleExportTex} label="Export .tex" />
+      <ExportButton onClick={handleExportTex} label="Export .tex" disabled={disabled} />
     </div>
   );
 }
