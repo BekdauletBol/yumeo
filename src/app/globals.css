@@ -1,57 +1,79 @@
-@import 'katex/dist/katex.min.css';
-
-/* Fontsource imports */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ─── Design Tokens ─────────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg-base:     #111111;
-  --bg-surface:  #111111;
-  --bg-elevated: #151515;
-  --bg-overlay:  #1a1a1a;
+  /* Nia Light Palette */
+  --bg-base:     #f8f9fa;
+  --bg-surface:  #ffffff;
+  --bg-elevated: #f1f3f5;
+  --bg-overlay:  #e9ecef;
 
   /* Text */
-  --text-primary:   rgba(255, 255, 255, 0.9);
-  --text-secondary: rgba(255, 255, 255, 0.62);
-  --text-tertiary:  rgba(255, 255, 255, 0.4);
-  --text-accent:    #c8c8c8;
+  --text-primary:   #1a1b1e;
+  --text-secondary: #495057;
+  --text-tertiary:  #adb5bd;
+  --text-accent:    #228be6;
 
   /* Borders */
-  --border-subtle:  rgba(255, 255, 255, 0.08);
-  --border-default: rgba(255, 255, 255, 0.16);
-  --border-strong:  rgba(255, 255, 255, 0.24);
+  --border-subtle:  rgba(0, 0, 0, 0.05);
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-strong:  rgba(0, 0, 0, 0.15);
 
-  /* Section accent colors */
+  /* Section accents (Nia inspired) */
   --accent-refs:     #4a9eff;
-  --accent-drafts:   #9b8fff;
-  --accent-figures:  #5fcf80;
-  --accent-tables:   #f0a050;
-  --accent-template: #f07070;
-  --accent-equations: #5fa0cf;
-  --accent-diagrams:  #ec4899;
+  --accent-drafts:   #7950f2;
+  --accent-figures:  #40c057;
+  --accent-tables:   #fab005;
+  --accent-template: #fa5252;
+  --accent-equations: #22b8cf;
+  --accent-diagrams:  #e64980;
 
   /* Semantic status */
-  --status-success: #4ade80;
-  --status-warning: #fbbf24;
-  --status-error:   #f87171;
+  --status-success: #40c057;
+  --status-warning: #fab005;
+  --status-error:   #fa5252;
 
   /* Typography */
-  --font-display: 'JetBrains Mono', monospace;
+  --font-display: 'Inter', system-ui, sans-serif;
   --font-body:    'Inter', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', monospace;
 
   /* Spacing / Radii */
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
 
-  /* Transitions */
-  --transition-fast: 100ms ease;
-  --transition-base: 180ms ease;
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark {
+  /* Nia Dark Palette */
+  --bg-base:     #0a0a0a;
+  --bg-surface:  #121212;
+  --bg-elevated: #1a1a1a;
+  --bg-overlay:  #242424;
+
+  /* Text */
+  --text-primary:   rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-tertiary:  rgba(255, 255, 255, 0.4);
+  --text-accent:    #4dabf7;
+
+  /* Borders */
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-strong:  rgba(255, 255, 255, 0.18);
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 /* ─── Base Reset ─────────────────────────────────────────────── */
@@ -69,37 +91,26 @@
     color: var(--text-primary);
     font-family: var(--font-body);
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color var(--transition-base), color var(--transition-base);
   }
 
   /* Scrollbars */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
     background: var(--border-default);
-    border-radius: 2px;
+    border-radius: 10px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--border-strong);
-  }
-
-  /* Selection */
-  ::selection {
-    background: rgba(240, 185, 74, 0.25);
-    color: var(--text-primary);
-  }
-
-  /* Focus visible */
-  :focus-visible {
-    outline: 2px solid var(--text-accent);
-    outline-offset: 2px;
   }
 }
 
@@ -107,25 +118,38 @@
 @layer utilities {
   .text-display {
     font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 500;
-    line-height: 1.3;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
   }
 
   .text-section-label {
     font-family: var(--font-body);
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
+  }
+
+  .card-nia {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  }
+  .card-nia:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
   }
 
   .text-body {
     font-family: var(--font-body);
     font-size: 14px;
     font-weight: 400;
-    line-height: 1.7;
+    line-height: 1.6;
   }
 
   .text-code {
@@ -149,21 +173,28 @@
 /* ─── IDE Layout ─────────────────────────────────────────────── */
 .ide-layout {
   display: grid;
-  grid-template-rows: 44px 1fr;
-  grid-template-columns: 240px 1fr 320px;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: 240px 1fr 340px;
   grid-template-areas:
     "topbar topbar topbar"
     "sidebar chat editor";
   height: 100vh;
   overflow: hidden;
+  background: var(--bg-base);
 }
 
-.ide-topbar   { grid-area: topbar; }
-.ide-sidebar  { grid-area: sidebar; }
-.ide-chat     { grid-area: chat; }
-.ide-editor   { grid-area: editor; }
+.ide-topbar   { grid-area: topbar; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface); }
+.ide-sidebar  { grid-area: sidebar; border-right: 1px solid var(--border-subtle); background: var(--bg-surface); }
+.ide-chat     { grid-area: chat; background: var(--bg-base); }
+.ide-editor   { grid-area: editor; border-left: 1px solid var(--border-subtle); background: var(--bg-surface); }
 
 .ide-bottomnav { display: none; }
+
+@media (max-width: 1024px) {
+  .ide-layout {
+    grid-template-columns: 240px 1fr 0px;
+  }
+}
 
 @media (max-width: 768px) {
   .ide-layout {
@@ -188,6 +219,8 @@
   .ide-bottomnav {
     display: flex;
     grid-area: bottomnav;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
   }
 }
 
@@ -205,36 +238,44 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 6px;
-  background: rgba(240, 185, 74, 0.12);
-  border: 1px solid rgba(240, 185, 74, 0.3);
-  border-radius: 0;
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-accent);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
   vertical-align: middle;
 }
 .citation-chip:hover {
-  background: rgba(240, 185, 74, 0.22);
+  background: var(--bg-overlay);
+  border-color: var(--text-accent);
 }
 
 /* ─── File Upload Zone ───────────────────────────────────────── */
 .upload-zone {
   border: 2px dashed var(--border-default);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   transition: border-color var(--transition-fast), background var(--transition-fast);
+  background: var(--bg-elevated);
 }
 .upload-zone.dragging {
   border-color: var(--text-accent);
-  background: rgba(240, 185, 74, 0.04);
+  background: var(--bg-overlay);
 }
 
 /* ─── Skeleton Loading ───────────────────────────────────────── */
 .skeleton {
-  background: var(--bg-overlay);
-  border-radius: 0;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
 }
 
 /* ─── Section Color Indicators ───────────────────────────────── */
@@ -247,10 +288,10 @@
 /* ─── Clerk Auth Theme ───────────────────────────────────────── */
 .cl-card,
 .cl-rootBox {
-  background: #151515 !important;
+  background: var(--bg-surface) !important;
   border: 1px solid var(--border-default) !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 .cl-headerTitle,
@@ -266,21 +307,20 @@
 .cl-formFieldInput,
 .cl-formButtonPrimary,
 .cl-socialButtonsBlockButton {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: none !important;
 }
 
 .cl-formFieldInput,
 .cl-socialButtonsBlockButton {
-  background: #171717 !important;
+  background: var(--bg-elevated) !important;
   border: 1px solid var(--border-default) !important;
   color: var(--text-primary) !important;
 }
 
 .cl-formButtonPrimary {
-  background: #242424 !important;
-  border: 1px solid var(--border-default) !important;
-  color: var(--text-primary) !important;
+  background: var(--text-primary) !important;
+  color: var(--bg-surface) !important;
 }
 
 .cl-socialButtonsBlockButton {
