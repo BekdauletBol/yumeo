@@ -1,4 +1,4 @@
-import type { Material, ProjectSettings } from '@/lib/types';
+import type { Material, ProjectSettings, ProjectSection } from '@/lib/types';
 import { truncateToTokens } from '@/lib/utils/truncate';
 
 const MATERIAL_CONTEXT_BUDGET_TOKENS = 6_000;
@@ -12,19 +12,28 @@ export const BLOCKED_TOPICS = [
 /**
  * Build the system prompt for the Yumeo research agent.
  * Connects all workspace panels (references, drafts, figures, tables, equations, diagrams, templates).
+ * If activeSections is provided, only includes materials from those sections.
  */
 export function buildSystemPrompt(
   materials: Material[],
   _settings: ProjectSettings,
+  activeSections?: ProjectSection[],
 ): string {
+  // Filter materials to only include those from active sections
+  let filteredMaterials = materials;
+  if (activeSections && activeSections.length > 0) {
+    const activeSectionIds = new Set(activeSections.map(s => s.id));
+    filteredMaterials = materials.filter(m => !m.sectionId || activeSectionIds.has(m.sectionId));
+  }
+
   // Categorize materials
-  const references = materials.filter(m => m.section === 'references');
-  const drafts = materials.filter(m => m.section === 'drafts');
-  const figures = materials.filter(m => m.section === 'figures');
-  const tables = materials.filter(m => m.section === 'tables');
-  const equations = materials.filter(m => m.section === 'equations');
-  const diagrams = materials.filter(m => m.section === 'diagrams');
-  const templates = materials.filter(m => m.section === 'templates');
+  const references = filteredMaterials.filter(m => m.section === 'references');
+  const drafts = filteredMaterials.filter(m => m.section === 'drafts');
+  const figures = filteredMaterials.filter(m => m.section === 'figures');
+  const tables = filteredMaterials.filter(m => m.section === 'tables');
+  const equations = filteredMaterials.filter(m => m.section === 'equations');
+  const diagrams = filteredMaterials.filter(m => m.section === 'diagrams');
+  const templates = filteredMaterials.filter(m => m.section === 'templates');
 
   const activeTemplate = templates[0];
 

@@ -7,6 +7,7 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { useChatStore } from '@/stores/chatStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
 import type { ChatMessage, AnthropicMessage } from '@/lib/types';
@@ -30,6 +31,8 @@ export function ChatPanel() {
 
   const materials = useMaterialsStore((s) => s.materials);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const sections = useProjectSectionsStore((s) => s.sections);
+  const activeSections = sections.filter((s) => s.isActive);
 
   // Track when the first reference is uploaded to show the toast once
   const prevRefCount = useRef(0);
@@ -69,7 +72,7 @@ export function ChatPanel() {
       addMessage(assistantMessage);
       setIsStreaming(true);
 
-      const systemPrompt = buildSystemPrompt(materials, activeProject.settings);
+      const systemPrompt = buildSystemPrompt(materials, activeProject.settings, activeSections);
 
       const history: AnthropicMessage[] = messages
         .filter((m) => m.role !== 'system' && m.content)
@@ -77,6 +80,12 @@ export function ChatPanel() {
       history.push({ role: 'user', content: userText });
 
       try {
+        console.log('[ChatPanel] 📤 Sending request to /api/agent:', {
+          messagesCount: history.length,
+          projectId: activeProject.id,
+          userQuery: userText.substring(0, 50),
+        });
+
         const response = await fetch('/api/agent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -89,8 +98,12 @@ export function ChatPanel() {
           }),
         });
 
+        console.log('[ChatPanel] Response status:', response.status, response.statusText);
+
         if (!response.ok || !response.body) {
+          console.error('[ChatPanel] ❌ Response not ok:', response.status);
           const err = (await response.json()) as { error?: string };
+          console.error('[ChatPanel] Error body:', err);
           updateMessage(assistantId, {
             content: `Error: ${err.error ?? 'Failed to get a response'}`,
             isStreaming: false,
@@ -99,15 +112,22 @@ export function ChatPanel() {
           return;
         }
 
+        console.log('[ChatPanel] ✅ Response ok, starting stream read');
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
+        let chunkCount = 0;
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            console.log(`[ChatPanel] ✅ Stream complete. Total chunks: ${chunkCount}, content length: ${fullContent.length}`);
+            break;
+          }
+          chunkCount++;
           const chunk = decoder.decode(value, { stream: true });
           fullContent += chunk;
+          console.log(`[ChatPanel] 📨 Chunk ${chunkCount}: ${chunk.length} chars`);
           appendStreamingContent(chunk);
         }
 
@@ -126,6 +146,7 @@ export function ChatPanel() {
         finalizeStreamingMessage(assistantId);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Network error';
+        console.error('[ChatPanel] ❌ Error:', message, err);
         updateMessage(assistantId, {
           content: `Connection error: ${message}. Please try again.`,
           isStreaming: false,

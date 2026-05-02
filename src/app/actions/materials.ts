@@ -11,6 +11,7 @@ function rowToMaterial(row: Record<string, unknown>): Material {
     id: row['id'] as string,
     projectId: row['project_id'] as string,
     section: row['section'] as Material['section'],
+    sectionId: (row['section_id'] as string | null) ?? undefined,
     name: row['name'] as string,
     content: row['content'] as string,
     storageUrl: (row['storage_url'] as string | null) ?? undefined,
@@ -35,10 +36,25 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
     
   if (projErr || !project) throw new Error('Project not found or unauthorized');
 
+  // If sectionId is provided, verify it belongs to this project
+  let verifiedSectionId: string | null = null;
+  if (input.sectionId) {
+    const { data: section } = await supabase
+      .from('project_sections')
+      .select('id')
+      .eq('id', input.sectionId)
+      .eq('project_id', input.projectId)
+      .single();
+    
+    if (!section) throw new Error('Section not found in this project');
+    verifiedSectionId = input.sectionId;
+  }
+
   const { data, error } = await supabase
     .from('materials')
     .insert({
       project_id: input.projectId,
+      section_id: verifiedSectionId,
       section: input.section,
       name: input.name,
       content: input.content,
@@ -54,11 +70,16 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
 
   const material = rowToMaterial(data);
 
-  // Fire-and-forget chunking/embedding
+  // Fire-and-forget chunking/embedding (for all sections that need search)
   if (material.section === 'references' || material.section === 'drafts' || material.section === 'tables') {
+    console.log('[materials] 🔄 Starting background embedding for:', material.name, 'section:', material.section);
+    console.log('[materials] GITHUB_MODELS_TOKEN available:', !!process.env.GITHUB_MODELS_TOKEN);
     chunkAndEmbedMaterial(material).catch(err => {
-      console.error('Background embedding failed:', err);
+      console.error('[materials] ❌ Background embedding failed for material:', material.id, 
+        err instanceof Error ? err.message : err);
     });
+  } else {
+    console.log('[materials] ⏭️  Skipping embedding for section:', material.section);
   }
 
   return material;

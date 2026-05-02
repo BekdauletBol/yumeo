@@ -14,6 +14,8 @@ import { nanoid } from 'nanoid';
 
 interface FileUploadZoneProps {
   section: MaterialSection;
+  /** Reference to project_sections table (for new dynamic sections) */
+  sectionId?: string;
   /** Compact mode for sidebar inline upload */
   compact?: boolean;
   onUploadComplete?: () => void;
@@ -145,7 +147,7 @@ async function extractContent(file: File): Promise<{
   };
 }
 
-export function FileUploadZone({ section, compact = false, onUploadComplete }: FileUploadZoneProps) {
+export function FileUploadZone({ section, sectionId, compact = false, onUploadComplete }: FileUploadZoneProps) {
   const inputId = useId();
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState<UploadProgress[]>([]);
@@ -194,9 +196,10 @@ export function FileUploadZone({ section, compact = false, onUploadComplete }: F
         results[i] = { filename: file.name, status: 'saving' };
         setProgress([...results]);
 
-        const materialInput: CreateMaterialInput = {
+        const materialInput: CreateMaterialInput & { sectionId?: string } = {
           projectId: activeProject.id,
           section: targetSection,
+          sectionId,
           name: file.name,
           content,
           metadata,
@@ -238,7 +241,7 @@ export function FileUploadZone({ section, compact = false, onUploadComplete }: F
       setProgress([]);
       onUploadComplete?.();
     }, 2500);
-  }, [activeProject, section, addMaterial, onUploadComplete]);
+  }, [activeProject, section, sectionId, addMaterial, onUploadComplete]);
 
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();

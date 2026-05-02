@@ -27,3 +27,28 @@ export async function updateProjectAction(id: string, updates: { settings?: Proj
     
   if (error) throw new Error(`Failed to update project: ${error.message}`);
 }
+
+export async function deleteProjectAction(id: string) {
+  const { userId } = auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const supabase = createServiceClient();
+  
+  // Verify ownership
+  const { data: project, error: projErr } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
+    
+  if (projErr || !project) throw new Error('Project not found or unauthorized');
+
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+    
+  if (error) throw new Error(`Failed to delete project: ${error.message}`);
+}

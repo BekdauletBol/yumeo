@@ -20,17 +20,19 @@ export default function HomePage() {
     }
   }, [isLoaded, user, router]);
 
-  // Fetch projects (simulated API fetch, normally you'd use a tRPC/SWR hook or server actions passed as props)
+  // Fetch projects for the authenticated user
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch('/api/projects'); // or however you fetch client side
-        if (response.ok) {
-           const data = await response.json();
-           setProjects(data);
+        const response = await fetch('/api/projects');
+        if (!response.ok) {
+          console.error('Failed to fetch projects:', response.status, response.statusText);
+          return;
         }
+        const data = await response.json();
+        setProjects(data || []);
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching projects:', err);
       }
     };
     if (user) fetchProjects();

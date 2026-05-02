@@ -1,23 +1,22 @@
 import { create } from 'zustand';
-import type { Material, MaterialSection } from '@/lib/types';
+import type { Material } from '@/lib/types';
 
 interface MaterialsState {
   materials: Material[];
-  activeSection: MaterialSection;
   selectedMaterialId: string | null;
 
   setMaterials: (materials: Material[]) => void;
   addMaterial: (material: Material) => void;
   updateMaterial: (material: Material) => void;
   removeMaterial: (id: string) => void;
-  setActiveSection: (section: MaterialSection) => void;
   setSelectedMaterialId: (id: string | null) => void;
-
+  
+  // Helper: get materials for a specific section
+  getMaterialsBySection: (sectionId: string) => Material[];
 }
 
-export const useMaterialsStore = create<MaterialsState>((set) => ({
+export const useMaterialsStore = create<MaterialsState>((set, get) => ({
   materials: [],
-  activeSection: 'references',
   selectedMaterialId: null,
 
   setMaterials: (materials) => set({ materials }),
@@ -37,6 +36,10 @@ export const useMaterialsStore = create<MaterialsState>((set) => ({
         state.selectedMaterialId === id ? null : state.selectedMaterialId,
     })),
 
-  setActiveSection: (section) => set({ activeSection: section }),
   setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
+
+  getMaterialsBySection: (sectionId: string) => {
+    const { materials } = get();
+    return materials.filter((m) => m.sectionId === sectionId);
+  },
 }));

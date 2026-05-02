@@ -21,10 +21,25 @@ create table if not exists projects (
   updated_at  timestamptz not null default now()
 );
 
+-- ─── Dynamic Project Sections ──────────────────────────────────────────────
+
+create table if not exists project_sections (
+  id           uuid primary key default gen_random_uuid(),
+  project_id   uuid not null references projects(id) on delete cascade,
+  name         text not null,
+  section_type text not null check (section_type in ('references','drafts','figures','tables','templates','equations','diagrams')),
+  display_order int not null default 0,
+  is_active    boolean not null default true,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  unique(project_id, section_type)  -- One section type per project
+);
+
 create table if not exists materials (
   id          uuid primary key default gen_random_uuid(),
   project_id  uuid not null references projects(id) on delete cascade,
-  section     text not null check (section in ('references','drafts','figures','tables','templates','equations','diagrams')),
+  section_id  uuid references project_sections(id) on delete cascade,
+  section     text check (section in ('references','drafts','figures','tables','templates','equations','diagrams')),
   name        text not null,
   content     text not null default '',
   storage_url text,
@@ -54,7 +69,9 @@ create table if not exists user_plans (
 -- ─── Indexes ────────────────────────────────────────────────────────────────
 
 create index if not exists idx_projects_user_id   on projects(user_id);
+create index if not exists idx_project_sections_project on project_sections(project_id);
 create index if not exists idx_materials_project   on materials(project_id);
+create index if not exists idx_materials_section_id on materials(section_id);
 create index if not exists idx_materials_section   on materials(project_id, section);
 create index if not exists idx_messages_project    on messages(project_id, created_at);
 
@@ -75,6 +92,7 @@ create trigger projects_updated_at
 -- ─── Row-Level Security ─────────────────────────────────────────────────────
 
 alter table projects    enable row level security;
+alter table project_sections enable row level security;
 alter table materials   enable row level security;
 alter table messages    enable row level security;
 alter table user_plans  enable row level security;
@@ -84,6 +102,15 @@ create policy "users own projects"
   on projects for all
   using (user_id = auth.uid()::text)
   with check (user_id = auth.uid()::text);
+
+-- Project sections: scoped through project ownership
+create policy "users own project_sections"
+  on project_sections for all
+  using (
+    project_id in (
+      select id from projects where user_id = auth.uid()::text
+    )
+  );
 
 -- Materials: scoped through project ownership
 create policy "users own materials"

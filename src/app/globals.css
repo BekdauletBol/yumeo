@@ -9,12 +9,15 @@
   --bg-surface:  #ffffff;
   --bg-elevated: #f1f3f5;
   --bg-overlay:  #e9ecef;
+  --bg-primary:  #ffffff;
+  --bg-secondary: #f1f3f5;
 
   /* Text */
   --text-primary:   #1a1b1e;
   --text-secondary: #495057;
   --text-tertiary:  #adb5bd;
   --text-accent:    #228be6;
+  --text-on-accent: #ffffff;
 
   /* Borders */
   --border-subtle:  rgba(0, 0, 0, 0.05);
@@ -29,6 +32,7 @@
   --accent-template: #fa5252;
   --accent-equations: #22b8cf;
   --accent-diagrams:  #e64980;
+  --accent-primary: #228be6;
 
   /* Semantic status */
   --status-success: #40c057;
@@ -59,17 +63,23 @@
   --bg-surface:  #121212;
   --bg-elevated: #1a1a1a;
   --bg-overlay:  #242424;
+  --bg-primary:  #121212;
+  --bg-secondary: #1a1a1a;
 
   /* Text */
   --text-primary:   rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.65);
   --text-tertiary:  rgba(255, 255, 255, 0.4);
   --text-accent:    #4dabf7;
+  --text-on-accent: #0a0a0a;
 
   /* Borders */
   --border-subtle:  rgba(255, 255, 255, 0.06);
   --border-default: rgba(255, 255, 255, 0.1);
   --border-strong:  rgba(255, 255, 255, 0.18);
+
+  /* Accents */
+  --accent-primary: #4dabf7;
 
   /* Shadow */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);

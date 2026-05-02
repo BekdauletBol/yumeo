@@ -29,7 +29,10 @@ type RetrievedChunk = {
  * Streams a grounded AI response via GitHub Models (GPT-4o).
  */
 export async function POST(req: Request): Promise<Response> {
+  console.log('[agent] 🚀 POST /api/agent received request');
+
   const { userId } = auth();
+  console.log('[agent] Auth userId:', userId ? '✓ authenticated' : '✗ not authenticated');
   if (!userId) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized', code: 'UNAUTHORIZED' }),
@@ -43,6 +46,12 @@ export async function POST(req: Request): Promise<Response> {
   let body: AgentRequest;
   try {
     body = (await req.json()) as AgentRequest;
+    console.log('[agent] Request body parsed:', {
+      messagesCount: body.messages?.length,
+      projectId: body.projectId,
+      userQuery: body.userQuery?.substring(0, 50),
+      model: body.model,
+    });
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid JSON body', code: 'BAD_REQUEST' }),
@@ -53,6 +62,13 @@ export async function POST(req: Request): Promise<Response> {
   const { messages, systemPrompt, projectId, userQuery, model = 'gpt-4o' } = body;
 
   if (!systemPrompt || !messages || messages.length === 0 || !projectId || !userQuery) {
+    console.warn('[agent] ⚠️ Missing required fields:', {
+      hasSystemPrompt: !!systemPrompt,
+      hasMessages: !!messages,
+      messagesLen: messages?.length,
+      hasProjectId: !!projectId,
+      hasUserQuery: !!userQuery,
+    });
     return new Response(
       JSON.stringify({ error: 'Missing required fields', code: 'BAD_REQUEST' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } },
@@ -75,19 +91,28 @@ export async function POST(req: Request): Promise<Response> {
   let finalSystemPrompt = systemPrompt;
   let retrievedChunks: RetrievedChunk[] = [];
   try {
+    console.log('[agent] 🔍 Starting RAG retrieval for query:', userQuery.substring(0, 50));
     const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8)) as RetrievedChunk[];
+    console.log('[agent] RAG result:', {
+      chunksRetrieved: chunks?.length || 0,
+      projectId,
+      chunkIds: chunks?.slice(0, 3).map(c => c.id),
+    });
     if (chunks && chunks.length > 0) {
       retrievedChunks = chunks;
       const context = chunks
         .map((c) => `[REFERENCE EXCERPT]\n${c.content}`)
         .join('\n\n');
       finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${context}`;
+      console.log(`[agent] ✅ RAG enriched prompt with ${chunks.length} chunks`);
     }
   } catch (err) {
-    console.warn('RAG retrieval skipped:', err instanceof Error ? err.message : err);
+    console.warn('[agent] ⚠️ RAG retrieval failed:', err instanceof Error ? err.message : err);
   }
 
   if (retrievedChunks.length === 0) {
+    console.warn('[agent] ⚠️  No chunks retrieved - check if materials are uploaded and embedded');
+    console.warn('[agent] Possible causes: no OPENAI_API_KEY, materials not chunked, or no search index');
     const fallback = "I don't have information about this in your uploaded materials.";
     const encoder = new TextEncoder();
     return new Response(
@@ -105,6 +130,11 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     const githubToken = process.env.GITHUB_MODELS_TOKEN;
+    console.log('[agent] Checking GitHub Models env vars:', {
+      hasToken: !!githubToken,
+      tokenLength: githubToken?.length || 0,
+      model: model.includes('gpt') ? model : 'gpt-4o',
+    });
     if (!githubToken) throw new Error('GITHUB_MODELS_TOKEN is not configured');
 
     const client = new OpenAI({
@@ -112,6 +142,7 @@ export async function POST(req: Request): Promise<Response> {
       baseURL: 'https://models.inference.ai.azure.com',
     });
 
+    console.log('[agent] 🤖 Calling GitHub Models API with model:', model.includes('gpt') ? model : 'gpt-4o');
     const stream = await client.chat.completions.create({
       model: model.includes('gpt') ? model : 'gpt-4o',
       messages: [
@@ -126,25 +157,31 @@ export async function POST(req: Request): Promise<Response> {
       temperature: 0.7,
     });
 
+    console.log('[agent] ✅ Stream opened successfully');
+
     const outStream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
+          let tokenCount = 0;
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || '';
             if (content) {
+              tokenCount += content.length;
               controller.enqueue(encoder.encode(content));
             }
           }
-          controller.enqueue(encoder.encode(`\n\n${sourcesLine}`));
+          console.log(`[agent] ✅ Streaming complete: ${tokenCount} chars`);
+          controller.enqueue(encoder.encode(`\n\n${buildSourcesLine(retrievedChunks)}`));
           controller.close();
         } catch (err) {
-          console.error('[agent] Stream processing error:', err);
+          console.error('[agent] ❌ Stream processing error:', err);
           controller.error(err);
         }
       },
     });
 
+    console.log('[agent] 📤 Returning readable stream response');
     return new Response(outStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -154,7 +191,10 @@ export async function POST(req: Request): Promise<Response> {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'GitHub Models error';
-    console.error('[agent] Fatal error:', err);
+    console.error('[agent] ❌ Fatal error:', {
+      message,
+      error: err instanceof Error ? err.stack : err,
+    });
     return new Response(
       JSON.stringify({ error: message, code: 'AI_ERROR' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },

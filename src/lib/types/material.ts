@@ -13,6 +13,7 @@ export interface Material {
   id: string;
   projectId: string;
   section: MaterialSection;
+  sectionId?: string;  // Reference to project_sections.id
   name: string;
   /** Extracted plain-text content (from PDF, OCR, etc.) */
   content: string;
@@ -20,6 +21,18 @@ export interface Material {
   storageUrl?: string;
   metadata: MaterialMetadata;
   createdAt: Date;
+}
+
+/** A project section (dynamically created by user) */
+export interface ProjectSection {
+  id: string;
+  projectId: string;
+  name: string;  // User-friendly name (e.g., "My References")
+  sectionType: MaterialSection;  // Type enum
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /** File-level metadata attached to a material */
@@ -42,6 +55,11 @@ export interface MaterialMetadata {
 
 export type CreateMaterialInput = Omit<Material, 'id' | 'createdAt'>;
 export type UpdateMaterialInput = Partial<Pick<Material, 'name' | 'content' | 'metadata'>>;
+
+// Allow sectionId to be passed in create input
+export interface CreateMaterialWithSectionInput extends CreateMaterialInput {
+  sectionId?: string;
+}
 
 /** Display label per section */
 export const SECTION_LABELS: Record<MaterialSection, string> = {
