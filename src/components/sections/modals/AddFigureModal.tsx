@@ -114,6 +114,7 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
             >
               {preview ? (
                 <div className="relative w-full h-48">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={preview}
                     alt="preview"

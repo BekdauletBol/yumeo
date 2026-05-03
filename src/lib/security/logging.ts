@@ -64,6 +64,7 @@ export function logSecurityEvent(log: SecurityLog): void {
       critical: '\x1b[41m',
     };
     const reset = '\x1b[0m';
+    // eslint-disable-next-line no-console
     console.log(
       `${color[log.level]}[${log.eventType}]${reset}`,
       JSON.stringify(sanitizedLog, null, 2),
@@ -79,6 +80,7 @@ export function logSecurityEvent(log: SecurityLog): void {
 
   // Alert on critical events
   if (log.level === 'critical') {
+    // eslint-disable-next-line no-console
     console.error('🚨 CRITICAL SECURITY EVENT:', sanitizedLog);
     // TODO: Send alert to security team
   }

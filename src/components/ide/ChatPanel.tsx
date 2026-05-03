@@ -80,6 +80,7 @@ export function ChatPanel() {
       history.push({ role: 'user', content: userText });
 
       try {
+        // eslint-disable-next-line no-console
         console.log('[ChatPanel] 📤 Sending request to /api/agent:', {
           messagesCount: history.length,
           projectId: activeProject.id,
@@ -98,11 +99,14 @@ export function ChatPanel() {
           }),
         });
 
+        // eslint-disable-next-line no-console
         console.log('[ChatPanel] Response status:', response.status, response.statusText);
 
         if (!response.ok || !response.body) {
+          // eslint-disable-next-line no-console
           console.error('[ChatPanel] ❌ Response not ok:', response.status);
           const err = (await response.json()) as { error?: string };
+          // eslint-disable-next-line no-console
           console.error('[ChatPanel] Error body:', err);
           updateMessage(assistantId, {
             content: `Error: ${err.error ?? 'Failed to get a response'}`,
@@ -112,6 +116,7 @@ export function ChatPanel() {
           return;
         }
 
+        // eslint-disable-next-line no-console
         console.log('[ChatPanel] ✅ Response ok, starting stream read');
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -121,12 +126,14 @@ export function ChatPanel() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
+            // eslint-disable-next-line no-console
             console.log(`[ChatPanel] ✅ Stream complete. Total chunks: ${chunkCount}, content length: ${fullContent.length}`);
             break;
           }
           chunkCount++;
           const chunk = decoder.decode(value, { stream: true });
           fullContent += chunk;
+          // eslint-disable-next-line no-console
           console.log(`[ChatPanel] 📨 Chunk ${chunkCount}: ${chunk.length} chars`);
           appendStreamingContent(chunk);
         }
@@ -146,6 +153,7 @@ export function ChatPanel() {
         finalizeStreamingMessage(assistantId);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Network error';
+        // eslint-disable-next-line no-console
         console.error('[ChatPanel] ❌ Error:', message, err);
         updateMessage(assistantId, {
           content: `Connection error: ${message}. Please try again.`,
@@ -163,6 +171,7 @@ export function ChatPanel() {
       setIsStreaming,
       appendStreamingContent,
       finalizeStreamingMessage,
+      activeSections,
     ],
   );
 

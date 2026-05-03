@@ -84,7 +84,7 @@ export async function createProjectSectionAction(
   if (projErr || !project) throw new Error('Project not found or unauthorized');
 
   // Check if section already exists
-  const { data: existing, error: checkErr } = await supabase
+  const { data: existing } = await supabase
     .from('project_sections')
     .select('id')
     .eq('project_id', projectId)
@@ -110,7 +110,8 @@ export async function createProjectSectionAction(
     diagrams: 'Mermaid Diagrams',
   };
 
-  const name = customName || DEFAULT_NAMES[sectionType];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _sectionName = customName || DEFAULT_NAMES[sectionType];
 
   // Create section
   const { data, error } = await supabase
@@ -199,7 +200,7 @@ export async function toggleProjectSectionAction(sectionId: string): Promise<Pro
  */
 export async function reorderSectionsAction(
   projectId: string,
-  sectionOrders: Array<{ id: string; displayOrder: number }>
+  _sectionOrders: Array<{ id: string; displayOrder: number }>
 ): Promise<ProjectSection[]> {
   const { userId } = auth();
   if (!userId) throw new Error('Unauthorized');

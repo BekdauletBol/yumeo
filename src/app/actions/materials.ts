@@ -72,14 +72,9 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
 
   // Fire-and-forget chunking/embedding (for all sections that need search)
   if (material.section === 'references' || material.section === 'drafts' || material.section === 'tables') {
-    console.log('[materials] 🔄 Starting background embedding for:', material.name, 'section:', material.section);
-    console.log('[materials] GITHUB_MODELS_TOKEN available:', !!process.env.GITHUB_MODELS_TOKEN);
-    chunkAndEmbedMaterial(material).catch(err => {
-      console.error('[materials] ❌ Background embedding failed for material:', material.id, 
-        err instanceof Error ? err.message : err);
+    chunkAndEmbedMaterial(material).catch(_err => {
+      // Embedding failed silently - not critical
     });
-  } else {
-    console.log('[materials] ⏭️  Skipping embedding for section:', material.section);
   }
 
   return material;

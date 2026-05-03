@@ -29,9 +29,11 @@ type RetrievedChunk = {
  * Streams a grounded AI response via GitHub Models (GPT-4o).
  */
 export async function POST(req: Request): Promise<Response> {
+  // eslint-disable-next-line no-console
   console.log('[agent] 🚀 POST /api/agent received request');
 
   const { userId } = auth();
+  // eslint-disable-next-line no-console
   console.log('[agent] Auth userId:', userId ? '✓ authenticated' : '✗ not authenticated');
   if (!userId) {
     return new Response(
@@ -46,6 +48,7 @@ export async function POST(req: Request): Promise<Response> {
   let body: AgentRequest;
   try {
     body = (await req.json()) as AgentRequest;
+    // eslint-disable-next-line no-console
     console.log('[agent] Request body parsed:', {
       messagesCount: body.messages?.length,
       projectId: body.projectId,
@@ -62,6 +65,7 @@ export async function POST(req: Request): Promise<Response> {
   const { messages, systemPrompt, projectId, userQuery, model = process.env.GITHUB_MODELS_MODEL || 'gpt-5' } = body;
 
   if (!systemPrompt || !messages || messages.length === 0 || !projectId || !userQuery) {
+    // eslint-disable-next-line no-console
     console.warn('[agent] ⚠️ Missing required fields:', {
       hasSystemPrompt: !!systemPrompt,
       hasMessages: !!messages,
@@ -91,8 +95,10 @@ export async function POST(req: Request): Promise<Response> {
   let finalSystemPrompt = systemPrompt;
   let retrievedChunks: RetrievedChunk[] = [];
   try {
+    // eslint-disable-next-line no-console
     console.log('[agent] 🔍 Starting RAG retrieval for query:', userQuery.substring(0, 50));
     const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8)) as RetrievedChunk[];
+    // eslint-disable-next-line no-console
     console.log('[agent] RAG result:', {
       chunksRetrieved: chunks?.length || 0,
       projectId,
@@ -104,21 +110,27 @@ export async function POST(req: Request): Promise<Response> {
         .map((c) => `[REFERENCE EXCERPT]\n${c.content}`)
         .join('\n\n');
       finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${context}`;
+      // eslint-disable-next-line no-console
       console.log(`[agent] ✅ RAG enriched prompt with ${chunks.length} chunks`);
     } else {
+      // eslint-disable-next-line no-console
       console.log('[agent] ℹ️  No relevant chunks found - proceeding with base knowledge');
     }
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.warn('[agent] ⚠️ RAG retrieval failed:', err instanceof Error ? err.message : err);
+    // eslint-disable-next-line no-console
     console.warn('[agent] Possible causes: no GITHUB_MODELS_TOKEN, chunks table missing, or materials not embedded');
   }
 
   // Continue with LLM call even if no chunks (use base knowledge)
 
-  const sourcesLine = buildSourcesLine(retrievedChunks);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _sourcesLine = buildSourcesLine(retrievedChunks);
 
   try {
     const githubToken = process.env.GITHUB_MODELS_TOKEN;
+    // eslint-disable-next-line no-console
     console.log('[agent] Checking GitHub Models env vars:', {
       hasToken: !!githubToken,
       tokenLength: githubToken?.length || 0,
@@ -131,6 +143,7 @@ export async function POST(req: Request): Promise<Response> {
       baseURL: 'https://models.inference.ai.azure.com',
     });
 
+    // eslint-disable-next-line no-console
     console.log('[agent] 🤖 Calling GitHub Models API with model:', model.includes('gpt') ? model : 'gpt-4o');
     const stream = await client.chat.completions.create({
       model: model.includes('gpt') ? model : process.env.GITHUB_MODELS_MODEL || 'gpt-5',
@@ -146,6 +159,7 @@ export async function POST(req: Request): Promise<Response> {
       temperature: 0.7,
     });
 
+    // eslint-disable-next-line no-console
     console.log('[agent] ✅ Stream opened successfully');
 
     const outStream = new ReadableStream({
@@ -160,6 +174,7 @@ export async function POST(req: Request): Promise<Response> {
               controller.enqueue(encoder.encode(content));
             }
           }
+          // eslint-disable-next-line no-console
           console.log(`[agent] ✅ Streaming complete: ${tokenCount} chars`);
           
           // Append sources citation footer with enforcement
@@ -167,6 +182,7 @@ export async function POST(req: Request): Promise<Response> {
           controller.enqueue(encoder.encode(`\n\n${sourcesFooter}`));
           
           // Log citation enforcement
+          // eslint-disable-next-line no-console
           console.log('[agent] ✅ Citation enforcement:', {
             sourcesUsed: retrievedChunks.length,
             sourcesFooter,
@@ -174,12 +190,14 @@ export async function POST(req: Request): Promise<Response> {
           
           controller.close();
         } catch (err) {
+          // eslint-disable-next-line no-console
           console.error('[agent] ❌ Stream processing error:', err);
           controller.error(err);
         }
       },
     });
 
+    // eslint-disable-next-line no-console
     console.log('[agent] 📤 Returning readable stream response');
     return new Response(outStream, {
       headers: {
@@ -190,6 +208,7 @@ export async function POST(req: Request): Promise<Response> {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'GitHub Models error';
+    // eslint-disable-next-line no-console
     console.error('[agent] ❌ Fatal error:', {
       message,
       error: err instanceof Error ? err.stack : err,

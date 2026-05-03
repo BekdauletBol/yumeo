@@ -5,6 +5,7 @@ import type { Material } from '@/lib/types';
 const getEmbeddingClient = () => {
   const githubToken = process.env.GITHUB_MODELS_TOKEN;
   if (!githubToken) {
+    // eslint-disable-next-line no-console
     console.warn('[RAG] ⚠️ GITHUB_MODELS_TOKEN not set - embeddings will be random');
     return null;
   }
@@ -115,6 +116,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   
   if (token) {
     try {
+      // eslint-disable-next-line no-console
       console.log('[RAG] 🔑 Using GitHub Models for embedding');
       const response = await fetch('https://models.inference.ai.azure.com/embeddings', {
         method: 'POST',
@@ -137,14 +139,17 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       const embedding = data.data?.[0]?.embedding;
       
       if (!embedding) throw new Error('No embedding returned from GitHub Models');
+      // eslint-disable-next-line no-console
       console.log('[RAG] ✅ Generated embedding: 1536 dims');
       return embedding;
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('[RAG] ❌ Failed to generate embedding via GitHub Models:', err instanceof Error ? err.message : err);
       throw err;
     }
   } else {
     // Dummy embedding for local testing if no API key
+    // eslint-disable-next-line no-console
     console.warn('[RAG] ⚠️  GITHUB_MODELS_TOKEN not set - using dummy random embeddings (RAG will not work)');
     return Array.from({ length: 1536 }, () => Math.random() - 0.5);
   }
@@ -152,17 +157,21 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
 export async function chunkAndEmbedMaterial(material: Material) {
   if (!material.content || material.content.trim() === '') {
+    // eslint-disable-next-line no-console
     console.warn(`[materials] ⚠️  Skipping embedding for empty material: ${material.name}`);
     return;
   }
 
   try {
+    // eslint-disable-next-line no-console
     console.log(`[materials] 📄 Processing material for embedding: ${material.name} (${material.id})`);
+    // eslint-disable-next-line no-console
     console.log(`[materials] GITHUB_MODELS_TOKEN available: ${!!process.env.GITHUB_MODELS_TOKEN}`);
     
     const paragraphs = collectParagraphs(material.content, material.metadata.pageText);
     const chunks = buildChunks(paragraphs);
     
+    // eslint-disable-next-line no-console
     console.log(`[materials] ✂️  Split into ${chunks.length} chunks`);
     
     const supabase = createServiceClient();
@@ -174,6 +183,7 @@ export async function chunkAndEmbedMaterial(material: Material) {
 
       try {
         const embedding = await generateEmbedding(chunk.content);
+        // eslint-disable-next-line no-console
         console.log(`[materials] 🔐 Embedding chunk ${i+1}/${chunks.length}: ${embedding.length} dims`);
 
         const { error: insertError } = await supabase.from('chunks').insert({
@@ -197,17 +207,21 @@ export async function chunkAndEmbedMaterial(material: Material) {
         });
 
         if (insertError) {
+          // eslint-disable-next-line no-console
           console.error(`[materials] ❌ Failed to insert chunk ${i}: ${insertError.message}`);
         } else {
           successCount++;
         }
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error(`[materials] ❌ Error embedding chunk ${i}:`, err instanceof Error ? err.message : err);
       }
     }
     
+    // eslint-disable-next-line no-console
     console.log(`[materials] ✅ Successfully embedded ${successCount}/${chunks.length} chunks for: ${material.name}`);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error(`[materials] ❌ Failed to process material ${material.name}:`, err instanceof Error ? err.message : err);
     throw err;
   }
@@ -215,18 +229,22 @@ export async function chunkAndEmbedMaterial(material: Material) {
 
 export async function retrieveRelevantChunks(projectId: string, query: string, topK: number = 8) {
   try {
+    // eslint-disable-next-line no-console
     console.log('[RAG] 🔍 retrieveRelevantChunks called:', { projectId, query: query.substring(0, 50), topK });
     
     if (!process.env.GITHUB_MODELS_TOKEN) {
+      // eslint-disable-next-line no-console
       console.warn('[RAG] ⚠️ GITHUB_MODELS_TOKEN not configured - embeddings will be random (RAG disabled)');
     }
 
     const embedding = await generateEmbedding(query);
+    // eslint-disable-next-line no-console
     console.log('[RAG] ✅ Generated embedding, length:', embedding.length);
     
     const supabase = createServiceClient();
 
     // Hybrid search: vector similarity + full-text rank
+    // eslint-disable-next-line no-console
     console.log('[RAG] 🔎 Calling match_chunks_hybrid RPC...');
     const { data, error } = await supabase.rpc('match_chunks_hybrid', {
       query_embedding: embedding,
@@ -237,29 +255,35 @@ export async function retrieveRelevantChunks(projectId: string, query: string, t
     });
     
     if (error) {
+      // eslint-disable-next-line no-console
       console.error('[RAG] ❌ RPC error retrieving chunks:', error.message, error.code);
       return [];
     }
 
+    // eslint-disable-next-line no-console
     console.log('[RAG] 📊 RPC returned:', { 
       dataLength: data?.length || 0,
       projectId,
     });
 
     if (!data || data.length === 0) {
+      // eslint-disable-next-line no-console
       console.warn('[RAG] ⚠️ No chunks found for query:', query.substring(0, 50), 'Project:', projectId);
       // Debug: Let's check if chunks table has ANY data
       const { data: allChunks, error: countErr } = await supabase
         .from('chunks')
         .select('id, project_id', { count: 'exact' })
         .eq('project_id', projectId);
+      // eslint-disable-next-line no-console
       console.log('[RAG] 📋 Chunks in DB for this project:', allChunks?.length || 0, 'Error:', countErr?.message ?? 'none');
     } else {
+      // eslint-disable-next-line no-console
       console.log(`[RAG] ✅ Retrieved ${data.length} chunks for query:`, query.substring(0, 50));
     }
     
     return data || [];
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('[RAG] ❌ Error retrieving chunks:', err instanceof Error ? err.message : err);
     return [];
   }

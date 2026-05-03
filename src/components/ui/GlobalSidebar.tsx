@@ -5,11 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Home,
-  BarChart3,
   Key,
   CreditCard,
   Settings,
-  BookOpen,
   MessageSquare,
   X
 } from 'lucide-react';

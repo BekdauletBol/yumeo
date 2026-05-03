@@ -122,7 +122,7 @@ export async function POST(req: Request): Promise<Response> {
     console.log('[agent] Checking GitHub Models env vars:', {
       hasToken: !!githubToken,
       tokenLength: githubToken?.length || 0,
-      model: model.includes('gpt') ? model : 'gpt-4o',
+      model: model.includes('gpt') ? model : process.env.GITHUB_MODELS_MODEL || 'gpt-5',
     });
     if (!githubToken) throw new Error('GITHUB_MODELS_TOKEN is not configured');
 
@@ -133,7 +133,7 @@ export async function POST(req: Request): Promise<Response> {
 
     console.log('[agent] 🤖 Calling GitHub Models API with model:', model.includes('gpt') ? model : 'gpt-4o');
     const stream = await client.chat.completions.create({
-      model: model.includes('gpt') ? model : 'gpt-4o',
+      model: model.includes('gpt') ? model : process.env.GITHUB_MODELS_MODEL || 'gpt-5',
       messages: [
         { role: 'system', content: finalSystemPrompt },
         ...messages.map((m) => ({
