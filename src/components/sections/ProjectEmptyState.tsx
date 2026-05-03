@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { BookMarked } from 'lucide-react';
 import { createProjectSectionAction } from '@/app/actions/sections';
 import { showToast } from '@/lib/utils/toast';
+import { useProjectSections } from '@/hooks/useProjectSections';
 import { SECTION_OPTIONS } from './AddSectionButton';
 import type { MaterialSection } from '@/lib/types';
 
@@ -21,6 +22,7 @@ export function ProjectEmptyState({
 }: ProjectEmptyStateProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSections, setSelectedSections] = useState<MaterialSection[]>([]);
+  const { refetchSections } = useProjectSections(projectId);
 
   const handleSelectSection = useCallback((sectionType: MaterialSection) => {
     setSelectedSections((prev) =>
@@ -54,14 +56,16 @@ export function ProjectEmptyState({
       }
       
       showToast(`Successfully created ${selectedSections.length} sections`);
-      // Empty state will close automatically when sections are populated
+      
+      // Refetch sections to update store and close empty state
+      await refetchSections();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to create sections';
       console.error('Failed to create sections:', err);
       showToast(errorMsg);
       setIsLoading(false);
     }
-  }, [projectId, selectedSections]);
+  }, [projectId, selectedSections, refetchSections]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-6 py-12">

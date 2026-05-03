@@ -14,7 +14,7 @@ interface UsageMeterProps {
 export function UsageMeter({ plan = 'free', currentFiles, currentProjects }: UsageMeterProps) {
   const limits = PLANS[plan];
   const filePercent = Math.min((currentFiles / limits.maxFilesPerProject) * 100, 100);
-  const projectPercent = Math.min((currentProjects / limits.maxProjects) * 100, 100);
+  const projectPercent = limits.maxProjects === -1 ? 0 : Math.min((currentProjects / limits.maxProjects) * 100, 100);
 
   const fileColor = filePercent >= 90 ? 'var(--status-error)' : filePercent >= 70 ? 'var(--status-warning)' : 'var(--accent-refs)';
 
@@ -48,7 +48,7 @@ export function UsageMeter({ plan = 'free', currentFiles, currentProjects }: Usa
         <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
           <span>Projects</span>
           <span style={{ fontFamily: 'var(--font-mono)' }}>
-            {currentProjects} / {limits.maxProjects === 50 ? '50' : limits.maxProjects}
+            {currentProjects} / {limits.maxProjects === -1 ? '∞' : limits.maxProjects}
           </span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-overlay)' }}>

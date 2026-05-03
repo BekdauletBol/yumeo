@@ -21,7 +21,7 @@ export default async function PricingPage() {
           Simple, transparent pricing
         </h1>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Upgrade to Pro for unlimited projects, larger files, and Claude Opus.
+          Choose the plan that fits your research. Upgrade to Pro for unlimited projects, more files, and priority retrieval.
         </p>
       </div>
 

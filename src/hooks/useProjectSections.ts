@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { getProjectSectionsAction } from '@/app/actions/sections';
@@ -6,24 +6,26 @@ import { getProjectSectionsAction } from '@/app/actions/sections';
 /**
  * Hook to load and manage project sections
  * Fetches sections from server and syncs with store
+ * Returns a refetch function to manually trigger reload
  */
 export function useProjectSections(projectId: string | undefined) {
   const { setSections } = useProjectSectionsStore();
 
-  useEffect(() => {
+  const refetchSections = useCallback(async () => {
     if (!projectId) return;
-
-    const loadSections = async () => {
-      try {
-        const sections = await getProjectSectionsAction(projectId);
-        setSections(sections);
-      } catch (err) {
-        console.error('Failed to load project sections:', err);
-      }
-    };
-
-    loadSections();
+    try {
+      const sections = await getProjectSectionsAction(projectId);
+      setSections(sections);
+    } catch (err) {
+      console.error('Failed to load project sections:', err);
+    }
   }, [projectId, setSections]);
+
+  useEffect(() => {
+    refetchSections();
+  }, [projectId, refetchSections]);
+
+  return { refetchSections };
 }
 
 /**

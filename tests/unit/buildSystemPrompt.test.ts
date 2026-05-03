@@ -5,7 +5,7 @@ import type { Material, ProjectSettings } from '@/lib/types';
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const BASE_SETTINGS: ProjectSettings = {
-  agentModel: 'claude-sonnet-4-5',
+  agentModel: 'gpt-4o',
   strictGrounding: true,
   language: 'en',
   exportFormat: 'markdown',

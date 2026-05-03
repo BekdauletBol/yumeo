@@ -84,11 +84,11 @@ const faqs = [
   },
   {
     q: 'What is the file size limit?',
-    a: 'Each file can be up to 50 MB. There is no limit on the number of files per project.',
+    a: 'Free plan: 25 MB per file. Pro plan: 100 MB per file.',
   },
   {
     q: 'Which AI model does Yumeo use?',
-    a: 'Yumeo uses GPT-4o by default (via GitHub Models), with support for Claude Sonnet as an alternative. You can select the model in project settings.',
+    a: 'Yumeo uses GPT-4o via GitHub Models for all plans. This provides fast, accurate responses grounded exclusively in your uploaded materials.',
   },
   {
     q: 'Is my data private?',
