@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { BookMarked } from 'lucide-react';
 import { createProjectSectionAction } from '@/app/actions/sections';
+import { showToast } from '@/lib/utils/toast';
 import { SECTION_OPTIONS } from './AddSectionButton';
 import type { MaterialSection } from '@/lib/types';
 
@@ -35,15 +36,29 @@ export function ProjectEmptyState({
     try {
       setIsLoading(true);
       // Create all selected sections in parallel
-      await Promise.all(
+      const results = await Promise.allSettled(
         selectedSections.map(sectionType =>
           createProjectSectionAction(projectId, sectionType)
         )
       );
+      
+      // Check for failures
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        const errorMsg = failures.length === 1
+          ? (failures[0] as PromiseRejectedResult).reason?.message || 'Failed to create section'
+          : `Failed to create ${failures.length} sections`;
+        showToast(errorMsg);
+        setIsLoading(false);
+        return;
+      }
+      
+      showToast(`Successfully created ${selectedSections.length} sections`);
       // Empty state will close automatically when sections are populated
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to create sections';
       console.error('Failed to create sections:', err);
-      alert(err instanceof Error ? err.message : 'Failed to create sections');
+      showToast(errorMsg);
       setIsLoading(false);
     }
   }, [projectId, selectedSections]);

@@ -32,14 +32,13 @@ export async function GET() {
     };
 
     // Check for configuration issues
-    if (!diagnostics.environment.hasOpenAIKey) {
-      diagnostics.issues.push('❌ OPENAI_API_KEY not configured - embeddings will be random (RAG disabled)');
-      diagnostics.recommendations.push('Set OPENAI_API_KEY to enable semantic search');
+    if (!diagnostics.environment.hasGithubModelsToken) {
+      diagnostics.issues.push('❌ GITHUB_MODELS_TOKEN not configured - embeddings and AI responses will fail');
+      diagnostics.recommendations.push('Set GITHUB_MODELS_TOKEN for both embeddings and LLM calls');
     }
 
-    if (!diagnostics.environment.hasGithubModelsToken) {
-      diagnostics.issues.push('❌ GITHUB_MODELS_TOKEN not configured - AI responses will fail');
-      diagnostics.recommendations.push('Set GITHUB_MODELS_TOKEN to enable AI agent');
+    if (diagnostics.environment.hasGithubModelsToken && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      diagnostics.recommendations.push('If materials are not being embedded, ensure chunks table exists in Supabase and pgvector extension is enabled');
     }
 
     if (!diagnostics.environment.hasSupabaseUrl) {

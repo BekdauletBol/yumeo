@@ -87,7 +87,7 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  // RAG retrieval
+  // RAG retrieval (optional context enrichment)
   let finalSystemPrompt = systemPrompt;
   let retrievedChunks: RetrievedChunk[] = [];
   try {
@@ -105,26 +105,15 @@ export async function POST(req: Request): Promise<Response> {
         .join('\n\n');
       finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${context}`;
       console.log(`[agent] ✅ RAG enriched prompt with ${chunks.length} chunks`);
+    } else {
+      console.log('[agent] ℹ️  No relevant chunks found - proceeding with base knowledge');
     }
   } catch (err) {
     console.warn('[agent] ⚠️ RAG retrieval failed:', err instanceof Error ? err.message : err);
+    console.warn('[agent] Possible causes: no GITHUB_MODELS_TOKEN, chunks table missing, or materials not embedded');
   }
 
-  if (retrievedChunks.length === 0) {
-    console.warn('[agent] ⚠️  No chunks retrieved - check if materials are uploaded and embedded');
-    console.warn('[agent] Possible causes: no OPENAI_API_KEY, materials not chunked, or no search index');
-    const fallback = "I don't have information about this in your uploaded materials.";
-    const encoder = new TextEncoder();
-    return new Response(
-      new ReadableStream({
-        start(c) {
-          c.enqueue(encoder.encode(fallback));
-          c.close();
-        },
-      }),
-      { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RAG-Empty': 'true' } },
-    );
-  }
+  // Continue with LLM call even if no chunks (use base knowledge)
 
   const sourcesLine = buildSourcesLine(retrievedChunks);
 

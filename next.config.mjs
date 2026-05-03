@@ -20,6 +20,10 @@ const nextConfig = {
             { key: 'X-Frame-Options', value: 'DENY' },
             { key: 'X-Content-Type-Options', value: 'nosniff' },
             { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+            { key: 'X-XSS-Protection', value: '1; mode=block' },
+            { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+            { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=(), payment=()' },
+            { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
             {
               key: 'Content-Security-Policy',
               value: [
@@ -30,6 +34,7 @@ const nextConfig = {
                 "font-src 'self' data:",
                 "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.openai.com https://models.github.ai https://models.inference.ai.azure.com https://api.github.com https://clerk.com https://*.clerk.accounts.dev https://cdnjs.cloudflare.com",
                 "worker-src 'self' blob:",
+                "frame-ancestors 'none'",
               ].join('; '),
             },
           ],

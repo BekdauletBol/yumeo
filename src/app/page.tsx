@@ -13,6 +13,7 @@ export default function HomePage() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -24,15 +25,20 @@ export default function HomePage() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
+        setError(null);
         const response = await fetch('/api/projects');
         if (!response.ok) {
-          console.error('Failed to fetch projects:', response.status, response.statusText);
+          const msg = `Failed to load projects (${response.status})`;
+          console.error(msg);
+          setError(msg);
           return;
         }
         const data = await response.json();
         setProjects(data || []);
       } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to load projects';
         console.error('Error fetching projects:', err);
+        setError(msg);
       }
     };
     if (user) fetchProjects();
@@ -103,6 +109,14 @@ export default function HomePage() {
               <p className="text-xs text-[var(--text-tertiary)] mt-1">Ongoing sessions</p>
             </div>
           </div>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">⚠️</div>
+              <div className="flex-1">{error}</div>
+            </div>
+          )}
 
           {/* Recent Activity / Projects */}
           <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm overflow-hidden">

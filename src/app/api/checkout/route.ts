@@ -1,5 +1,6 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { createCheckoutSession } from '@/lib/stripe/client';
+import { checkRateLimit, rateLimitResponse } from '@/lib/security/rateLimit';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +18,10 @@ export async function POST(_req: Request): Promise<Response> {
       { status: 401, headers: { 'Content-Type': 'application/json' } },
     );
   }
+
+  // Rate limit: max 5 checkout requests per hour per user
+  const limit = checkRateLimit(`checkout:${userId}`, 5, 3600_000);
+  if (!limit.allowed) return rateLimitResponse(limit.resetAt);
 
   const user = await currentUser();
   const userEmail =

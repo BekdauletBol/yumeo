@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { BookMarked, Calendar, Users, Trash2 } from 'lucide-react';
+import { BookMarked, Calendar, Users, Trash2, Plus } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useAddToReportStore } from '@/stores/addToReportStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
+import { showToast } from '@/lib/utils/toast';
 import { cn } from '@/lib/utils/cn';
 import { truncate, formatFileSize } from '@/lib/utils/truncate';
 
@@ -17,6 +19,16 @@ export function ReferencesSection() {
   const highlightedId = useUIStore((s) => s.highlightedMaterialId);
   const setSelectedMaterialId = useMaterialsStore((s) => s.setSelectedMaterialId);
   const removeMaterial = useMaterialsStore((s) => s.removeMaterial);
+  const queueInsertion = useAddToReportStore((s) => s.queueInsertion);
+
+  const handleAddToReport = (ref: typeof references[0]) => {
+    queueInsertion({
+      type: 'reference',
+      title: ref.name,
+      content: ref.content || `Reference: ${ref.name}`,
+    });
+    showToast(`"${ref.name}" queued to add to report`);
+  };
 
   return (
     <div className="p-3 space-y-3">
@@ -100,18 +112,31 @@ export function ReferencesSection() {
                     )}
                   </div>
                   
-                  {/* Delete button (visible on hover) */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeMaterial(ref.id);
-                    }}
-                    className="absolute right-0 top-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-white/10"
-                    style={{ color: 'var(--text-tertiary)' }}
-                    aria-label={`Delete ${ref.name}`}
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                  {/* Buttons (visible on hover) */}
+                  <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToReport(ref);
+                      }}
+                      className="p-1 rounded hover:bg-white/10"
+                      style={{ color: 'var(--text-tertiary)' }}
+                      title="Add to report"
+                    >
+                      <Plus size={12} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeMaterial(ref.id);
+                      }}
+                      className="p-1 rounded hover:bg-white/10"
+                      style={{ color: 'var(--text-tertiary)' }}
+                      aria-label={`Delete ${ref.name}`}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
               </button>
             );

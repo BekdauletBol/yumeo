@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { createMaterialAction } from '@/app/actions/materials';
+import { showToast } from '@/lib/utils/toast';
 
 mermaid.initialize({
   startOnLoad: false,
@@ -23,7 +24,10 @@ export function MermaidSection() {
   const diagramsLength = useMaterialsStore((s) => s.materials.filter(m => m.section === 'diagrams').length);
 
   const handleSave = async () => {
-    if (!activeProject || !source.trim()) return;
+    if (!activeProject || !source.trim()) {
+      showToast('Please add diagram content first');
+      return;
+    }
     const count = diagramsLength + 1;
     const name = `Diagram ${count}`;
     try {
@@ -35,11 +39,12 @@ export function MermaidSection() {
         metadata: { fileType: 'text', fileSize: source.length, figureNumber: name }
       });
       addMaterial(material);
+      showToast(`Diagram "${name}" saved successfully`);
       // Optional: don't clear source automatically so they can keep editing if they want
-      alert('Saved to Diagrams!');
     } catch (err) {
-      console.error(err);
-      alert('Failed to save diagram');
+      const msg = err instanceof Error ? err.message : 'Failed to save diagram';
+      console.error('Save failed:', err);
+      showToast(msg);
     }
   };
 

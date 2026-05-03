@@ -10,7 +10,7 @@ const PROVIDERS = [
   { name: 'Clerk', env: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY' },
   { name: 'Supabase', env: 'NEXT_PUBLIC_SUPABASE_URL' },
   { name: 'GitHub Models', env: 'GITHUB_MODELS_TOKEN' },
-  { name: 'OpenAI Embeddings', env: 'OPENAI_API_KEY' },
+  { name: 'GitHub Models', env: 'GITHUB_MODELS_TOKEN' },
   { name: 'Stripe', env: 'STRIPE_SECRET_KEY' },
 ];
 

@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { createMaterialAction } from '@/app/actions/materials';
+import { showToast } from '@/lib/utils/toast';
 
 interface Segment {
   kind: 'text' | 'inline-math' | 'block-math';
@@ -62,7 +63,10 @@ export function LatexSection() {
   const equationsLength = useMaterialsStore((s) => s.materials.filter(m => m.section === 'equations').length);
 
   const handleSave = async () => {
-    if (!activeProject || !source.trim()) return;
+    if (!activeProject || !source.trim()) {
+      showToast('Please add LaTeX content first');
+      return;
+    }
     const count = equationsLength + 1;
     const name = `Equation ${count}`;
     try {
@@ -74,9 +78,12 @@ export function LatexSection() {
         metadata: { fileType: 'latex', fileSize: source.length, figureNumber: name }
       });
       addMaterial(material);
+      showToast(`Equation "${name}" saved successfully`);
       // Optional: don't clear source automatically
     } catch (err) {
-      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to save equation';
+      console.error('Save failed:', err);
+      showToast(msg);
     }
   };
 

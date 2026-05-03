@@ -27,21 +27,29 @@ export function SettingsDialog() {
       const updatedProject = { ...activeProject, settings: newSettings };
       await updateProjectAction(activeProject.id, { settings: newSettings });
       setActiveProject(updatedProject);
+      showToast('Settings saved successfully');
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save settings';
       console.error('[settings] Save failed:', err);
+      showToast(msg);
     }
   };
 
   const handleSaveKey = async () => {
-    if (!apiKey) return;
+    if (!apiKey) {
+      showToast('Please enter an API key first');
+      return;
+    }
     setIsSavingKey(true);
     try {
       await saveClaudeKeyAction(apiKey);
       setHasKey(true);
       setApiKey('');
       showToast('API key saved successfully');
-    } catch {
-      showToast('Failed to save API key');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save API key';
+      showToast(msg);
+      console.error('[settings] Save key failed:', err);
     } finally {
       setIsSavingKey(false);
     }

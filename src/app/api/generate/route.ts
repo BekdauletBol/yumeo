@@ -71,10 +71,10 @@ export async function POST(req: Request): Promise<Response> {
     if (!chunks || chunks.length === 0) {
       return new Response(
         JSON.stringify({
-          error: "I don't have information about this in your uploaded materials.",
+          error: "No relevant sources found in your uploaded materials. Please upload references or drafts first.",
           code: 'NO_SOURCES',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+        { status: 422, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
