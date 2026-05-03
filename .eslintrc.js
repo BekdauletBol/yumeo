@@ -1,5 +1,5 @@
 /** @type {import('eslint').Linter.Config} */
-module.exports = {
+const config = {
   extends: [
     'next/core-web-vitals',
   ],
@@ -24,3 +24,5 @@ module.exports = {
     'tailwind.config.ts',
   ],
 };
+
+module.exports = config;
