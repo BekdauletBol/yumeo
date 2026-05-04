@@ -1,22 +1,66 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useChatStore } from '@/stores/chatStore';
+import { useProjectStore } from '@/stores/projectStore';
 import { StreamingMessage } from './StreamingMessage';
 import { MessageSkeleton } from './MessageSkeleton';
+import { TextSelectionPopup } from './TextSelectionPopup';
+import { useTextSelection } from '@/hooks/useTextSelection';
 
 /**
  * Scrollable list of all chat messages for the current project.
  * Auto-scrolls to bottom on new messages.
  * Shows a skeleton while the AI is composing its first token.
+ * Supports inline text selection with Ask/Copy/Add-to-Draft actions.
  */
 export function MessageList() {
   const { user } = useUser();
   const messages = useChatStore((s) => s.messages);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const streamingContent = useChatStore((s) => s.streamingContent);
+  const addMessage = useChatStore((s) => s.addMessage);
+  
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const { selection, containerRef, clearSelection } = useTextSelection();
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Handler: Ask Yumeo about selected text
+  const handleAskYumeo = useCallback((selectedText: string) => {
+    if (!activeProject) return;
+    
+    const contextPrompt = `Regarding this passage: "${selectedText}" — `;
+    // Pre-fill the chat input by dispatching a user message
+    addMessage({
+      id: `msg-${Date.now()}`,
+      projectId: activeProject.id,
+      role: 'user',
+      content: contextPrompt,
+      isStreaming: false,
+      citations: [],
+      timestamp: new Date(),
+    });
+  }, [addMessage, activeProject]);
+
+  // Handler: Copy selected text to clipboard
+  const handleCopy = useCallback((selectedText: string) => {
+    navigator.clipboard.writeText(selectedText).then(() => {
+      // Visual feedback via browser (text is copied)
+    }).catch(() => {
+      console.error('Failed to copy text');
+    });
+  }, []);
+
+  // Handler: Add selected text to current draft
+  const handleAddToDraft = useCallback((selectedText: string) => {
+    // Copy to clipboard and let user paste into draft
+    navigator.clipboard.writeText(selectedText).then(() => {
+      // Text copied - user can now paste into their draft
+    }).catch(() => {
+      console.error('Failed to copy text to clipboard');
+    });
+  }, []);
 
   // Auto-scroll to bottom whenever messages or streaming content change
   useEffect(() => {
@@ -55,7 +99,8 @@ export function MessageList() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
+      ref={containerRef}
+      className="flex-1 overflow-y-auto px-4 py-4 space-y-5 relative"
       role="log"
       aria-label="Research conversation"
       aria-live="polite"
@@ -81,6 +126,18 @@ export function MessageList() {
 
       {/* Scroll anchor */}
       <div ref={bottomRef} aria-hidden="true" />
+
+      {/* Text selection popup for inline actions */}
+      {selection && (
+        <TextSelectionPopup
+          selectedText={selection.text}
+          position={selection.position}
+          onAskYumeo={handleAskYumeo}
+          onCopy={handleCopy}
+          onAddToDraft={handleAddToDraft}
+          onClose={clearSelection}
+        />
+      )}
     </div>
   );
 }
