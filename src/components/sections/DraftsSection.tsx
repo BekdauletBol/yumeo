@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { FileText, Clock, Trash2, ArrowLeft } from 'lucide-react';
+import { FileText, Clock, Trash2, ArrowLeft, BookOpen } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { formatFileSize } from '@/lib/utils/truncate';
 import { TiptapEditor } from '@/components/editor/TiptapEditor';
 import { updateMaterialAction } from '@/app/actions/materials';
+import { ReportEditorModal } from '@/components/report/ReportEditorModal';
 
 export function DraftsSection() {
   const materials = useMaterialsStore((s) => s.materials);
@@ -14,6 +15,8 @@ export function DraftsSection() {
   );
   
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [reportEditorOpen, setReportEditorOpen] = useState(false);
+  const [selectedDraftForReport, setSelectedDraftForReport] = useState<string | undefined>();
   const updateMaterial = useMaterialsStore((s) => s.updateMaterial);
   const removeMaterial = useMaterialsStore((s) => s.removeMaterial);
 
@@ -61,6 +64,22 @@ export function DraftsSection() {
 
   return (
     <div className="p-3 space-y-3 h-full overflow-y-auto">
+      {/* Write Report Button */}
+      <button
+        onClick={() => {
+          setReportEditorOpen(true);
+          setSelectedDraftForReport(undefined);
+        }}
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md font-medium text-xs transition-colors"
+        style={{
+          background: 'var(--accent-drafts)',
+          color: 'white',
+        }}
+      >
+        <BookOpen size={14} />
+        Write Report
+      </button>
+
       <p className="text-section-label" style={{ color: 'var(--accent-drafts)' }}>
         Research Drafts
         <span
@@ -149,6 +168,16 @@ export function DraftsSection() {
           <FileUploadZone section="drafts" compact />
         </div>
       )}
+
+      {/* Report Editor Modal */}
+      <ReportEditorModal
+        isOpen={reportEditorOpen}
+        onClose={() => {
+          setReportEditorOpen(false);
+          setSelectedDraftForReport(undefined);
+        }}
+        draftId={selectedDraftForReport}
+      />
     </div>
   );
 }

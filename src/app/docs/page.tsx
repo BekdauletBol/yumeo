@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     'Learn how to use Yumeo: upload references, chat with AI grounded in your materials, and export your research report.',
 };
 
-const CONTACT_EMAIL = 'bolatovbekdaulet4@gmail.com';
+const CONTACT_EMAIL = 'yumeo.lab@gmail.com';
 
 const steps = [
   {
