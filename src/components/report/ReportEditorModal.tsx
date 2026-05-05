@@ -6,10 +6,10 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useReportEditorStore } from '@/stores/reportEditorStore';
 import { useReportAutoSave } from '@/hooks/useReportAutoSave';
-import { useReportExport } from '@/hooks/useReportExport';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { TextSelectionPopup } from '@/components/chat/TextSelectionPopup';
 import { ReportAISidebar } from './ReportAISidebar';
+import { ExportModal } from './ExportModal';
 import { cn } from '@/lib/utils/cn';
 import { nanoid } from 'nanoid';
 
@@ -42,7 +42,7 @@ export function ReportEditorModal() {
   // Text-selection popup
   const { selection, containerRef, clearSelection } = useTextSelection();
 
-  const { exportToDOCX } = useReportExport();
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Sync state when modal opens
   useEffect(() => {
@@ -281,15 +281,15 @@ export function ReportEditorModal() {
             </button>
           )}
 
-          {/* Export */}
+          {/* Export — opens format picker */}
           <button
-            onClick={() => void exportToDOCX({ title, content })}
+            onClick={() => setShowExportModal(true)}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
-            aria-label="Export as DOCX"
+            aria-label="Export report"
           >
             <Download size={13} />
-            Export .docx
+            Export
           </button>
 
           {/* AI Sidebar toggle */}
@@ -422,6 +422,15 @@ export function ReportEditorModal() {
           )}
         </div>
       </div>
+
+      {/* Export format picker modal */}
+      {showExportModal && (
+        <ExportModal
+          title={title}
+          content={content}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
     </div>
   );
 }

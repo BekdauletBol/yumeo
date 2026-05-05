@@ -231,57 +231,90 @@ export async function retrieveRelevantChunks(projectId: string, query: string, t
   try {
     // eslint-disable-next-line no-console
     console.log('[RAG] 🔍 retrieveRelevantChunks called:', { projectId, query: query.substring(0, 50), topK });
-    
-    if (!process.env.GITHUB_MODELS_TOKEN) {
-      // eslint-disable-next-line no-console
-      console.warn('[RAG] ⚠️ GITHUB_MODELS_TOKEN not configured - embeddings will be random (RAG disabled)');
-    }
 
-    const embedding = await generateEmbedding(query);
-    // eslint-disable-next-line no-console
-    console.log('[RAG] ✅ Generated embedding, length:', embedding.length);
-    
     const supabase = createServiceClient();
 
-    // Hybrid search: vector similarity + full-text rank
-    // eslint-disable-next-line no-console
-    console.log('[RAG] 🔎 Calling match_chunks_hybrid RPC...');
-    const { data, error } = await supabase.rpc('match_chunks_hybrid', {
-      query_embedding: embedding,
-      query_text: query,
-      match_threshold: 0.7,
-      match_count: topK,
-      p_project_id: projectId
-    });
-    
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.error('[RAG] ❌ RPC error retrieving chunks:', error.message, error.code);
-      return [];
-    }
+    // ── Try vector + hybrid RPC first ─────────────────────────────────
+    if (process.env.GITHUB_MODELS_TOKEN) {
+      try {
+        const embedding = await generateEmbedding(query);
+        // eslint-disable-next-line no-console
+        console.log('[RAG] ✅ Generated embedding, length:', embedding.length);
 
-    // eslint-disable-next-line no-console
-    console.log('[RAG] 📊 RPC returned:', { 
-      dataLength: data?.length || 0,
-      projectId,
-    });
+        // eslint-disable-next-line no-console
+        console.log('[RAG] 🔎 Calling match_chunks_hybrid RPC...');
+        const { data, error } = await supabase.rpc('match_chunks_hybrid', {
+          query_embedding: embedding,
+          query_text: query,
+          match_threshold: 0.3,   // lowered from 0.7 → catch more results
+          match_count: topK,
+          p_project_id: projectId,
+        });
 
-    if (!data || data.length === 0) {
-      // eslint-disable-next-line no-console
-      console.warn('[RAG] ⚠️ No chunks found for query:', query.substring(0, 50), 'Project:', projectId);
-      // Debug: Let's check if chunks table has ANY data
-      const { data: allChunks, error: countErr } = await supabase
-        .from('chunks')
-        .select('id, project_id', { count: 'exact' })
-        .eq('project_id', projectId);
-      // eslint-disable-next-line no-console
-      console.log('[RAG] 📋 Chunks in DB for this project:', allChunks?.length || 0, 'Error:', countErr?.message ?? 'none');
+        if (!error && data && data.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log(`[RAG] ✅ Retrieved ${data.length} chunks via vector search`);
+          return data;
+        }
+
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.warn('[RAG] ⚠️ RPC error (falling back to keyword search):', error.message);
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('[RAG] ⚠️ Vector search returned 0 results — trying keyword fallback');
+        }
+      } catch (embErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[RAG] ⚠️ Embedding failed, falling back to keyword search:', embErr instanceof Error ? embErr.message : embErr);
+      }
     } else {
       // eslint-disable-next-line no-console
-      console.log(`[RAG] ✅ Retrieved ${data.length} chunks for query:`, query.substring(0, 50));
+      console.warn('[RAG] ⚠️ GITHUB_MODELS_TOKEN not set — skipping vector search, using keyword fallback');
     }
-    
-    return data || [];
+
+    // ── Keyword / full-text fallback ────────────────────────────────────
+    // Works even if embeddings or the RPC function don't exist yet.
+    // Pulls the top-K chunks whose content mentions any keyword from the query.
+    const keywords = query
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 3)
+      .slice(0, 6);
+
+    // eslint-disable-next-line no-console
+    console.log('[RAG] 🔤 Keyword fallback with terms:', keywords);
+
+    // Build an OR filter: content ilike %keyword%
+    const ilikeFilter = keywords.length > 0
+      ? keywords.map((k) => `content.ilike.%${k}%`).join(',')
+      : `content.neq.`;
+
+    const { data: kwData, error: kwError } = await supabase
+      .from('chunks')
+      .select('id, content, metadata')
+      .eq('project_id', projectId)
+      .or(ilikeFilter)
+      .limit(topK);
+
+    if (kwError) {
+      // eslint-disable-next-line no-console
+      console.error('[RAG] ❌ Keyword fallback error:', kwError.message);
+      // Last resort: just return ANY chunks for this project
+      const { data: anyData } = await supabase
+        .from('chunks')
+        .select('id, content, metadata')
+        .eq('project_id', projectId)
+        .limit(topK);
+      // eslint-disable-next-line no-console
+      console.log('[RAG] 📦 Last-resort: returned', anyData?.length ?? 0, 'chunks');
+      return anyData ?? [];
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[RAG] ✅ Keyword fallback returned', kwData?.length ?? 0, 'chunks');
+    return kwData ?? [];
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[RAG] ❌ Error retrieving chunks:', err instanceof Error ? err.message : err);
