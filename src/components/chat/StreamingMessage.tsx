@@ -6,6 +6,7 @@ import type { ChatMessage } from '@/lib/types';
 import { CitationTag } from './CitationTag';
 import { cn } from '@/lib/utils/cn';
 import { useReportEditorStore } from '@/stores/reportEditorStore';
+import { stripPreamble } from '@/lib/utils/markdownParser';
 import { ExternalLink } from 'lucide-react';
 
 interface StreamingMessageProps {
@@ -32,6 +33,12 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
   const cleanContent = useMemo(
     () => content.replace(/\[REF:\d+\]/g, ''),
     [content],
+  );
+
+  // For the editor, also strip conversational AI preambles
+  const editorContent = useMemo(
+    () => stripPreamble(cleanContent),
+    [cleanContent],
   );
 
   const isLong = content.length > 500;
@@ -220,7 +227,7 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
         {/* ── "Open in Editor" button for long responses ── */}
         {!isStreaming && isLong && (
           <button
-            onClick={() => openEditor(content, 'AI Report')}
+            onClick={() => openEditor(editorContent, 'AI Report')}
             className="mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all hover:opacity-90 active:scale-95"
             style={{
               background: 'var(--accent-refs)',

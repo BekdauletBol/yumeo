@@ -176,28 +176,21 @@ export async function POST(req: Request): Promise<Response> {
       async start(controller) {
         const encoder = new TextEncoder();
         try {
-          let tokenCount = 0;
+          // ── Buffer the full response first ────────────────────────────────
+          // We do this so we can strip trailing conversational noise BEFORE
+          // it ever reaches the client.
+          let fullText = '';
           for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              tokenCount += content.length;
-              controller.enqueue(encoder.encode(content));
-            }
+            fullText += chunk.choices[0]?.delta?.content || '';
           }
+
+          // ── Strip conversational filler ────────────────────────────────────
+          const cleaned = stripAIConversationalNoise(fullText);
+
           // eslint-disable-next-line no-console
-          console.log(`[agent] ✅ Streaming complete: ${tokenCount} chars`);
-          
-          // Append sources citation footer with enforcement
-          const sourcesFooter = buildSourcesLine(retrievedChunks);
-          controller.enqueue(encoder.encode(`\n\n${sourcesFooter}`));
-          
-          // Log citation enforcement
-          // eslint-disable-next-line no-console
-          console.log('[agent] ✅ Citation enforcement:', {
-            sourcesUsed: retrievedChunks.length,
-            sourcesFooter,
-          });
-          
+          console.log(`[agent] ✅ Streaming complete: ${fullText.length} → ${cleaned.length} chars (removed ${fullText.length - cleaned.length} chars of filler)`);
+
+          controller.enqueue(encoder.encode(cleaned));
           controller.close();
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -230,6 +223,75 @@ export async function POST(req: Request): Promise<Response> {
   }
 }
 
+// ─── Strip conversational AI noise from responses ────────────────────────────
+const TRAILING_NOISE_PATTERNS = [
+  // "Let me know if..." variations
+  /^let me know\b.*/i,
+  /^feel free to\b.*/i,
+  /^please let me know\b.*/i,
+  /^if you (need|want|have|require)\b.*/i,
+  /^i hope this\b.*/i,
+  /^hope this helps\b.*/i,
+  /^this should\b.*/i,
+  /^don't hesitate\b.*/i,
+  /^should you\b.*/i,
+  /^i('m| am) happy to\b.*/i,
+  /^certainly[,!]?\s/i,
+  /^of course[,!]?\s/i,
+  /^sure[,!]?\s/i,
+  /^here is\b.*/i,
+  /^here are\b.*/i,
+  /^below is\b.*/i,
+  /^as requested\b.*/i,
+  /^based on (the|your)\b.*/i,
+  /^additional (adjustments|refinements|edits|changes)\b.*/i,
+  /^(if|for) (further|any|additional)\b.*/i,
+];
+
+function stripAIConversationalNoise(text: string): string {
+  // Split into lines, trim trailing blank lines first
+  const lines = text.split('\n');
+
+  // ── Strip trailing conversational lines ──────────────────────────────────
+  // Walk from the bottom up, removing noise lines + trailing --- separators
+  let end = lines.length;
+  while (end > 0) {
+    const line = (lines[end - 1] ?? '').trim();
+
+    // Empty line — skip
+    if (line === '') { end--; continue; }
+
+    // Decorative separator at the very end — remove
+    if (/^-{3,}$/.test(line)) { end--; continue; }
+
+    // Conversational trailing phrase — remove
+    const isNoise = TRAILING_NOISE_PATTERNS.some((p) => p.test(line));
+    if (isNoise) { end--; continue; }
+
+    // First non-noise line found — stop
+    break;
+  }
+
+  // ── Strip leading conversational lines ───────────────────────────────────
+  let start = 0;
+  while (start < end) {
+    const line = (lines[start] ?? '').trim();
+
+    if (line === '') { start++; continue; }
+
+    // Decorative separator at the very top — remove
+    if (/^-{3,}$/.test(line)) { start++; continue; }
+
+    const isNoise = TRAILING_NOISE_PATTERNS.some((p) => p.test(line));
+    if (isNoise) { start++; continue; }
+
+    break;
+  }
+
+  return lines.slice(start, end).join('\n').trim();
+}
+
+// ─── Build sources list (kept for logging, no longer appended to response) ───
 function buildSourcesLine(chunks: RetrievedChunk[]): string {
   const seen = new Set<string>();
   const items: string[] = [];
