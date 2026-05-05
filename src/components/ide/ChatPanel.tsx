@@ -72,7 +72,7 @@ export function ChatPanel() {
       addMessage(assistantMessage);
       setIsStreaming(true);
 
-      const systemPrompt = buildSystemPrompt(materials, activeProject.settings, activeSections);
+      const systemPrompt = buildSystemPrompt(materials, activeProject.settings, activeSections, activeProject.settings.agentModel);
 
       const history: AnthropicMessage[] = messages
         .filter((m) => m.role !== 'system' && m.content)

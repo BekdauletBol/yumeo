@@ -5,7 +5,7 @@ import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { formatFileSize } from '@/lib/utils/truncate';
 import { TiptapEditor } from '@/components/editor/TiptapEditor';
 import { updateMaterialAction } from '@/app/actions/materials';
-import { ReportEditorModal } from '@/components/report/ReportEditorModal';
+import { useReportEditorStore } from '@/stores/reportEditorStore';
 
 export function DraftsSection() {
   const materials = useMaterialsStore((s) => s.materials);
@@ -15,8 +15,7 @@ export function DraftsSection() {
   );
   
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [reportEditorOpen, setReportEditorOpen] = useState(false);
-  const [selectedDraftForReport, setSelectedDraftForReport] = useState<string | undefined>();
+  const openEditor = useReportEditorStore((s) => s.openWithContent);
   const updateMaterial = useMaterialsStore((s) => s.updateMaterial);
   const removeMaterial = useMaterialsStore((s) => s.removeMaterial);
 
@@ -67,8 +66,7 @@ export function DraftsSection() {
       {/* Write Report Button */}
       <button
         onClick={() => {
-          setReportEditorOpen(true);
-          setSelectedDraftForReport(undefined);
+          openEditor('', 'New Report');
         }}
         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md font-medium text-xs transition-colors"
         style={{
@@ -168,16 +166,6 @@ export function DraftsSection() {
           <FileUploadZone section="drafts" compact />
         </div>
       )}
-
-      {/* Report Editor Modal */}
-      <ReportEditorModal
-        isOpen={reportEditorOpen}
-        onClose={() => {
-          setReportEditorOpen(false);
-          setSelectedDraftForReport(undefined);
-        }}
-        draftId={selectedDraftForReport}
-      />
     </div>
   );
 }

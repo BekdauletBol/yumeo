@@ -62,7 +62,7 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const { messages, systemPrompt, projectId, userQuery, model = process.env.GITHUB_MODELS_MODEL || 'gpt-5' } = body;
+  const { messages, systemPrompt, projectId, userQuery, model = process.env.GITHUB_MODELS_MODEL || 'openai/gpt-4o' } = body;
 
   if (!systemPrompt || !messages || messages.length === 0 || !projectId || !userQuery) {
     // eslint-disable-next-line no-console
@@ -129,33 +129,43 @@ export async function POST(req: Request): Promise<Response> {
   const _sourcesLine = buildSourcesLine(retrievedChunks);
 
   try {
-    const githubToken = process.env.GITHUB_MODELS_TOKEN;
+    const githubToken = process.env.GITHUB_MODELS_TOKEN ?? process.env.GITHUB_TOKEN;
     // eslint-disable-next-line no-console
     console.log('[agent] Checking GitHub Models env vars:', {
       hasToken: !!githubToken,
       tokenLength: githubToken?.length || 0,
-      model: model.includes('gpt') ? model : process.env.GITHUB_MODELS_MODEL || 'gpt-5',
+      model,
     });
-    if (!githubToken) throw new Error('GITHUB_MODELS_TOKEN is not configured');
+    if (!githubToken) throw new Error('GitHub token not configured. Add GITHUB_MODELS_TOKEN or GITHUB_TOKEN to Vercel environment variables.');
 
     const client = new OpenAI({
       apiKey: githubToken,
       baseURL: 'https://models.inference.ai.azure.com',
     });
 
+    // Resolve model: strip 'openai/' prefix for Azure inference endpoint
+    const resolvedModel = model.replace(/^openai\//, '');
+    const isLargeModel = resolvedModel.includes('gpt-5') || resolvedModel.includes('claude');
+
+    // Trim conversation history to avoid token overflows.
+    // gpt-4o: keep last 6 turns (3 user + 3 assistant)
+    // gpt-5 / claude: keep last 20 turns
+    const historyLimit = isLargeModel ? 20 : 6;
+    const trimmedMessages = messages.slice(-historyLimit);
+
     // eslint-disable-next-line no-console
-    console.log('[agent] 🤖 Calling GitHub Models API with model:', model.includes('gpt') ? model : 'gpt-4o');
+    console.log('[agent] 🤖 Calling GitHub Models API:', { model: resolvedModel, historyLen: trimmedMessages.length });
     const stream = await client.chat.completions.create({
-      model: model.includes('gpt') ? model : process.env.GITHUB_MODELS_MODEL || 'gpt-5',
+      model: resolvedModel,
       messages: [
         { role: 'system', content: finalSystemPrompt },
-        ...messages.map((m) => ({
+        ...trimmedMessages.map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),
       ],
       stream: true,
-      max_tokens: 4096,
+      max_tokens: isLargeModel ? 16_384 : 4_096,
       temperature: 0.7,
     });
 

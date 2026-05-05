@@ -13,20 +13,32 @@ interface AIResponse {
 interface ReportAISidebarProps {
   projectId?: string;
   cursorPosition: number;
+  selectedPassage?: string;
   onInsertContent: (text: string) => void;
   onClose: () => void;
 }
 
 export function ReportAISidebar({
   projectId,
+  selectedPassage = '',
   onInsertContent,
   onClose,
 }: ReportAISidebarProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(selectedPassage
+    ? `Regarding the passage: "${selectedPassage.slice(0, 120)}…"\n\n`
+    : '');
   const [isLoading, setIsLoading] = useState(false);
   const [responses, setResponses] = useState<AIResponse[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Update query when selectedPassage changes (from text-selection popup)
+  useEffect(() => {
+    if (selectedPassage) {
+      setQuery(`Regarding the passage: "${selectedPassage.slice(0, 120)}…"\n\n`);
+    }
+  }, [selectedPassage]);
+
+  // Scroll to bottom when new responses arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

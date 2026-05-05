@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/ide/Sidebar';
 import { ChatPanel } from '@/components/ide/ChatPanel';
 import { EditorPanel } from '@/components/ide/EditorPanel';
 import { SectionInputModals } from '@/components/sections/SectionInputModals';
+import { ReportEditorModal } from '@/components/report/ReportEditorModal';
 import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
@@ -57,8 +58,10 @@ export function WorkspaceClient({ project, initialMaterials }: WorkspaceClientPr
         chat={<ChatPanel />}
         editor={<EditorPanel />}
       />
-      {/* Modals for adding content to each section */}
+      {/* Section-level add-content modals */}
       <SectionInputModals />
+      {/* Report editor — opens automatically after AI generation or when user opens a draft */}
+      <ReportEditorModal />
     </>
   );
 }

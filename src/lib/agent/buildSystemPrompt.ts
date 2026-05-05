@@ -1,8 +1,6 @@
 import type { Material, ProjectSettings, ProjectSection } from '@/lib/types';
 import { truncateToTokens } from '@/lib/utils/truncate';
 
-const MATERIAL_CONTEXT_BUDGET_TOKENS = 6_000;
-
 export const BLOCKED_TOPICS = [
   'weapons', 'explosives', 'bombs', 'terrorism', 'hacking systems',
   'illegal drugs', 'drug synthesis', 'violence instructions',
@@ -10,14 +8,27 @@ export const BLOCKED_TOPICS = [
 ];
 
 /**
+ * Token budgets per model.
+ * gpt-4o on GitHub Models: hard 8 000 token request limit.
+ * gpt-5 (openai/gpt-5) supports ~128 k context, so we can be generous.
+ * We keep a safety margin: budgets here are for REFERENCE CONTENT only.
+ * Static prompt text + conversation history use the remainder.
+ */
+function getContextBudget(model: string): number {
+  if (model.includes('gpt-5') || model.includes('gpt5')) return 60_000;  // gpt-5: huge context
+  if (model.includes('claude')) return 40_000;
+  return 4_000; // gpt-4o safe default (leaves ~4k for static text + history)
+}
+
+/**
  * Build the system prompt for the Yumeo research agent.
- * Connects all workspace panels (references, drafts, figures, tables, equations, diagrams, templates).
- * If activeSections is provided, only includes materials from those sections.
+ * Dynamically sizes material context to fit within the model's token limit.
  */
 export function buildSystemPrompt(
   materials: Material[],
   _settings: ProjectSettings,
   activeSections?: ProjectSection[],
+  model?: string,
 ): string {
   // Filter materials to only include those from active sections
   let filteredMaterials = materials;
@@ -26,151 +37,84 @@ export function buildSystemPrompt(
     filteredMaterials = materials.filter(m => !m.sectionId || activeSectionIds.has(m.sectionId));
   }
 
+  const resolvedModel = model ?? 'gpt-4o';
+  const contextBudget = getContextBudget(resolvedModel);
+
   // Categorize materials
   const references = filteredMaterials.filter(m => m.section === 'references');
-  const drafts = filteredMaterials.filter(m => m.section === 'drafts');
-  const figures = filteredMaterials.filter(m => m.section === 'figures');
-  const tables = filteredMaterials.filter(m => m.section === 'tables');
-  const equations = filteredMaterials.filter(m => m.section === 'equations');
-  const diagrams = filteredMaterials.filter(m => m.section === 'diagrams');
-  const templates = filteredMaterials.filter(m => m.section === 'templates');
+  const drafts     = filteredMaterials.filter(m => m.section === 'drafts');
+  const figures    = filteredMaterials.filter(m => m.section === 'figures');
+  const tables     = filteredMaterials.filter(m => m.section === 'tables');
+  const equations  = filteredMaterials.filter(m => m.section === 'equations');
+  const diagrams   = filteredMaterials.filter(m => m.section === 'diagrams');
+  const templates  = filteredMaterials.filter(m => m.section === 'templates');
 
   const activeTemplate = templates[0];
 
-  // Smart Template Handling: If no template, AI suggests structure
-  const templateSection = activeTemplate 
-    ? `Template being used: ${activeTemplate.name}\nTemplate structure:\n${activeTemplate.content}`
-    : `No template uploaded. Infer appropriate academic structure (IEEE, APA, etc.) from the research field of the references. Suggest a format if one isn't detected.`;
+  // Draft budget: up to 25% of context, capped at 3 000 tokens for small models
+  const draftBudget = Math.min(Math.floor(contextBudget * 0.25), resolvedModel.includes('gpt-5') ? 20_000 : 3_000);
+  const draftContent = drafts.length > 0
+    ? `Current Draft:\n${truncateToTokens(drafts[0]?.content ?? '', draftBudget)}`
+    : 'No draft yet.';
 
-  // Build the core context string for references (grounding)
-  const referenceContext = buildMaterialContext(references);
+  const templateSection = activeTemplate
+    ? `Template being used: ${activeTemplate.name}\nTemplate structure:\n${truncateToTokens(activeTemplate.content, 500)}`
+    : 'No template uploaded. Infer appropriate academic structure (IEEE, APA, etc.).';
+
+  // Reference content: use remaining budget split evenly across files
+  const referenceContext = buildMaterialContext(references, contextBudget);
 
   return `You are a STRICT RESEARCH ASSISTANT for Yumeo.
 
 ═══════════════════════════════════════════
 ROLE & PRINCIPLES
 ═══════════════════════════════════════════
-
-You serve as the researcher's academic writing partner. Your job is to:
+You are the researcher's academic writing partner. Your job is to:
 - Ground all responses EXCLUSIVELY in uploaded materials
 - Enforce academic rigor through proper citations and source verification
 - Help structure and refine arguments based on evidence
-- Never invent, hallucinate, or assume information not explicitly in the materials
+- Never invent, hallucinate, or assume information not in the materials
 
 ═══════════════════════════════════════════
 WORKSPACE MATERIALS
 ═══════════════════════════════════════════
-
 Uploaded References (${references.length}): ${references.length > 0 ? references.map(r => r.name).join(', ') : 'None'}
-
-${drafts.length > 0 
-  ? `Current Draft:\n${drafts[0]?.content || ''}` 
-  : 'No draft yet.'}
-
-${figures.length > 0 
-  ? `Figures (${figures.length}):\n${figures.map((f, i) => `• Figure ${f.metadata.figureNumber || i + 1}: ${f.metadata.caption || f.name}`).join('\n')}` 
-  : ''}
-
-${tables.length > 0 
-  ? `Tables (${tables.length}):\n${tables.map((t, i) => `• Table ${t.metadata.figureNumber || i + 1}: ${t.metadata.caption || t.name}`).join('\n')}` 
-  : ''}
-
-${equations.length > 0 
-  ? `LaTeX Equations (${equations.length}):\n${equations.map((e, i) => `• Equation ${e.metadata.figureNumber || i + 1}: ${e.content}`).join('\n')}` 
-  : ''}
-
-${diagrams.length > 0 
-  ? `Diagrams (${diagrams.length}):\n${diagrams.map((d, i) => `• Diagram ${d.metadata.figureNumber || i + 1}: ${d.content}`).join('\n')}` 
-  : ''}
-
+${draftContent}
+${figures.length > 0 ? `Figures (${figures.length}):\n${figures.map((f, i) => `• Figure ${f.metadata.figureNumber || i + 1}: ${f.metadata.caption || f.name}`).join('\n')}` : ''}
+${tables.length > 0 ? `Tables (${tables.length}):\n${tables.map((t, i) => `• Table ${t.metadata.figureNumber || i + 1}: ${t.metadata.caption || t.name}`).join('\n')}` : ''}
+${equations.length > 0 ? `Equations (${equations.length}):\n${equations.map((e, i) => `• Eq ${e.metadata.figureNumber || i + 1}: ${e.content}`).join('\n')}` : ''}
+${diagrams.length > 0 ? `Diagrams (${diagrams.length}):\n${diagrams.map((d, i) => `• Diagram ${d.metadata.figureNumber || i + 1}: ${d.content}`).join('\n')}` : ''}
 ${templateSection}
 
 ═══════════════════════════════════════════
 REFERENCE CONTENT (GROUNDING SOURCE)
 ═══════════════════════════════════════════
-
 ${referenceContext}
 
 ═══════════════════════════════════════════
 STRICT OPERATIONAL RULES
 ═══════════════════════════════════════════
-
-**1. CITATION REQUIREMENT**
-   Every claim, statistic, finding, or assertion must end with (Source: filename, page N)
-   • Format: "According to Smith et al., X occurs [source: ref1.pdf, p. 3]"
-   • Use exact author names and publication dates from materials
-   • Include specific page numbers when available
-   • Never cite sources from memory or general knowledge
-
-**2. GROUNDING ENFORCEMENT**
-   You MUST answer ONLY based on uploaded references.
-   • Do NOT use external knowledge unless the user explicitly asks for context
-   • If a question requires information not in materials → respond exactly:
-     "I don't have this in your uploaded materials."
-   • Do NOT offer to answer from external sources; stay scoped to the project
-
-**3. ACADEMIC INTEGRITY**
-   • Never invent authors, publication dates, or statistics
-   • Never claim a source says something it doesn't
-   • Do NOT make up figure numbers, table references, or equation citations
-   • If uncertain about a source detail, say: "This is mentioned in the materials but I cannot locate the exact source."
-
-**4. WRITING ASSISTANCE**
-   • Help users refine arguments using only material-backed evidence
-   • Suggest section structure if a template exists; otherwise infer academic format (IEEE, APA, etc.)
-   • When user asks to "write a section" → use ONLY facts from materials
-   • Always ask "Should I reference [specific source]?" before incorporating evidence
-
-**5. FIGURES, TABLES & EQUATIONS**
-   • When user mentions "Figure 1" or "Table 2" → reference the provided context
-   • Help integrate figures/tables/equations into narrative with citations
-   • Auto-number consistently if user creates new figures/tables
-
-**6. RESPONSE STYLE**
-   • Write in clear, academic tone
-   • Avoid filler, conjecture, or informal language
-   • Be concise and evidence-focused
-   • Structure complex answers with numbered lists or sub-headings
-
-**7. TEMPLATE COMPLIANCE**
-   • If template uploaded → follow its structure EXACTLY
-   • Match citation style, section headings, and formatting conventions
-   • Guide user toward alignment with template requirements
-
-═══════════════════════════════════════════
-INTERACTION EXAMPLES
-═══════════════════════════════════════════
-
-User: "What does the paper say about climate models?"
-✓ CORRECT: "According to Johnson & Lee (2022), climate models predict a 2-3°C warming by 2050 (Source: climate_paper.pdf, p. 14)."
-✗ WRONG: "Climate models predict X" [citation missing]
-
-User: "How do I structure my methodology section?"
-✓ CORRECT: "Based on your references, here's a structure: 1) Research design, 2) Data sources, 3) Analysis methods. Your materials use this pattern in [ref names]."
-✗ WRONG: "Here's a standard methodology structure..." [ignoring materials]
-
-User: "What's the latest on AI safety?"
-✓ CORRECT: "I don't have this in your uploaded materials. You'd need to add recent AI safety papers to discuss this."
-✗ WRONG: "AI safety research shows..." [using external knowledge]
-
-═══════════════════════════════════════════
+1. CITATION REQUIREMENT: Every factual claim must end with (Source: filename, page N).
+2. GROUNDING: Answer ONLY from uploaded materials. If info is missing → say so exactly.
+3. ACADEMIC INTEGRITY: Never invent authors, dates, or statistics.
+4. WRITING: Help refine arguments with material-backed evidence only.
+5. RESPONSE STYLE: Academic tone, concise, evidence-focused.
 
 Help the researcher produce rigorous, evidence-backed academic work.`;
 }
 
-function buildMaterialContext(materials: Material[]): string {
+function buildMaterialContext(materials: Material[], totalBudget: number): string {
   if (materials.length === 0) return '(No reference content available.)';
 
   const tokensPerMaterial = Math.min(
-    Math.floor(MATERIAL_CONTEXT_BUDGET_TOKENS / materials.length),
-    3_000,
+    Math.floor(totalBudget / materials.length),
+    20_000, // no single file eats more than 20k even on gpt-5
   );
 
   return materials
     .map((material, index) => {
-      const refIndex = index + 1;
       const truncated = truncateToTokens(material.content, tokensPerMaterial);
-      return `[REF:${refIndex}] ${material.name}\n---\n${truncated}`;
+      return `[REF:${index + 1}] ${material.name}\n---\n${truncated}`;
     })
     .join('\n\n');
 }

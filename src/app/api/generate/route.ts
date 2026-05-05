@@ -67,19 +67,11 @@ export async function POST(req: Request): Promise<Response> {
   const { templateBody, projectId, userQuery } = body;
 
   try {
-    const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8)) as RetrievedChunk[];
-    if (!chunks || chunks.length === 0) {
-      return new Response(
-        JSON.stringify({
-          error: "No relevant sources found in your uploaded materials. Please upload references or drafts first.",
-          code: 'NO_SOURCES',
-        }),
-        { status: 422, headers: { 'Content-Type': 'application/json' } },
-      );
-    }
+    // If no chunks in RAG, fall through — system prompt already has full PDF content
+    const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8).catch(() => [])) as RetrievedChunk[];
 
-    const githubToken = process.env.GITHUB_MODELS_TOKEN;
-    if (!githubToken) throw new Error('GITHUB_MODELS_TOKEN is not configured');
+    const githubToken = process.env.GITHUB_MODELS_TOKEN ?? process.env.GITHUB_TOKEN;
+    if (!githubToken) throw new Error('GitHub token not configured. Add GITHUB_MODELS_TOKEN or GITHUB_TOKEN to Vercel environment variables.');
 
     const client = new OpenAI({
       apiKey: githubToken,

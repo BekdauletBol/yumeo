@@ -5,6 +5,7 @@ import { Play, X, Save, Loader2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useReportEditorStore } from '@/stores/reportEditorStore';
 import { GeneratedOutput } from './GeneratedOutput';
 import type { Material, ReportGenerationResponse } from '@/lib/types';
 
@@ -66,6 +67,7 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
   const addMaterial = useMaterialsStore((s) => s.addMaterial);
   const updateMaterial = useMaterialsStore((s) => s.updateMaterial);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const openEditor = useReportEditorStore((s) => s.openWithContent);
 
   // Count placeholders
   const placeholders = [...body.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1] ?? '');
@@ -133,14 +135,18 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
       const bibliography = data.bibliography?.length
         ? `\n\nReferences:\n${data.bibliography.map((ref) => `- ${ref}`).join('\n')}`
         : '';
-      setGeneratedContent(`${data.draft.raw}${bibliography}`.trim());
+      const generatedText = `${data.draft.raw}${bibliography}`.trim();
+      setGeneratedContent(generatedText);
+
+      // ✅ AUTO-OPEN the full Report Editor with the generated content
+      openEditor(generatedText, name);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Network error';
       setGeneratedContent(`Error: ${msg}`);
     } finally {
       setIsGenerating(false);
     }
-  }, [activeProject, materials, body]);
+  }, [activeProject, materials, body, name, openEditor]);
 
   return (
     <div

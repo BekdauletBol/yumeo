@@ -3,7 +3,7 @@ import type { Project, CreateProjectInput, UpdateProjectInput } from '@/lib/type
 
 /** Default settings for new projects */
 const DEFAULT_SETTINGS: Project['settings'] = {
-  agentModel: 'gpt-4o',
+  agentModel: 'gpt-5',
   strictGrounding: true,
   language: 'en',
   exportFormat: 'markdown',

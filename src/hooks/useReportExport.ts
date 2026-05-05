@@ -11,23 +11,12 @@ export function useReportExport() {
   const exportToDOCX = async ({
     title,
     content,
-    citations = [],
   }: UseReportExportProps) => {
     try {
-      // Parse HTML content to plain text (simplified)
+      // Parse plain text from content
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
-      const plainText = tempDiv.innerText;
-
-      // Check for unverified citations
-      const hasUnverifiedCitations = citations.some(
-        (c) => !c.author || !c.year
-      );
-
-      if (hasUnverifiedCitations) {
-        alert('Cannot export: Please verify all citations first.');
-        return;
-      }
+      const plainText = tempDiv.innerText || content;
 
       // Create DOCX document
       const doc = new Document({
@@ -43,21 +32,6 @@ export function useReportExport() {
                 text: plainText,
                 spacing: { after: 200 },
               }),
-              // Add citations
-              ...(citations.length > 0 ? [
-                new Paragraph({
-                  text: 'References',
-                  heading: HeadingLevel.HEADING_2,
-                  spacing: { before: 200, after: 200 },
-                }),
-                ...citations.map(
-                  (c) =>
-                    new Paragraph({
-                      text: `${c.author}, ${c.year}, p. ${c.page}`,
-                      spacing: { after: 100 },
-                    })
-                ),
-              ] : []),
             ],
           },
         ],
