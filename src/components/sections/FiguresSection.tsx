@@ -44,8 +44,7 @@ export function FiguresSection() {
 
     const newFigures = [...figures];
     const [draggedItem] = newFigures.splice(oldIndex, 1);
-    if (!draggedItem) return;
-    newFigures.splice(newIndex, 0, draggedItem);
+    newFigures.splice(newIndex, 0, draggedItem as (typeof figures)[number]);
 
     const updates = newFigures.map((fig, idx) => {
       const newMetadata = { ...fig.metadata, order: idx };
@@ -134,10 +133,7 @@ export function FiguresSection() {
                 draggable
                 onDragStart={(e) => {
                   // When dragged into the editor, insert a [FIGURE: ...] marker
-                  const figRef = pageIndex !== undefined
-                    ? `[FIGURE: ${fig.name}, ${label}]`
-                    : `[FIGURE: ${fig.name}, ${label}]`;
-                  e.dataTransfer.setData('text/plain', figRef);
+                  e.dataTransfer.setData('text/plain', `[FIGURE: ${fig.name}, ${label}]`);
                   handleDragStart(e, fig.id);
                 }}
                 onDragOver={handleDragOver}

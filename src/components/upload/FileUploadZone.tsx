@@ -87,8 +87,8 @@ async function extractContent(
     try {
       const base64 = await fileToBase64(file);
       imageDataUrl = `data:${file.type};base64,${base64}`;
-    } catch {
-      // Non-critical — we'll just skip the thumbnail
+    } catch (err) {
+      console.warn('Failed to convert image to base64:', err);
     }
 
     // Attempt AI analysis (non-blocking — gracefully degrade on error)
@@ -98,7 +98,8 @@ async function extractContent(
       const analysis = await analyzeImage(file);
       analysisContent = `${analysis.description}\n\nExtracted text:\n${analysis.extractedText}`;
       suggestedCaption = analysis.suggestedCaption;
-    } catch {
+    } catch (err) {
+      console.warn('Image analysis failed:', err);
       analysisContent = `[Image: ${file.name}]`;
     }
 
