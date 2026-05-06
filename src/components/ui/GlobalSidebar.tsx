@@ -5,32 +5,23 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Home,
-  Key,
-  CreditCard,
   Settings,
   MessageSquare,
-  X
+  Mail,
+  CreditCard,
+  X,
 } from 'lucide-react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import { ThemeToggle } from './ThemeToggle';
+
+const FEEDBACK_EMAIL = 'yumeo.lab@gmail.com';
+const DISCORD_INVITE = 'https://discord.gg/yumeo'; // replace with real link when ready
 
 const NAVIGATION_GROUPS = [
   {
     title: 'Main',
     items: [
       { label: 'Home', href: '/', icon: Home },
-    ],
-  },
-  {
-    title: 'API',
-    items: [
-      { label: 'API Keys', href: '/docs', icon: Key },
-    ],
-  },
-  {
-    title: 'Billing',
-    items: [
-      { label: 'Billing', href: '/pricing', icon: CreditCard },
     ],
   },
   {
@@ -112,24 +103,41 @@ export function GlobalSidebar({ isOpen = false, setIsOpen }: GlobalSidebarProps)
             </div>
           ))}
 
-          <div className="pt-4">
-            <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">API Access</span>
-                <span className="text-xs font-bold text-[var(--text-primary)]">Pro</span>
-              </div>
-              <div className="text-sm font-medium">Unlimited</div>
-            </div>
-          </div>
-
+          {/* Community / Support links */}
           <div className="pt-2 space-y-1">
-            <Link href="/docs" onClick={() => setIsOpen?.(false)} className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all">
+            {/* Join Discord — opens invite when you have one */}
+            <a
+              href={DISCORD_INVITE}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIsOpen?.(false)}
+              className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all"
+            >
               <MessageSquare size={18} className="opacity-70" />
               Join Discord
-            </Link>
-            <Link href="/docs" onClick={() => setIsOpen?.(false)} className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all">
-              <MessageSquare size={18} className="opacity-70" />
+            </a>
+
+            {/* Give Feedback — opens Gmail compose to your address */}
+            <a
+              href={`https://mail.google.com/mail/?view=cm&to=${FEEDBACK_EMAIL}&su=Yumeo%20Feedback&body=Hi%20Yumeo%20team%2C%0A%0A`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIsOpen?.(false)}
+              className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all"
+            >
+              <Mail size={18} className="opacity-70" />
               Give Feedback
+            </a>
+
+            {/* Billing — subtle single icon-only button, no text label */}
+            <Link
+              href="/pricing"
+              onClick={() => setIsOpen?.(false)}
+              title="Billing & subscription"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-all opacity-50 hover:opacity-100"
+            >
+              <CreditCard size={18} className="opacity-70" />
+              <span className="sr-only">Billing</span>
             </Link>
           </div>
         </nav>

@@ -88,7 +88,7 @@ const faqs = [
   },
   {
     q: 'Which AI model does Yumeo use?',
-    a: 'Yumeo uses GPT-4o via GitHub Models for all plans. This provides fast, accurate responses grounded exclusively in your uploaded materials.',
+    a: 'Yumeo uses state-of-the-art AI to deliver fast, accurate responses grounded exclusively in your uploaded materials.',
   },
   {
     q: 'Is my data private?',
@@ -283,12 +283,11 @@ export default function DocsPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                Powered by GitHub Models · GPT-4o
+                Powered by AI · State-of-the-art models
               </h3>
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Yumeo uses GPT-4o via the GitHub Models API — the same frontier model used by
-                researchers worldwide. The model only has access to the materials you upload; it
-                cannot browse the internet or access any external data source.
+                Yumeo is powered by state-of-the-art AI models. The AI only has access to
+                the materials you upload; it cannot browse the internet or access any external data source.
               </p>
               <a
                 href="https://github.com/marketplace/models"

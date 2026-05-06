@@ -17,12 +17,13 @@ import { useTextSelection } from '@/hooks/useTextSelection';
  */
 export function MessageList() {
   const { user } = useUser();
-  const messages = useChatStore((s) => s.messages);
+  const rawMessages = useChatStore((s) => s.messages);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const streamingContent = useChatStore((s) => s.streamingContent);
   const addMessage = useChatStore((s) => s.addMessage);
   
   const activeProject = useProjectStore((s) => s.activeProject);
+  const messages = rawMessages.filter((m) => m.projectId === activeProject?.id);
   const { selection, containerRef, clearSelection } = useTextSelection();
   const bottomRef = useRef<HTMLDivElement>(null);
 

@@ -249,8 +249,14 @@ const TRAILING_NOISE_PATTERNS = [
 ];
 
 function stripAIConversationalNoise(text: string): string {
+  // Hard strip specific preambles requested
+  let cleanedText = text
+    .replace(/^(Okay|Certainly|Sure|Of course|Great|Absolutely)[^.!]*[.!]\s*/i, '')
+    .replace(/^Based on (your|the) (provided |uploaded )?[^.]+\.\s*/i, '')
+    .trim();
+
   // Split into lines, trim trailing blank lines first
-  const lines = text.split('\n');
+  const lines = cleanedText.split('\n');
 
   // ── Strip trailing conversational lines ──────────────────────────────────
   // Walk from the bottom up, removing noise lines + trailing --- separators

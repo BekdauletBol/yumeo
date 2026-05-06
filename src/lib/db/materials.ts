@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, createServiceClient } from './supabase';
 import type { Material, MaterialSection, CreateMaterialInput, UpdateMaterialInput } from '@/lib/types';
 
 /**
@@ -8,7 +8,8 @@ export async function getMaterials(
   projectId: string,
   section?: MaterialSection,
 ): Promise<Material[]> {
-  let query = supabase
+  const serviceClient = createServiceClient();
+  let query = serviceClient
     .from('materials')
     .select('*')
     .eq('project_id', projectId)
@@ -25,7 +26,8 @@ export async function getMaterials(
  * Fetch a single material by ID.
  */
 export async function getMaterial(id: string): Promise<Material> {
-  const { data, error } = await supabase
+  const serviceClient = createServiceClient();
+  const { data, error } = await serviceClient
     .from('materials')
     .select('*')
     .eq('id', id)
@@ -39,7 +41,8 @@ export async function getMaterial(id: string): Promise<Material> {
  * Create a material record after uploading the file to Supabase Storage.
  */
 export async function createMaterial(input: CreateMaterialInput): Promise<Material> {
-  const { data, error } = await supabase
+  const serviceClient = createServiceClient();
+  const { data, error } = await serviceClient
     .from('materials')
     .insert({
       project_id: input.projectId,
@@ -63,7 +66,8 @@ export async function updateMaterial(
   id: string,
   input: UpdateMaterialInput,
 ): Promise<Material> {
-  const { data, error } = await supabase
+  const serviceClient = createServiceClient();
+  const { data, error } = await serviceClient
     .from('materials')
     .update({
       ...(input.name !== undefined && { name: input.name }),
@@ -82,8 +86,9 @@ export async function updateMaterial(
  * Delete a material and its stored file (if any).
  */
 export async function deleteMaterial(id: string): Promise<void> {
+  const serviceClient = createServiceClient();
   // Fetch storage_url first so we can clean up storage
-  const { data } = await supabase
+  const { data } = await serviceClient
     .from('materials')
     .select('storage_url')
     .eq('id', id)
@@ -92,11 +97,11 @@ export async function deleteMaterial(id: string): Promise<void> {
   if (data?.storage_url) {
     const path = storagePathFromUrl(data.storage_url as string);
     if (path) {
-      await supabase.storage.from('materials').remove([path]);
+      await serviceClient.storage.from('materials').remove([path]);
     }
   }
 
-  const { error } = await supabase.from('materials').delete().eq('id', id);
+  const { error } = await serviceClient.from('materials').delete().eq('id', id);
   if (error) throw new Error(`Failed to delete material: ${error.message}`);
 }
 
@@ -109,16 +114,17 @@ export async function uploadMaterialFile(
   materialId: string,
   file: File,
 ): Promise<string> {
+  const serviceClient = createServiceClient();
   const ext = file.name.split('.').pop() ?? 'bin';
   const path = `${projectId}/${materialId}/original.${ext}`;
 
-  const { error } = await supabase.storage
+  const { error } = await serviceClient.storage
     .from('materials')
     .upload(path, file, { upsert: true });
 
   if (error) throw new Error(`Failed to upload file: ${error.message}`);
 
-  const { data } = supabase.storage.from('materials').getPublicUrl(path);
+  const { data } = serviceClient.storage.from('materials').getPublicUrl(path);
   return data.publicUrl;
 }
 
@@ -129,6 +135,7 @@ function rowToMaterial(row: Record<string, unknown>): Material {
     id: row['id'] as string,
     projectId: row['project_id'] as string,
     section: row['section'] as MaterialSection,
+    sectionId: (row['section_id'] as string | null) ?? undefined,
     name: row['name'] as string,
     content: row['content'] as string,
     storageUrl: (row['storage_url'] as string | null) ?? undefined,

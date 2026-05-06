@@ -10,6 +10,8 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
+import { useReportEditorStore } from '@/stores/reportEditorStore';
+import { stripPreamble } from '@/lib/utils/markdownParser';
 import type { ChatMessage, AnthropicMessage } from '@/lib/types';
 import { EmptyState } from '@/components/ide/EmptyState';
 import { showToast } from '@/lib/utils/toast';
@@ -33,6 +35,11 @@ export function ChatPanel() {
   const activeProject = useProjectStore((s) => s.activeProject);
   const sections = useProjectSectionsStore((s) => s.sections);
   const activeSections = sections.filter((s) => s.isActive);
+  const openEditor = useReportEditorStore((s) => s.openWithContent);
+
+  // Heuristic: if response has markdown headings AND is long → treat as report
+  const isReportResponse = (text: string) =>
+    text.length > 800 && (/^#{1,3}\s/m.test(text) || /^#+\s/m.test(text));
 
   // Track when the first reference is uploaded to show the toast once
   const prevRefCount = useRef(0);
@@ -75,7 +82,7 @@ export function ChatPanel() {
       const systemPrompt = buildSystemPrompt(materials, activeProject.settings, activeSections, activeProject.settings.agentModel);
 
       const history: AnthropicMessage[] = messages
-        .filter((m) => m.role !== 'system' && m.content)
+        .filter((m) => m.role !== 'system' && m.content && m.projectId === activeProject.id)
         .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
       history.push({ role: 'user', content: userText });
 
@@ -144,13 +151,28 @@ export function ChatPanel() {
           isStreaming: false,
         };
         const enriched = enrichMessageWithCitations(finalMessage, materials);
+        const cleanText = stripPreamble(enriched.content.replace(/\[REF:\d+\]/g, '').trim());
 
-        updateMessage(assistantId, {
-          content: enriched.content,
-          citations: enriched.citations,
-          isStreaming: false,
-        });
-        finalizeStreamingMessage(assistantId);
+        if (isReportResponse(cleanText)) {
+          // BUG 2 FIX: Replace in-chat content with a short notification and open editor
+          updateMessage(assistantId, {
+            content: '✅ Report generated. Opening editor…',
+            citations: [],
+            isStreaming: false,
+          });
+          finalizeStreamingMessage(assistantId);
+          // Extract a title from the first heading line
+          const titleMatch = cleanText.match(/^#{1,3}\s+(.+)$/m);
+          const reportTitle = titleMatch?.[1]?.trim() ?? 'AI Report';
+          openEditor(cleanText, reportTitle);
+        } else {
+          updateMessage(assistantId, {
+            content: enriched.content,
+            citations: enriched.citations,
+            isStreaming: false,
+          });
+          finalizeStreamingMessage(assistantId);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Network error';
         // eslint-disable-next-line no-console
