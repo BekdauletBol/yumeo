@@ -4,9 +4,9 @@ import { useState, useRef, useCallback, useId } from 'react';
 import { UploadCloud, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
-import { parsePDF, extractPDFMetadataHints } from '@/lib/parsers/pdfParser';
+import { parsePDF, extractPDFMetadataHints, extractPDFPageImages } from '@/lib/parsers/pdfParser';
 import { parseDocx } from '@/lib/parsers/docxParser';
-import { analyzeImage } from '@/lib/parsers/imageAnalyzer';
+import { analyzeImage, fileToBase64 } from '@/lib/parsers/imageAnalyzer';
 import { cn } from '@/lib/utils/cn';
 import type { MaterialSection, CreateMaterialInput } from '@/lib/types';
 import { createMaterialAction } from '@/app/actions/materials';
@@ -41,14 +41,31 @@ const MAX_CONTENT_CHARS = 200_000;
 
 
 /** Extract text content from any file type */
-async function extractContent(file: File): Promise<{
+async function extractContent(
+  file: File,
+  section?: MaterialSection,
+): Promise<{
   content: string;
   metadata: CreateMaterialInput['metadata'];
 }> {
+  const isFiguresSection = section === 'figures';
+  const isTemplatesSection = section === 'templates';
+
   // PDF
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
     const result = await parsePDF(file);
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
+
+    // For the figures section: also extract rendered page images
+    let extractedImages: string[] | undefined;
+    if (isFiguresSection) {
+      try {
+        extractedImages = await extractPDFPageImages(file);
+      } catch (err) {
+        console.warn('PDF image extraction failed:', err);
+      }
+    }
+
     return {
       content: result.text,
       metadata: {
@@ -57,19 +74,41 @@ async function extractContent(file: File): Promise<{
         pageCount: result.pageCount,
         pageText: result.pages,
         ...hints,
+        ...(extractedImages ? { extractedImages } : {}),
+        ...(isTemplatesSection ? { isFileTemplate: true } : {}),
       },
     };
   }
 
   // Images
   if (file.type.startsWith('image/')) {
-    const analysis = await analyzeImage(file);
+    // Store a data URL for rendering in the editor/figures panel
+    let imageDataUrl: string | undefined;
+    try {
+      const base64 = await fileToBase64(file);
+      imageDataUrl = `data:${file.type};base64,${base64}`;
+    } catch {
+      // Non-critical — we'll just skip the thumbnail
+    }
+
+    // Attempt AI analysis (non-blocking — gracefully degrade on error)
+    let analysisContent = '';
+    let suggestedCaption = '';
+    try {
+      const analysis = await analyzeImage(file);
+      analysisContent = `${analysis.description}\n\nExtracted text:\n${analysis.extractedText}`;
+      suggestedCaption = analysis.suggestedCaption;
+    } catch {
+      analysisContent = `[Image: ${file.name}]`;
+    }
+
     return {
-      content: `${analysis.description}\n\nExtracted text:\n${analysis.extractedText}`,
+      content: analysisContent,
       metadata: {
         fileType: 'image',
         fileSize: file.size,
-        caption: analysis.suggestedCaption,
+        caption: suggestedCaption || undefined,
+        ...(imageDataUrl ? { imageDataUrl } : {}),
       },
     };
   }
@@ -126,7 +165,11 @@ async function extractContent(file: File): Promise<{
     }
     return {
       content: content || `[No text content found in ${file.name}]`,
-      metadata: { fileType: 'text', fileSize: file.size },
+      metadata: {
+        fileType: 'text',
+        fileSize: file.size,
+        ...(isTemplatesSection ? { isFileTemplate: true } : {}),
+      },
     };
   }
 
@@ -141,8 +184,9 @@ async function extractContent(file: File): Promise<{
   return {
     content,
     metadata: {
-      fileType: file.name.endsWith('.csv') ? 'text' : 'text',
+      fileType: 'text',
       fileSize: file.size,
+      ...(isTemplatesSection ? { isFileTemplate: true } : {}),
     },
   };
 }
@@ -186,7 +230,7 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
         const targetSection: MaterialSection = section;
 
         // Extract content (handles all formats gracefully)
-        const { content: rawContent, metadata } = await extractContent(file);
+        const { content: rawContent, metadata } = await extractContent(file, targetSection);
 
         // Truncate to avoid exceeding Next.js server action body limit (1 MB default)
         const content = rawContent.length > MAX_CONTENT_CHARS

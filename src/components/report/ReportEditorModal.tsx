@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { X, Download, Wand2, Save } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Eye, PenLine, X, Download, Wand2, Save } from 'lucide-react';
 import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useReportEditorStore } from '@/stores/reportEditorStore';
@@ -10,6 +10,7 @@ import { useTextSelection } from '@/hooks/useTextSelection';
 import { TextSelectionPopup } from '@/components/chat/TextSelectionPopup';
 import { ReportAISidebar } from './ReportAISidebar';
 import { ExportModal } from './ExportModal';
+import { renderWithFigures } from './FigureMarker';
 import { cn } from '@/lib/utils/cn';
 import { nanoid } from 'nanoid';
 
@@ -32,6 +33,8 @@ export function ReportEditorModal() {
   const [content, setContent] = useState(initialContent);
   const [showAISidebar, setShowAISidebar] = useState(false);
   const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftId);
+  /** Toggle between "edit" (textarea) and "preview" (rendered with figures) */
+  const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
 
   // Autocomplete state
   const [ghost, setGhost] = useState('');
@@ -43,6 +46,15 @@ export function ReportEditorModal() {
   const { selection, containerRef, clearSelection } = useTextSelection();
 
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // Allow dropping [FIGURE: ...] markers from the Figures panel into the textarea
+  const handleEditorDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    const text = e.dataTransfer.getData('text/plain');
+    if (!text.startsWith('[FIGURE:')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setContent((prev) => prev + '\n\n' + text + '\n\n');
+  }, []);
 
   // Sync state when modal opens
   useEffect(() => {
@@ -268,6 +280,39 @@ export function ReportEditorModal() {
             )}
           </div>
 
+          {/* Edit / Preview toggle */}
+          <div
+            className="flex items-center rounded-lg overflow-hidden shrink-0"
+            style={{ border: '1px solid var(--border-subtle)' }}
+          >
+            <button
+              onClick={() => setEditorMode('edit')}
+              className="flex items-center gap-1 text-xs px-2.5 py-1.5 transition-all"
+              style={{
+                background: editorMode === 'edit' ? 'var(--accent-refs)' : 'var(--bg-surface)',
+                color: editorMode === 'edit' ? '#fff' : 'var(--text-secondary)',
+              }}
+              aria-label="Edit mode"
+              aria-pressed={editorMode === 'edit'}
+            >
+              <PenLine size={12} />
+              Edit
+            </button>
+            <button
+              onClick={() => setEditorMode('preview')}
+              className="flex items-center gap-1 text-xs px-2.5 py-1.5 transition-all"
+              style={{
+                background: editorMode === 'preview' ? 'var(--accent-refs)' : 'var(--bg-surface)',
+                color: editorMode === 'preview' ? '#fff' : 'var(--text-secondary)',
+              }}
+              aria-label="Preview mode"
+              aria-pressed={editorMode === 'preview'}
+            >
+              <Eye size={12} />
+              Preview
+            </button>
+          </div>
+
           {/* Save as draft */}
           {!activeDraftId && (
             <button
@@ -356,57 +401,78 @@ export function ReportEditorModal() {
 
         {/* ── Main area ── */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Editor */}
-          <div ref={containerRef} className="flex-1 relative overflow-y-auto px-12 py-8">
-            {/* Ghost text overlay (autocomplete) */}
-            {ghost && (
+          {/* Editor / Preview */}
+          <div
+            ref={containerRef}
+            className="flex-1 relative overflow-y-auto px-12 py-8"
+            onDragOver={(e) => { if (e.dataTransfer.types.includes('text/plain')) e.preventDefault(); }}
+            onDrop={handleEditorDrop}
+          >
+            {editorMode === 'edit' ? (
+              <>
+                {/* Ghost text overlay (autocomplete) */}
+                {ghost && (
+                  <div
+                    className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      color: 'transparent',
+                      lineHeight: '1.75',
+                    }}
+                  >
+                    {content}
+                    <span style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}>
+                      {ghost}
+                    </span>
+                  </div>
+                )}
+
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    hasReferences
+                      ? 'Start writing… AI will suggest continuations as you type (Tab to accept).'
+                      : 'Write here…'
+                  }
+                  className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7"
+                  style={{
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                    minHeight: 400,
+                    caretColor: 'var(--accent-refs)',
+                  }}
+                  aria-label="Report content"
+                />
+
+                {/* Text selection popup */}
+                {selection && (
+                  <TextSelectionPopup
+                    selectedText={selection.text}
+                    position={selection.position}
+                    onAskYumeo={handleAskAboutSelection}
+                    onRewrite={handleRewriteSelection}
+                    onExpand={handleExpandSelection}
+                    onCopy={(text) => { void navigator.clipboard.writeText(text); clearSelection(); }}
+                    onAddToDraft={(text) => { setContent((prev) => prev + '\n\n' + text); clearSelection(); }}
+                    onClose={clearSelection}
+                  />
+                )}
+              </>
+            ) : (
+              /* Preview mode — renders [FIGURE: ...] markers as images */
               <div
-                className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
+                className="text-sm leading-7 whitespace-pre-wrap break-words"
                 style={{
+                  color: 'var(--text-primary)',
                   fontFamily: 'var(--font-mono)',
-                  color: 'transparent',
-                  lineHeight: '1.75',
+                  minHeight: 400,
                 }}
               >
-                {content}
-                <span style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}>
-                  {ghost}
-                </span>
+                {renderWithFigures(content)}
               </div>
-            )}
-
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                hasReferences
-                  ? 'Start writing… AI will suggest continuations as you type (Tab to accept).'
-                  : 'Write here…'
-              }
-              className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7"
-              style={{
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-mono)',
-                minHeight: 400,
-                caretColor: 'var(--accent-refs)',
-              }}
-              aria-label="Report content"
-            />
-
-            {/* Text selection popup */}
-            {selection && (
-              <TextSelectionPopup
-                selectedText={selection.text}
-                position={selection.position}
-                onAskYumeo={handleAskAboutSelection}
-                onRewrite={handleRewriteSelection}
-                onExpand={handleExpandSelection}
-                onCopy={(text) => { void navigator.clipboard.writeText(text); clearSelection(); }}
-                onAddToDraft={(text) => { setContent((prev) => prev + '\n\n' + text); clearSelection(); }}
-                onClose={clearSelection}
-              />
             )}
           </div>
 

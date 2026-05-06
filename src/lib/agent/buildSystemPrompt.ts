@@ -57,9 +57,25 @@ export function buildSystemPrompt(
     ? `Current Draft:\n${truncateToTokens(drafts[0]?.content ?? '', draftBudget)}`
     : 'No draft yet.';
 
-  const templateSection = activeTemplate
-    ? `Template being used: ${activeTemplate.name}\nTemplate structure:\n${truncateToTokens(activeTemplate.content, 500)}`
-    : 'No template uploaded. Infer appropriate academic structure (IEEE, APA, etc.).';
+  let templateSection: string;
+  if (activeTemplate) {
+    if (activeTemplate.metadata.isFileTemplate) {
+      // Uploaded file — AI must follow its exact structure and style
+      templateSection = `TEMPLATE FILE LOADED: "${activeTemplate.name}"
+The researcher has uploaded this file as a structural and stylistic template.
+YOU MUST follow the exact section order, heading names, and writing style from this document.
+DO NOT invent section names or use standard academic structure — use the template structure instead.
+Template content:
+${truncateToTokens(activeTemplate.content, 800)}`;
+    } else {
+      // Handcrafted text template with {{ placeholder }} syntax
+      templateSection = `Template being used: ${activeTemplate.name}
+Template structure:
+${truncateToTokens(activeTemplate.content, 500)}`;
+    }
+  } else {
+    templateSection = 'No template uploaded. ⚠ Using standard academic structure (Introduction, Methods, Results, Discussion, Conclusion). Upload a template file in the Templates section to enforce a custom format.';
+  }
 
   // Reference content: use remaining budget split evenly across files
   const referenceContext = buildMaterialContext(references, contextBudget);
@@ -80,7 +96,7 @@ WORKSPACE MATERIALS
 ═══════════════════════════════════════════
 Uploaded References (${references.length}): ${references.length > 0 ? references.map(r => r.name).join(', ') : 'None'}
 ${draftContent}
-${figures.length > 0 ? `Figures (${figures.length}):\n${figures.map((f, i) => `• Figure ${f.metadata.figureNumber || i + 1}: ${f.metadata.caption || f.name}`).join('\n')}` : ''}
+${figures.length > 0 ? `Figures (${figures.length}):\n${figures.map((f, i) => `• Figure ${f.metadata.figureNumber || i + 1}: ${f.metadata.caption || f.name} [file: ${f.name}]`).join('\n')}` : ''}
 ${tables.length > 0 ? `Tables (${tables.length}):\n${tables.map((t, i) => `• Table ${t.metadata.figureNumber || i + 1}: ${t.metadata.caption || t.name}`).join('\n')}` : ''}
 ${equations.length > 0 ? `Equations (${equations.length}):\n${equations.map((e, i) => `• Eq ${e.metadata.figureNumber || i + 1}: ${e.content}`).join('\n')}` : ''}
 ${diagrams.length > 0 ? `Diagrams (${diagrams.length}):\n${diagrams.map((d, i) => `• Diagram ${d.metadata.figureNumber || i + 1}: ${d.content}`).join('\n')}` : ''}
@@ -100,6 +116,7 @@ STRICT OPERATIONAL RULES
 4. WRITING: Help refine arguments with material-backed evidence only.
 5. NO CONVERSATION: Never output conversational filler. Do NOT say "Here is the report" or "Let me know if you need anything else." Output ONLY the requested document text.
 6. RESPONSE STYLE: Academic tone, concise, evidence-focused.
+7. FIGURE INSERTION: When the researcher asks to insert a figure from an uploaded file, output a marker using EXACTLY this syntax: [FIGURE: filename, Figure N] — e.g. [FIGURE: results.pdf, Figure 3]. The editor will replace this marker with the actual image. Never describe the figure inline instead of inserting the marker.
 
 Help the researcher produce rigorous, evidence-backed academic work.`;
 }

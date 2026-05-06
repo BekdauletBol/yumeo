@@ -51,6 +51,21 @@ export interface MaterialMetadata {
   order?: number;
   /** GitHub repo URL for imported materials */
   repoUrl?: string;
+  /**
+   * Base64 data URL of the image for direct image uploads in the figures section.
+   * Used to render the figure inline in the report editor.
+   */
+  imageDataUrl?: string;
+  /**
+   * Base64 data URLs of rendered PDF page images (one per page), stored when
+   * a PDF is uploaded to the figures section. Each entry is a JPEG thumbnail.
+   */
+  extractedImages?: string[];
+  /**
+   * True when the material was uploaded as a template file (DOCX, PDF, TXT)
+   * rather than created as a text template in the editor.
+   */
+  isFileTemplate?: boolean;
 }
 
 export type CreateMaterialInput = Omit<Material, 'id' | 'createdAt'>;

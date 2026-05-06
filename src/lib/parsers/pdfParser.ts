@@ -51,6 +51,57 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
 }
 
 /**
+ * Maximum number of pages to render as images when extracting figures from a PDF.
+ */
+const MAX_FIGURE_PAGES = 20;
+
+/**
+ * Render each page of a PDF as a compressed JPEG data URL (thumbnail).
+ * Uses pdfjs-dist canvas rendering. Runs in browser only.
+ *
+ * @param file     - The PDF File object
+ * @param maxPages - Maximum pages to extract (default 20)
+ * @returns        - Array of data URLs, one per page, as JPEG thumbnails
+ */
+export async function extractPDFPageImages(
+  file: File,
+  maxPages: number = MAX_FIGURE_PAGES,
+): Promise<string[]> {
+  const pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  const pdf = await loadingTask.promise;
+
+  const pagesToRender = Math.min(pdf.numPages, maxPages);
+  const images: string[] = [];
+
+  for (let i = 1; i <= pagesToRender; i++) {
+    const page = await pdf.getPage(i);
+
+    // Scale the page so the longest dimension is at most 600px
+    const viewport = page.getViewport({ scale: 1 });
+    const scale = Math.min(600 / viewport.width, 600 / viewport.height, 1);
+    const scaled = page.getViewport({ scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(scaled.width);
+    canvas.height = Math.floor(scaled.height);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+
+    await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+
+    // Export as JPEG at quality 0.65 to keep size small
+    images.push(canvas.toDataURL('image/jpeg', 0.65));
+  }
+
+  return images;
+}
+
+/**
  * Extract metadata hints from a PDF's first page and filename.
  * Returns best-guess year, authors, DOI etc.
  */
