@@ -61,7 +61,10 @@ export function TiptapEditor({ initialContent, onSave }: TiptapEditorProps) {
             const reader = new FileReader();
             reader.onload = (e) => {
               const src = e.target?.result as string;
-              view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.image.create({ src })));
+               const imageNode = view.state.schema.nodes.image;
+               if (!imageNode) return false;
+               view.dispatch(view.state.tr.replaceSelectionWith(imageNode.create({ src })));
+
             };
             reader.readAsDataURL(file);
             return true;

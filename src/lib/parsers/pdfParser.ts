@@ -50,7 +50,7 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
     for (let j = 0; j < ops.fnArray.length; j++) {
       if (
         ops.fnArray[j] === pdfjsLib.OPS.paintImageXObject ||
-        ops.fnArray[j] === pdfjsLib.OPS.paintJpegXObject
+        ops.fnArray[j] === pdfjsLib.OPS.paintXObject
       ) {
         const objId = ops.argsArray[j][0];
         try {
