@@ -16,7 +16,13 @@ export interface PDFParseResult {
   images?: string[];
 }
 
-export async function parsePDF(file: File): Promise<PDFParseResult> {
+export interface PDFParseOptions {
+  extractImages?: boolean;
+  maxImagePages?: number;
+  maxImages?: number;
+}
+
+export async function parsePDF(file: File, options: PDFParseOptions = {}): Promise<PDFParseResult> {
   // Dynamic import to avoid SSR issues with PDF.js
   const pdfjsLib = await import('pdfjs-dist');
 
@@ -31,6 +37,10 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
   const pageCount = pdf.numPages;
   const pages: string[] = [];
   const images: string[] = [];
+  let extractedImages = 0;
+  let allowImageExtraction = options.extractImages ?? true;
+  const maxImagePages = options.maxImagePages ?? pageCount;
+  const maxImages = options.maxImages ?? Number.POSITIVE_INFINITY;
 
   for (let i = 1; i <= pageCount; i++) {
     const page = await pdf.getPage(i);
@@ -46,8 +56,15 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
     pages.push(pageText);
 
     // Extract images
+    if (!allowImageExtraction || i > maxImagePages || extractedImages >= maxImages) continue;
+
     const ops = await page.getOperatorList();
     for (let j = 0; j < ops.fnArray.length; j++) {
+      if (extractedImages >= maxImages) {
+        allowImageExtraction = false;
+        break;
+      }
+
       if (
         ops.fnArray[j] === pdfjsLib.OPS.paintImageXObject ||
         ops.fnArray[j] === pdfjsLib.OPS.paintXObject
@@ -72,7 +89,7 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
               targetW = Math.round(targetW * ratio);
               targetH = Math.round(targetH * ratio);
             }
-
+ 
             const canvas = document.createElement('canvas');
             canvas.width = imgObj.width;
             canvas.height = imgObj.height;
@@ -86,14 +103,14 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
                 let dataIndex = 0;
                 for (let k = 0; k < imgObj.data.length; k += 3) {
                   imgData.data[dataIndex++] = imgObj.data[k];
-                  imgData.data[dataIndex++] = imgObj.data[k+1];
-                  imgData.data[dataIndex++] = imgObj.data[k+2];
+                  imgData.data[dataIndex++] = imgObj.data[k + 1];
+                  imgData.data[dataIndex++] = imgObj.data[k + 2];
                   imgData.data[dataIndex++] = 255;
                 }
               }
               
               ctx.putImageData(imgData, 0, 0);
-
+ 
               // If downscaling is needed, draw to another canvas
               if (targetW !== imgObj.width) {
                 const scaledCanvas = document.createElement('canvas');
@@ -107,6 +124,7 @@ export async function parsePDF(file: File): Promise<PDFParseResult> {
               } else {
                 images.push(canvas.toDataURL('image/jpeg', 0.8));
               }
+              extractedImages += 1;
             }
           }
         } catch (err) {

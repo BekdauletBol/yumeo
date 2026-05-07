@@ -31,6 +31,10 @@ interface UploadProgress {
 
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_PAGE_TEXT_CHARS = 120_000;
+const MAX_PDF_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_PDF_IMAGE_PAGES = 25;
+const MAX_PDF_IMAGES = 20;
 
 /**
  * Cap extracted text at 200 000 chars (≈ 50k tokens) before saving to Supabase.
@@ -48,15 +52,25 @@ async function extractContent(file: File): Promise<{
 }> {
   // PDF
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    const result = await parsePDF(file);
+    const shouldExtractImages = file.size <= MAX_PDF_IMAGE_BYTES;
+    const result = await parsePDF(file, {
+      extractImages: shouldExtractImages,
+      maxImagePages: MAX_PDF_IMAGE_PAGES,
+      maxImages: MAX_PDF_IMAGES,
+    });
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
+    const pageTextChars = result.pages.reduce((sum, page) => sum + page.length, 0);
+    const includePageText = pageTextChars > 0 && pageTextChars <= MAX_PAGE_TEXT_CHARS;
+    if (!includePageText && pageTextChars > 0) {
+      console.warn('PDF page text omitted to avoid oversized upload payload:', file.name);
+    }
     return {
       content: result.text,
       metadata: {
         fileType: 'pdf',
         fileSize: file.size,
         pageCount: result.pageCount,
-        pageText: result.pages,
+        ...(includePageText ? { pageText: result.pages } : {}),
         ...hints,
       },
       images: result.images,
