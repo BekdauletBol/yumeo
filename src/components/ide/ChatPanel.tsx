@@ -37,10 +37,6 @@ export function ChatPanel() {
   const activeSections = sections.filter((s) => s.isActive);
   const openEditor = useReportEditorStore((s) => s.openWithContent);
 
-  // Heuristic: if response has markdown headings AND is long → treat as report
-  const isReportResponse = (text: string) =>
-    text.length > 800 && (/^#{1,3}\s/m.test(text) || /^#+\s/m.test(text));
-
   // Track when the first reference is uploaded to show the toast once
   const prevRefCount = useRef(0);
   const references = materials.filter((m) => m.section === 'references');
@@ -65,6 +61,8 @@ export function ChatPanel() {
       };
       addMessage(userMessage);
 
+      const isTask = /^(write|generate|create|summarize|draft|make|build)/i.test(userText.trim());
+
       const assistantId = nanoid();
       const assistantMessage: ChatMessage = {
         id: assistantId,
@@ -75,6 +73,7 @@ export function ChatPanel() {
         timestamp: new Date(),
         isStreaming: true,
         model: activeProject.settings.agentModel,
+        isTask,
       };
       addMessage(assistantMessage);
       setIsStreaming(true);
@@ -151,28 +150,13 @@ export function ChatPanel() {
           isStreaming: false,
         };
         const enriched = enrichMessageWithCitations(finalMessage, materials);
-        const cleanText = stripPreamble(enriched.content.replace(/\[REF:\d+\]/g, '').trim());
 
-        if (isReportResponse(cleanText)) {
-          // BUG 2 FIX: Replace in-chat content with a short notification and open editor
-          updateMessage(assistantId, {
-            content: '✅ Report generated. Opening editor…',
-            citations: [],
-            isStreaming: false,
-          });
-          finalizeStreamingMessage(assistantId);
-          // Extract a title from the first heading line
-          const titleMatch = cleanText.match(/^#{1,3}\s+(.+)$/m);
-          const reportTitle = titleMatch?.[1]?.trim() ?? 'AI Report';
-          openEditor(cleanText, reportTitle);
-        } else {
-          updateMessage(assistantId, {
-            content: enriched.content,
-            citations: enriched.citations,
-            isStreaming: false,
-          });
-          finalizeStreamingMessage(assistantId);
-        }
+        updateMessage(assistantId, {
+          content: enriched.content,
+          citations: enriched.citations,
+          isStreaming: false,
+        });
+        finalizeStreamingMessage(assistantId);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Network error';
         // eslint-disable-next-line no-console

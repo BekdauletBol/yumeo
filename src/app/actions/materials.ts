@@ -15,9 +15,17 @@ function rowToMaterial(row: Record<string, unknown>): Material {
     name: row['name'] as string,
     content: row['content'] as string,
     storageUrl: (row['storage_url'] as string | null) ?? undefined,
+    status: (row['status'] as Material['status']) ?? 'ready',
     metadata: row['metadata'] as Material['metadata'],
     createdAt: new Date(row['created_at'] as string),
   };
+}
+
+export async function getMaterialAction(id: string): Promise<Material> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase.from('materials').select().eq('id', id).single();
+  if (error || !data) throw new Error('Material not found');
+  return rowToMaterial(data);
 }
 
 export async function createMaterialAction(input: CreateMaterialInput): Promise<Material> {
@@ -50,6 +58,9 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
     verifiedSectionId = input.sectionId;
   }
 
+  const needsProcessing = input.section === 'references' || input.section === 'drafts' || input.section === 'tables';
+  const initialStatus = needsProcessing ? 'processing' : 'ready';
+
   const { data, error } = await supabase
     .from('materials')
     .insert({
@@ -60,6 +71,7 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
       content: input.content,
       storage_url: input.storageUrl ?? null,
       metadata: input.metadata,
+      status: initialStatus,
     })
     .select()
     .single();
@@ -68,16 +80,17 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
     throw new Error(error?.message ?? 'Failed to save material to database');
   }
 
-  const material = rowToMaterial(data);
+  return rowToMaterial(data);
+}
 
-  // Fire-and-forget chunking/embedding (for all sections that need search)
-  if (material.section === 'references' || material.section === 'drafts' || material.section === 'tables') {
-    chunkAndEmbedMaterial(material).catch(_err => {
-      // Embedding failed silently - not critical
-    });
+export async function processMaterialAction(material: Material) {
+  const supabase = createServiceClient();
+  try {
+    await chunkAndEmbedMaterial(material);
+    await supabase.from('materials').update({ status: 'ready' }).eq('id', material.id);
+  } catch (err) {
+    await supabase.from('materials').update({ status: 'error' }).eq('id', material.id);
   }
-
-  return material;
 }
 
 export async function updateMaterialOrderAction(projectId: string, updates: { id: string, metadata: Material['metadata'] }[]) {

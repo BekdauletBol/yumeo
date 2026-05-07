@@ -12,6 +12,7 @@ import { ReportAISidebar } from './ReportAISidebar';
 import { ExportModal } from './ExportModal';
 import { cn } from '@/lib/utils/cn';
 import { nanoid } from 'nanoid';
+import ReactMarkdown from 'react-markdown';
 
 /**
  * Full-screen report editor modal.
@@ -32,6 +33,7 @@ export function ReportEditorModal() {
   const [content, setContent] = useState(initialContent);
   const [showAISidebar, setShowAISidebar] = useState(false);
   const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftId);
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
 
   // Autocomplete state
   const [ghost, setGhost] = useState('');
@@ -268,6 +270,29 @@ export function ReportEditorModal() {
             )}
           </div>
 
+          <div className="flex ml-auto items-center p-0.5 rounded-lg" style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)' }}>
+            <button
+              onClick={() => setViewMode('edit')}
+              className={cn("px-3 py-1 text-xs rounded-md transition-all", viewMode === 'edit' ? "shadow-sm font-medium" : "opacity-70")}
+              style={{
+                background: viewMode === 'edit' ? 'var(--bg-elevated)' : 'transparent',
+                color: viewMode === 'edit' ? 'var(--text-primary)' : 'var(--text-secondary)'
+              }}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setViewMode('preview')}
+              className={cn("px-3 py-1 text-xs rounded-md transition-all", viewMode === 'preview' ? "shadow-sm font-medium" : "opacity-70")}
+              style={{
+                background: viewMode === 'preview' ? 'var(--bg-elevated)' : 'transparent',
+                color: viewMode === 'preview' ? 'var(--text-primary)' : 'var(--text-secondary)'
+              }}
+            >
+              Preview
+            </button>
+          </div>
+
           {/* Save as draft */}
           {!activeDraftId && (
             <button
@@ -358,42 +383,79 @@ export function ReportEditorModal() {
         <div className="flex flex-1 overflow-hidden">
           {/* Editor */}
           <div ref={containerRef} className="flex-1 relative overflow-y-auto px-12 py-8">
-            {/* Ghost text overlay (autocomplete) */}
-            {ghost && (
+            {viewMode === 'edit' ? (
+              <>
+                {/* Ghost text overlay (autocomplete) */}
+                {ghost && (
+                  <div
+                    className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      color: 'transparent',
+                      lineHeight: '1.75',
+                    }}
+                  >
+                    {content}
+                    <span style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}>
+                      {ghost}
+                    </span>
+                  </div>
+                )}
+
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    hasReferences
+                      ? 'Start writing… AI will suggest continuations as you type (Tab to accept).'
+                      : 'Write here…'
+                  }
+                  className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7"
+                  style={{
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                    minHeight: 400,
+                    caretColor: 'var(--accent-refs)',
+                  }}
+                  aria-label="Report content"
+                />
+              </>
+            ) : (
               <div
-                className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
+                className="w-full h-full prose prose-sm max-w-none"
                 style={{
-                  fontFamily: 'var(--font-mono)',
-                  color: 'transparent',
-                  lineHeight: '1.75',
-                }}
+                  color: 'var(--text-primary)',
+                  '--tw-prose-body': 'var(--text-primary)',
+                  '--tw-prose-headings': 'var(--text-primary)',
+                  '--tw-prose-bold': 'var(--text-primary)',
+                  '--tw-prose-code': 'var(--accent-refs)',
+                  '--tw-prose-pre-bg': 'var(--bg-overlay)',
+                  '--tw-prose-bullets': 'var(--text-tertiary)',
+                } as React.CSSProperties}
               >
-                {content}
-                <span style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}>
-                  {ghost}
-                </span>
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => <h1 style={{ fontSize: '1.5em', fontWeight: 700, marginBottom: '0.5em', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3em' }}>{children}</h1>,
+                    h2: ({ children }) => <h2 style={{ fontSize: '1.25em', fontWeight: 600, marginTop: '1.5em', marginBottom: '0.5em' }}>{children}</h2>,
+                    h3: ({ children }) => <h3 style={{ fontSize: '1.1em', fontWeight: 600, marginTop: '1.2em', marginBottom: '0.5em', color: 'var(--text-secondary)' }}>{children}</h3>,
+                    p: ({ children }) => <p style={{ marginBottom: '1em', lineHeight: 1.7 }}>{children}</p>,
+                    ul: ({ children }) => <ul style={{ paddingLeft: '1.5em', marginBottom: '1em' }}>{children}</ul>,
+                    ol: ({ children }) => <ol style={{ paddingLeft: '1.5em', marginBottom: '1em' }}>{children}</ol>,
+                    li: ({ children }) => <li style={{ marginBottom: '0.25em' }}>{children}</li>,
+                    blockquote: ({ children }) => <blockquote style={{ borderLeft: '3px solid var(--accent-refs)', paddingLeft: '1em', color: 'var(--text-secondary)', fontStyle: 'italic', margin: '1em 0' }}>{children}</blockquote>,
+                    code: ({ children, ...props }) => <code {...props} style={{ background: 'var(--bg-overlay)', padding: '0.2em 0.4em', borderRadius: '3px', fontSize: '0.9em', fontFamily: 'var(--font-mono)' }}>{children}</code>,
+                    pre: ({ children }) => <pre style={{ background: 'var(--bg-overlay)', padding: '1em', borderRadius: '6px', overflowX: 'auto', marginBottom: '1em', border: '1px solid var(--border-subtle)' }}>{children}</pre>,
+                    hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '2em 0' }} />,
+                    strong: ({ children }) => <strong style={{ fontWeight: 700 }}>{children}</strong>,
+                    em: ({ children }) => <em style={{ fontStyle: 'italic' }}>{children}</em>,
+                  }}
+                >
+                  {content}
+                </ReactMarkdown>
               </div>
             )}
-
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                hasReferences
-                  ? 'Start writing… AI will suggest continuations as you type (Tab to accept).'
-                  : 'Write here…'
-              }
-              className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7"
-              style={{
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-mono)',
-                minHeight: 400,
-                caretColor: 'var(--accent-refs)',
-              }}
-              aria-label="Report content"
-            />
 
             {/* Text selection popup */}
             {selection && (

@@ -13,6 +13,7 @@ import {
   Plus,
   Trash2,
   X,
+  Loader2,
 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
@@ -263,7 +264,25 @@ export function Sidebar() {
                                 color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
                               }}
                             >
-                              <span className="flex-1 text-xs truncate font-medium">{material.name}</span>
+                              {material.section === 'figures' && material.storageUrl && (
+                                <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-muted">
+                                  <img src={material.storageUrl} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  {material.status === 'processing' && (
+                                    <Loader2 size={11} className="animate-spin shrink-0" style={{ color: 'var(--text-accent)' }} />
+                                  )}
+                                  <span className="text-xs truncate font-medium flex-1">{material.name}</span>
+                                </div>
+                                {material.status === 'processing' && (
+                                  <div className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--text-tertiary)' }}>
+                                    Analyzing reference… (this takes ~10 seconds)
+                                  </div>
+                                )}
+                              </div>
 
                               {/* Delete material button (hover) */}
                               <button

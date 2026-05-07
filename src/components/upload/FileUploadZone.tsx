@@ -9,7 +9,7 @@ import { parseDocx } from '@/lib/parsers/docxParser';
 import { analyzeImage } from '@/lib/parsers/imageAnalyzer';
 import { cn } from '@/lib/utils/cn';
 import type { MaterialSection, CreateMaterialInput } from '@/lib/types';
-import { createMaterialAction } from '@/app/actions/materials';
+import { createMaterialAction, processMaterialAction } from '@/app/actions/materials';
 import { nanoid } from 'nanoid';
 
 interface FileUploadZoneProps {
@@ -44,6 +44,7 @@ const MAX_CONTENT_CHARS = 200_000;
 async function extractContent(file: File): Promise<{
   content: string;
   metadata: CreateMaterialInput['metadata'];
+  images?: string[];
 }> {
   // PDF
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
@@ -58,6 +59,7 @@ async function extractContent(file: File): Promise<{
         pageText: result.pages,
         ...hints,
       },
+      images: result.images,
     };
   }
 
@@ -186,7 +188,7 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
         const targetSection: MaterialSection = section;
 
         // Extract content (handles all formats gracefully)
-        const { content: rawContent, metadata } = await extractContent(file);
+        const { content: rawContent, metadata, images } = await extractContent(file);
 
         // Truncate to avoid exceeding Next.js server action body limit (1 MB default)
         const content = rawContent.length > MAX_CONTENT_CHARS
@@ -209,6 +211,48 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
           // Try persisting to Supabase via server action
           const createdMaterial = await createMaterialAction(materialInput);
           addMaterial(createdMaterial);
+
+          if (createdMaterial.status === 'processing') {
+            // Fire-and-forget background processing
+            processMaterialAction(createdMaterial).catch((err) => {
+              console.error('Background processing failed:', err);
+            });
+          }
+
+          // EXTRACTION: If PDF has images, auto-extract them into Figures section
+          if (images && images.length > 0) {
+            for (let j = 0; j < images.length; j++) {
+              const figDataUrl = images[j];
+              if (!figDataUrl) continue;
+              
+              const figureName = `${file.name} - Figure ${j + 1}`;
+              const figureInput: CreateMaterialInput = {
+                projectId: activeProject.id,
+                section: 'figures',
+                name: figureName,
+                content: `[Extracted image from ${file.name}, page ?]`,
+                storageUrl: figDataUrl, // For now, store base64 as storageUrl for local preview
+                metadata: {
+                  fileType: 'image',
+                  fileSize: Math.round((figDataUrl.length * 3) / 4),
+                  figureNumber: `${j + 1}`,
+                  caption: `Extracted from ${file.name}`,
+                },
+              };
+
+              try {
+                const createdFig = await createMaterialAction(figureInput);
+                addMaterial(createdFig);
+              } catch {
+                // Local fallback
+                addMaterial({
+                  id: nanoid(),
+                  ...figureInput,
+                  createdAt: new Date(),
+                } as any);
+              }
+            }
+          }
         } catch (serverErr) {
           // Supabase not configured / offline — fall back to local-only store
           console.warn('Server action failed, using local store:', serverErr);

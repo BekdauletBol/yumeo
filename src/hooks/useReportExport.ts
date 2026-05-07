@@ -42,14 +42,14 @@ function runsToDocx(runs: MdInlineRun[]): TextRun[] {
 export async function exportToDOCX({ title, content }: ExportPayload): Promise<void> {
   const blocks = parseMarkdown(content);
 
-  const children: Paragraph[] = [
+  const children: Paragraph[] = (title && title !== 'Yuport' && title !== 'AI Report') ? [
     // Document title
     new Paragraph({
       heading: HeadingLevel.TITLE,
       children: [new TextRun({ text: title, bold: true, size: 36 })],
       spacing: { after: 400 },
     }),
-  ];
+  ] : [];
 
   for (const block of blocks) {
     switch (block.kind) {

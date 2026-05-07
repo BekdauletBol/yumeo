@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Play, X, Save, Loader2 } from 'lucide-react';
+import { Play, X, Save, Loader2, UploadCloud } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
@@ -61,7 +61,9 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
   const [reportResult, setReportResult] = useState<ReportGenerationResponse | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [activeTemplateFile, setActiveTemplateFile] = useState<{ name: string; content: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const materials = useMaterialsStore((s) => s.materials);
   const addMaterial = useMaterialsStore((s) => s.addMaterial);
@@ -148,6 +150,33 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
     }
   }, [activeProject, materials, body, name, openEditor]);
 
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeProject) return;
+
+    try {
+      const { parsePDF } = await import('@/lib/parsers/pdfParser');
+      const { parseDocx } = await import('@/lib/parsers/docxParser');
+
+      let content = '';
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        const res = await parsePDF(file);
+        content = res.text;
+      } else if (file.name.endsWith('.docx')) {
+        const res = await parseDocx(file);
+        content = res.text;
+      } else {
+        content = await file.text();
+      }
+
+      setActiveTemplateFile({ name: file.name, content });
+      setBody(content);
+      setName(file.name.split('.')[0] ?? 'Template');
+    } catch (err) {
+      console.error('Failed to parse template file:', err);
+    }
+  }, [activeProject]);
+
   return (
     <div
       className="rounded-xl overflow-hidden"
@@ -178,10 +207,44 @@ export function TemplateEditor({ existingMaterial, onClose }: TemplateEditorProp
           <Save size={11} aria-hidden="true" />
           {isSaved ? 'Saved!' : 'Save'}
         </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Upload template file"
+          className="flex items-center gap-1 text-xs px-2 py-1 rounded transition-opacity hover:opacity-80"
+          style={{
+            color: 'var(--text-secondary)',
+            background: 'var(--bg-overlay)',
+          }}
+        >
+          <UploadCloud size={11} aria-hidden="true" />
+          Upload
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept=".pdf,.docx,.txt,.md"
+          className="hidden"
+        />
         <button onClick={onClose} aria-label="Close template editor" className="p-1 rounded hover:opacity-70">
           <X size={14} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
         </button>
       </div>
+
+      {/* Template Status */}
+      {activeTemplateFile ? (
+        <div className="px-3 py-2 bg-green-500/10 border-b border-green-500/20">
+          <p className="text-[10px] font-medium text-green-400">
+            Template loaded: {activeTemplateFile.name}. AI will write in this format.
+          </p>
+        </div>
+      ) : (
+        <div className="px-3 py-2 bg-amber-500/10 border-b border-amber-500/20">
+          <p className="text-[10px] font-medium text-amber-400">
+            No template loaded. AI will use standard academic structure.
+          </p>
+        </div>
+      )}
 
       {/* Placeholder hints */}
       {uniquePlaceholders.length > 0 && (

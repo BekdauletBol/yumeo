@@ -23,6 +23,8 @@ export interface ChatMessage {
   isStreaming?: boolean;
   /** Model used to generate this message */
   model?: string;
+  /** True if the message is a generated task/report */
+  isTask?: boolean;
 }
 
 /** Anthropic API message shape (subset) */

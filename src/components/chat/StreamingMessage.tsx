@@ -41,7 +41,7 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
     [cleanContent],
   );
 
-  const isLong = content.length > 500;
+
 
   if (isUser) {
     return (
@@ -224,20 +224,20 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
           </div>
         )}
 
-        {/* ── "Open in Editor" button for long responses ── */}
-        {!isStreaming && isLong && (
+        {/* ── "Open in Editor" button for tasks ── */}
+        {!isStreaming && message.isTask && (
           <button
-            onClick={() => openEditor(editorContent, 'AI Report')}
+            onClick={() => openEditor(editorContent, 'Yuport')}
             className="mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all hover:opacity-90 active:scale-95"
             style={{
               background: 'var(--accent-refs)',
               color: '#fff',
               fontFamily: 'var(--font-display)',
             }}
-            aria-label="Open this response in the full report editor"
+            aria-label="Open this response in Yuport"
           >
             <ExternalLink size={12} aria-hidden="true" />
-            Open in Editor
+            Open in Yuport
           </button>
         )}
 
