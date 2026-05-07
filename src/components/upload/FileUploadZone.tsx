@@ -31,8 +31,11 @@ interface UploadProgress {
 
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+// Keep PDF pageText small so server action payloads stay comfortably under ~1 MB.
 const MAX_PAGE_TEXT_CHARS = 120_000;
+// Skip PDF image extraction for large files to avoid long client-side processing.
 const MAX_PDF_IMAGE_BYTES = 12 * 1024 * 1024;
+// Cap image extraction work for big PDFs even when size is small.
 const MAX_PDF_IMAGE_PAGES = 25;
 const MAX_PDF_IMAGES = 20;
 
@@ -59,7 +62,11 @@ async function extractContent(file: File): Promise<{
       maxImages: MAX_PDF_IMAGES,
     });
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
-    const pageTextChars = result.pages.reduce((sum, page) => sum + page.length, 0);
+    let pageTextChars = 0;
+    for (const page of result.pages) {
+      pageTextChars += page.length;
+      if (pageTextChars > MAX_PAGE_TEXT_CHARS) break;
+    }
     const hasPageText = pageTextChars > 0;
     const includePageText = hasPageText && pageTextChars <= MAX_PAGE_TEXT_CHARS;
     if (hasPageText && !includePageText) {
