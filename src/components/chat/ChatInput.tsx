@@ -68,8 +68,8 @@ export function ChatInput({ onSubmit, disabled = false, placeholder }: ChatInput
   const defaultPlaceholder = noMaterials
     ? 'Upload materials first…'
     : chatMode === 'agent'
-      ? 'Describe the task you want me to complete… (⌘Enter to send)'
-      : 'Ask about your research materials… (⌘Enter to send)';
+      ? 'Describe the task you want me to complete… (Cmd/Ctrl+Enter to send)'
+      : 'Ask about your research materials… (Cmd/Ctrl+Enter to send)';
 
   return (
     <div
@@ -201,7 +201,7 @@ export function ChatInput({ onSubmit, disabled = false, placeholder }: ChatInput
 
       {/* Keyboard hint */}
       <p className="text-center text-xs mt-1.5" style={{ color: 'var(--text-tertiary)' }}>
-        <kbd style={{ fontFamily: 'var(--font-mono)' }}>⌘↵</kbd> to send
+        <kbd style={{ fontFamily: 'var(--font-mono)' }}>⌘/Ctrl↵</kbd> to send
         {' · '}
         <kbd style={{ fontFamily: 'var(--font-mono)' }}>↵</kbd> for new line
       </p>

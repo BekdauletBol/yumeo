@@ -62,6 +62,9 @@ const AGENT_STEPS = [
   'Writing Conclusion',
 ] as const;
 
+const STREAMING_ACTIVE_STEP_INDEX = Math.min(2, AGENT_STEPS.length - 1);
+const STREAMING_COMPLETED_COUNT = Math.max(0, STREAMING_ACTIVE_STEP_INDEX);
+
 /**
  * The central chat panel.
  * Shows onboarding EmptyState until at least one reference is uploaded,
@@ -248,8 +251,8 @@ export function ChatPanel() {
   const agentSteps = chatMode === 'agent' && agentRunId
     ? AGENT_STEPS.map((label, index) => {
       if (!isStreaming) return { label, status: 'done' as const };
-      if (index < 2) return { label, status: 'done' as const };
-      if (index === 2) return { label, status: 'active' as const };
+      if (index < STREAMING_COMPLETED_COUNT) return { label, status: 'done' as const };
+      if (index === STREAMING_ACTIVE_STEP_INDEX) return { label, status: 'active' as const };
       return { label, status: 'pending' as const };
     })
     : [];
