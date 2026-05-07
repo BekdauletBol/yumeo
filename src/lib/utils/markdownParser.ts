@@ -229,7 +229,7 @@ export function markdownToHtml(raw: string, docTitle: string): string {
   </style>
 </head>
 <body>
-  <h1>${docTitle}</h1>
+  ${docTitle && docTitle !== 'Yuport' && docTitle !== 'AI Report' ? `<h1>${docTitle}</h1>` : ''}
 ${body}
 </body>
 </html>`;

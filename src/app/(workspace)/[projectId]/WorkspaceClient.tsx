@@ -12,6 +12,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { useProjectSections } from '@/hooks/useProjectSections';
+import { useMaterialPolling } from '@/hooks/useMaterialPolling';
 import { ProjectEmptyState } from '@/components/sections/ProjectEmptyState';
 import type { Project, Material } from '@/lib/types';
 
@@ -35,6 +36,7 @@ export function WorkspaceClient({ project, initialMaterials }: WorkspaceClientPr
 
   // Load project sections
   useProjectSections(project.id);
+  useMaterialPolling();
 
   // Seed stores with server-fetched data on mount
   useEffect(() => {

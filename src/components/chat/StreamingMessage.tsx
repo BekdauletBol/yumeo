@@ -20,7 +20,7 @@ interface StreamingMessageProps {
  * Renders a single chat message.
  * - User messages: plain text, right-aligned
  * - Assistant messages: rendered Markdown with [REF:n] citation chips
- * - Long responses (>500 chars): shows "Open in Editor" button
+ * - Long responses (>500 chars): shows "Open in Yuport" button
  * - Shows blinking cursor while streaming
  */
 export function StreamingMessage({ message, liveContent, className }: StreamingMessageProps) {
@@ -41,7 +41,7 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
     [cleanContent],
   );
 
-  const isLong = content.length > 500;
+
 
   if (isUser) {
     return (
@@ -224,20 +224,20 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
           </div>
         )}
 
-        {/* ── "Open in Editor" button for long responses ── */}
-        {!isStreaming && isLong && (
+        {/* ── "Open in Yuport" button for tasks ── */}
+        {!isStreaming && message.isTask && (
           <button
-            onClick={() => openEditor(editorContent, 'AI Report')}
+            onClick={() => openEditor(editorContent, 'Yuport')}
             className="mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all hover:opacity-90 active:scale-95"
             style={{
-              background: 'var(--accent-refs)',
+              background: 'var(--accent-primary)',
               color: '#fff',
               fontFamily: 'var(--font-display)',
             }}
-            aria-label="Open this response in the full report editor"
+            aria-label="Open this response in Yuport"
           >
             <ExternalLink size={12} aria-hidden="true" />
-            Open in Editor
+            Open in Yuport
           </button>
         )}
 

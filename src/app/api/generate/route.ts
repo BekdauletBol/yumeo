@@ -91,9 +91,27 @@ export async function POST(req: Request): Promise<Response> {
       })
       .join('\n\n');
 
-    const pass1System = `You are Yumeo, a strict research assistant. You must only use the provided chunks.\n\nRULES:\n- Fill the template with grounded text only.\n- Every factual sentence must include [REF:chunk_id].\n- If content is missing, insert [SECTION_GAP].\n- Return JSON only, with keys: sections (array of {title, content}) and cited_chunk_ids (array).\n- Do not add references or bibliography.\n- Do not include any prose outside JSON.`;
+    const hasPlaceholders = /\{\{\s*\w+\s*\}\}/.test(templateBody);
+    const pass1System = `You are Yumeo, a strict research assistant. 
+    
+    TASK:
+    Generate a report based on the provided TEMPLATE and CHUNKS.
+    
+    STYLE & STRUCTURE:
+    - ${hasPlaceholders ? 'Follow the exact structure defined by the placeholders in the TEMPLATE.' : 'Adopt the writing style, tone, and structural flow of the provided TEMPLATE.'}
+    - If the TEMPLATE is a full document, treat it as a style and structure guide.
+    - If the TEMPLATE has placeholders like {{section}}, fill them.
+    - If no specific TEMPLATE structure is clear, use a standard academic structure (Abstract, Intro, Methods, Results, Discussion, Conclusion).
+    
+    STRICT RULES:
+    - You must only use the provided CHUNKS for factual information.
+    - Every factual sentence must include [REF:chunk_id].
+    - If content for a section is missing, insert [SECTION_GAP].
+    - Return JSON only, with keys: sections (array of {title, content}) and cited_chunk_ids (array).
+    - Do not add references or bibliography.
+    - Do not include any prose outside JSON.`;
 
-    const pass1User = `TEMPLATE:\n${templateBody}\n\nCHUNKS:\n${context}`;
+    const pass1User = `TEMPLATE GUIDE:\n${templateBody || 'NONE (Use standard academic format)'}\n\nCHUNKS:\n${context}`;
 
     const pass1 = await client.chat.completions.create({
       model: 'gpt-4o',

@@ -15,10 +15,12 @@ export interface Material {
   section: MaterialSection;
   sectionId?: string;  // Reference to project_sections.id
   name: string;
-  /** Extracted plain-text content (from PDF, OCR, etc.) */
+  /** Raw markdown/text content extracted from the file */
   content: string;
-  /** Supabase Storage public URL for the raw file */
+  /** URL to the original file in Supabase storage */
   storageUrl?: string;
+  /** Status of the background processing task */
+  status?: 'uploading' | 'processing' | 'ready' | 'error';
   metadata: MaterialMetadata;
   createdAt: Date;
 }
@@ -51,6 +53,8 @@ export interface MaterialMetadata {
   order?: number;
   /** GitHub repo URL for imported materials */
   repoUrl?: string;
+  /** If true, this material is used as the style/structure template for generation */
+  isTemplate?: boolean;
 }
 
 export type CreateMaterialInput = Omit<Material, 'id' | 'createdAt'>;

@@ -107,7 +107,7 @@ export async function POST(req: Request): Promise<Response> {
     if (chunks && chunks.length > 0) {
       retrievedChunks = chunks;
       const context = chunks
-        .map((c) => `[REFERENCE EXCERPT]\n${c.content}`)
+        .map((c) => `[REFERENCE EXCERPT]\nFile: ${c.metadata?.file_name || 'Unknown'}\nPage: ${c.metadata?.page || '?'}\n${c.content}`)
         .join('\n\n');
       finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${context}`;
       // eslint-disable-next-line no-console
