@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useId } from 'react';
 import { UploadCloud, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { parsePDF, extractPDFMetadataHints } from '@/lib/parsers/pdfParser';
 import { parseDocx } from '@/lib/parsers/docxParser';
 import { analyzeImage } from '@/lib/parsers/imageAnalyzer';
@@ -178,6 +179,7 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
   const inputRef = useRef<HTMLInputElement>(null);
   const addMaterial = useMaterialsStore((s) => s.addMaterial);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const sections = useProjectSectionsStore((s) => s.sections);
 
   const processFiles = useCallback(async (files: File[]) => {
     if (!activeProject) {
@@ -243,6 +245,8 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
 
           // EXTRACTION: If PDF has images, auto-extract them into Figures section
           if (images && images.length > 0) {
+            const figuresSection = sections.find(s => s.sectionType === 'figures');
+            
             for (let j = 0; j < images.length; j++) {
               const figDataUrl = images[j];
               if (!figDataUrl) continue;
@@ -251,6 +255,7 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
               const figureInput: CreateMaterialInput = {
                 projectId: activeProject.id,
                 section: 'figures',
+                sectionId: figuresSection?.id,
                 name: figureName,
                 content: `[Extracted image from ${file.name}, page ?]`,
                 storageUrl: figDataUrl, // For now, store base64 as storageUrl for local preview
@@ -307,7 +312,7 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
       setProgress([]);
       onUploadComplete?.();
     }, 2500);
-  }, [activeProject, section, sectionId, addMaterial, onUploadComplete]);
+  }, [activeProject, section, sectionId, addMaterial, onUploadComplete, sections]);
 
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();

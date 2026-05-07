@@ -248,6 +248,13 @@ export function Sidebar() {
                               key={material.id}
                               role="option"
                               tabIndex={0}
+                              draggable={material.section === 'figures'}
+                              onDragStart={(e) => {
+                                if (material.section === 'figures') {
+                                  e.dataTransfer.setData('application/x-yumeo-material', JSON.stringify(material));
+                                  e.dataTransfer.effectAllowed = 'copy';
+                                }
+                              }}
                               aria-selected={isSelected}
                               aria-label={material.name}
                               onClick={() => setSelectedMaterialId(material.id)}

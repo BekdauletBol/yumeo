@@ -55,19 +55,48 @@ export function TiptapEditor({ initialContent, onSave }: TiptapEditorProps) {
         style: 'color: var(--text-primary); font-family: var(--font-sans);',
       },
       handleDrop: (view, event, _slice, moved) => {
-        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
-          const file = event.dataTransfer.files[0];
-          if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const src = e.target?.result as string;
-               const imageNode = view.state.schema.nodes.image;
-               if (!imageNode) return false;
-               view.dispatch(view.state.tr.replaceSelectionWith(imageNode.create({ src })));
+        if (!moved && event.dataTransfer) {
+          // Check for internal figure material
+          const internalData = event.dataTransfer.getData('application/x-yumeo-material');
+          if (internalData) {
+            try {
+              const material = JSON.parse(internalData);
+              if (material.section === 'figures' && material.storageUrl) {
+                const imageNode = view.state.schema.nodes.image;
+                if (!imageNode) return false;
+                
+                const figureTag = `[FIGURE: ${material.name.split(' - ')[0] || material.name}, Figure ${material.metadata.figureNumber || '1'}]`;
+                
+                view.dispatch(
+                  view.state.tr.replaceSelectionWith(
+                    imageNode.create({ 
+                      src: material.storageUrl,
+                      alt: material.name,
+                      'data-figure-tag': figureTag
+                    })
+                  )
+                );
+                return true;
+              }
+            } catch (err) {
+              console.error('Failed to parse dropped material:', err);
+            }
+          }
 
-            };
-            reader.readAsDataURL(file);
-            return true;
+          // Fallback to file drop
+          if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+            const file = event.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const src = e.target?.result as string;
+                const imageNode = view.state.schema.nodes.image;
+                if (!imageNode) return;
+                view.dispatch(view.state.tr.replaceSelectionWith(imageNode.create({ src })));
+              };
+              reader.readAsDataURL(file);
+              return true;
+            }
           }
         }
         return false;

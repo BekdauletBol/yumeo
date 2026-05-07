@@ -58,7 +58,7 @@ export function buildSystemPrompt(
     : 'No draft yet.';
 
   const templateSection = activeTemplate
-    ? `Template being used: ${activeTemplate.name}\nTemplate structure:\n${truncateToTokens(activeTemplate.content, 500)}`
+    ? `Template being used: ${activeTemplate.name}\nTemplate structure:\n${truncateToTokens(activeTemplate.content, 2000)}`
     : 'No template uploaded. Infer appropriate academic structure (IEEE, APA, etc.).';
 
   // Reference content: use remaining budget split evenly across files
