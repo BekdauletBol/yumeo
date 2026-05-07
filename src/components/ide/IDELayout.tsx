@@ -26,7 +26,7 @@ export function IDELayout({ topBar, sidebar, chat, editor, className }: IDELayou
   const setMobileTab = useUIStore((s) => s.setMobileTab);
 
   return (
-    <div className={cn('ide-layout', className)}>
+    <div className={cn('ide-layout workspace-theme', className)}>
       {/* Top bar spans all columns */}
       <header className="ide-topbar border-b" style={{ borderColor: 'var(--border-subtle)' }}>
         {topBar}

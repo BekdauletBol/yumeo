@@ -26,6 +26,8 @@ export function ChatInput({ onSubmit, disabled = false, placeholder }: ChatInput
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isStreaming = useChatStore((s) => s.isStreaming);
+  const chatMode = useChatStore((s) => s.chatMode);
+  const setChatMode = useChatStore((s) => s.setChatMode);
   const totalMaterials = useMaterialsStore((s) => s.materials.length);
 
   const isDisabled = disabled || isStreaming || isSubmitting;
@@ -63,12 +65,55 @@ export function ChatInput({ onSubmit, disabled = false, placeholder }: ChatInput
   }
 
   const noMaterials = totalMaterials === 0;
+  const defaultPlaceholder = noMaterials
+    ? 'Upload materials first…'
+    : chatMode === 'agent'
+      ? 'Describe the task you want me to complete… (⌘Enter to send)'
+      : 'Ask about your research materials… (⌘Enter to send)';
 
   return (
     <div
       className="px-4 py-3 border-t"
       style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
     >
+      {/* Mode toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          Mode
+        </span>
+        <div
+          className="inline-flex border rounded-full overflow-hidden"
+          style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}
+        >
+          <button
+            type="button"
+            onClick={() => setChatMode('ask')}
+            className="px-3 py-1 text-xs font-medium transition-colors"
+            style={{
+              background: chatMode === 'ask' ? 'var(--accent-primary)' : 'transparent',
+              color: chatMode === 'ask' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+              fontFamily: 'var(--font-mono)',
+            }}
+            aria-pressed={chatMode === 'ask'}
+          >
+            💬 Ask
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatMode('agent')}
+            className="px-3 py-1 text-xs font-medium transition-colors"
+            style={{
+              background: chatMode === 'agent' ? 'var(--accent-primary)' : 'transparent',
+              color: chatMode === 'agent' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+              fontFamily: 'var(--font-mono)',
+            }}
+            aria-pressed={chatMode === 'agent'}
+          >
+            🤖 Agent
+          </button>
+        </div>
+      </div>
+
       {/* No-materials warning */}
       {noMaterials && (
         <div
@@ -103,10 +148,7 @@ export function ChatInput({ onSubmit, disabled = false, placeholder }: ChatInput
           onKeyDown={handleKeyDown}
           disabled={isDisabled}
           placeholder={
-            placeholder ??
-            (noMaterials
-              ? 'Upload materials first…'
-              : 'Ask about your research materials… (⌘Enter to send)')
+            placeholder ?? defaultPlaceholder
           }
           aria-label="Research question input"
           rows={1}

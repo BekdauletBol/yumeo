@@ -6,6 +6,7 @@ interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
   streamingContent: string;
+  chatMode: 'ask' | 'agent';
 
   setMessages: (messages: ChatMessage[]) => void;
   addMessage: (message: ChatMessage) => void;
@@ -15,6 +16,7 @@ interface ChatState {
   setIsStreaming: (streaming: boolean) => void;
   appendStreamingContent: (chunk: string) => void;
   finalizeStreamingMessage: (messageId: string) => void;
+  setChatMode: (mode: ChatState['chatMode']) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -23,6 +25,7 @@ export const useChatStore = create<ChatState>()(
       messages: [],
       isStreaming: false,
       streamingContent: '',
+      chatMode: 'ask',
 
       setMessages: (messages) => set({ messages }),
 
@@ -53,6 +56,7 @@ export const useChatStore = create<ChatState>()(
           isStreaming: false,
         });
       },
+      setChatMode: (chatMode) => set({ chatMode }),
     }),
     {
       name: 'yumeo-chat-store',

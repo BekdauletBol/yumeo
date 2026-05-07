@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -10,11 +10,57 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
-import { useReportEditorStore } from '@/stores/reportEditorStore';
-import { stripPreamble } from '@/lib/utils/markdownParser';
 import type { ChatMessage, AnthropicMessage } from '@/lib/types';
 import { EmptyState } from '@/components/ide/EmptyState';
 import { showToast } from '@/lib/utils/toast';
+
+const TASK_VERBS = [
+  'write',
+  'generate',
+  'create',
+  'summarize',
+  'summarise',
+  'draft',
+  'make',
+  'build',
+] as const;
+
+const TASK_PREFIX_RE = new RegExp(`^(please\\s+)?(${TASK_VERBS.join('|')})\\b`, 'i');
+const TASK_REQUEST_RE = new RegExp(
+  `\\b(can you|could you|please|kindly|help me|i need you to)\\s+(${TASK_VERBS.join('|')})\\b`,
+  'i',
+);
+
+function isTaskRequest(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return TASK_PREFIX_RE.test(trimmed) || TASK_REQUEST_RE.test(trimmed);
+}
+
+function buildModeGuidance(mode: 'ask' | 'agent'): string {
+  if (mode === 'agent') {
+    return `
+
+MODE: AGENT
+- Break complex requests into clear steps and execute them in order.
+- Confirm each step before moving to the next when possible.
+- Keep outputs structured and progress-oriented.`;
+  }
+
+  return `
+
+MODE: ASK
+- Answer questions directly in 1–3 concise sentences.
+- Use a brief, conversational tone and avoid long-form report formatting.`;
+}
+
+const AGENT_STEPS = [
+  'Analyzing references',
+  'Writing Introduction',
+  'Writing Methodology',
+  'Writing Results',
+  'Writing Conclusion',
+] as const;
 
 /**
  * The central chat panel.
@@ -29,13 +75,15 @@ export function ChatPanel() {
     setIsStreaming,
     appendStreamingContent,
     finalizeStreamingMessage,
+    isStreaming,
   } = useChatStore();
 
   const materials = useMaterialsStore((s) => s.materials);
   const activeProject = useProjectStore((s) => s.activeProject);
   const sections = useProjectSectionsStore((s) => s.sections);
   const activeSections = sections.filter((s) => s.isActive);
-  const openEditor = useReportEditorStore((s) => s.openWithContent);
+  const chatMode = useChatStore((s) => s.chatMode);
+  const [agentRunId, setAgentRunId] = useState<string | null>(null);
 
   // Track when the first reference is uploaded to show the toast once
   const prevRefCount = useRef(0);
@@ -61,9 +109,14 @@ export function ChatPanel() {
       };
       addMessage(userMessage);
 
-      const isTask = /^(write|generate|create|summarize|draft|make|build)/i.test(userText.trim());
+      const isTask = isTaskRequest(userText);
 
       const assistantId = nanoid();
+      if (chatMode === 'agent') {
+        setAgentRunId(assistantId);
+      } else {
+        setAgentRunId(null);
+      }
       const assistantMessage: ChatMessage = {
         id: assistantId,
         projectId: activeProject.id,
@@ -78,7 +131,12 @@ export function ChatPanel() {
       addMessage(assistantMessage);
       setIsStreaming(true);
 
-      const systemPrompt = buildSystemPrompt(materials, activeProject.settings, activeSections, activeProject.settings.agentModel);
+      const systemPrompt = `${buildSystemPrompt(
+        materials,
+        activeProject.settings,
+        activeSections,
+        activeProject.settings.agentModel,
+      )}${buildModeGuidance(chatMode)}`;
 
       const history: AnthropicMessage[] = messages
         .filter((m) => m.role !== 'system' && m.content && m.projectId === activeProject.id)
@@ -178,6 +236,7 @@ export function ChatPanel() {
       appendStreamingContent,
       finalizeStreamingMessage,
       activeSections,
+      chatMode,
     ],
   );
 
@@ -186,9 +245,43 @@ export function ChatPanel() {
     return <EmptyState />;
   }
 
+  const agentSteps = chatMode === 'agent' && agentRunId
+    ? AGENT_STEPS.map((label, index) => {
+      if (!isStreaming) return { label, status: 'done' as const };
+      if (index < 2) return { label, status: 'done' as const };
+      if (index === 2) return { label, status: 'active' as const };
+      return { label, status: 'pending' as const };
+    })
+    : [];
+
   return (
     <div className="flex flex-col h-full">
       <MessageList />
+      {chatMode === 'agent' && agentSteps.length > 0 && (
+        <div
+          className="px-4 py-2 border-t"
+          style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+        >
+          <div className="text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>
+            Agent progress
+          </div>
+          <div className="space-y-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {agentSteps.map((step) => {
+              const icon = step.status === 'done' ? '✅' : step.status === 'active' ? '⏳' : '○';
+              const suffix = step.status === 'active' ? '...' : '';
+              return (
+                <div key={step.label} className="flex items-center gap-2">
+                  <span aria-hidden="true">{icon}</span>
+                  <span>
+                    {step.label}
+                    {suffix}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <ChatInput onSubmit={handleSubmit} />
     </div>
   );

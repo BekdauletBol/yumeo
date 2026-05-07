@@ -193,6 +193,10 @@
   background: var(--bg-base);
 }
 
+.workspace-theme {
+  --accent-primary: #F97316;
+}
+
 .ide-topbar   { grid-area: topbar; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface); }
 .ide-sidebar  { grid-area: sidebar; border-right: 1px solid var(--border-subtle); background: var(--bg-surface); }
 .ide-chat     { grid-area: chat; background: var(--bg-base); }
