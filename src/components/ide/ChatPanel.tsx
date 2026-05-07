@@ -62,8 +62,7 @@ const AGENT_STEPS = [
   'Writing Conclusion',
 ] as const;
 
-const STREAMING_ACTIVE_STEP_INDEX = Math.min(2, AGENT_STEPS.length - 1);
-const STREAMING_COMPLETED_COUNT = Math.max(0, STREAMING_ACTIVE_STEP_INDEX);
+const AGENT_PROGRESS_CHARS = 800;
 
 /**
  * The central chat panel.
@@ -87,6 +86,7 @@ export function ChatPanel() {
   const activeSections = sections.filter((s) => s.isActive);
   const chatMode = useChatStore((s) => s.chatMode);
   const [agentRunId, setAgentRunId] = useState<string | null>(null);
+  const [agentProgressIndex, setAgentProgressIndex] = useState(0);
 
   // Track when the first reference is uploaded to show the toast once
   const prevRefCount = useRef(0);
@@ -117,6 +117,7 @@ export function ChatPanel() {
       const assistantId = nanoid();
       if (chatMode === 'agent') {
         setAgentRunId(assistantId);
+        setAgentProgressIndex(0);
       } else {
         setAgentRunId(null);
       }
@@ -203,6 +204,13 @@ export function ChatPanel() {
           // eslint-disable-next-line no-console
           console.log(`[ChatPanel] 📨 Chunk ${chunkCount}: ${chunk.length} chars`);
           appendStreamingContent(chunk);
+          if (chatMode === 'agent') {
+            const nextIndex = Math.min(
+              AGENT_STEPS.length - 1,
+              Math.floor(fullContent.length / AGENT_PROGRESS_CHARS),
+            );
+            setAgentProgressIndex((prev) => (nextIndex > prev ? nextIndex : prev));
+          }
         }
 
         const finalMessage: ChatMessage = {
@@ -240,6 +248,7 @@ export function ChatPanel() {
       finalizeStreamingMessage,
       activeSections,
       chatMode,
+      setAgentProgressIndex,
     ],
   );
 
@@ -248,11 +257,11 @@ export function ChatPanel() {
     return <EmptyState />;
   }
 
-  const agentSteps = chatMode === 'agent' && agentRunId
+  const showAgentProgress = chatMode === 'agent' && agentRunId && isStreaming;
+  const agentSteps = showAgentProgress
     ? AGENT_STEPS.map((label, index) => {
-      if (!isStreaming) return { label, status: 'done' as const };
-      if (index < STREAMING_COMPLETED_COUNT) return { label, status: 'done' as const };
-      if (index === STREAMING_ACTIVE_STEP_INDEX) return { label, status: 'active' as const };
+      if (index < agentProgressIndex) return { label, status: 'done' as const };
+      if (index === agentProgressIndex) return { label, status: 'active' as const };
       return { label, status: 'pending' as const };
     })
     : [];
@@ -260,7 +269,7 @@ export function ChatPanel() {
   return (
     <div className="flex flex-col h-full">
       <MessageList />
-      {chatMode === 'agent' && agentSteps.length > 0 && (
+      {showAgentProgress && agentSteps.length > 0 && (
         <div
           className="px-4 py-2 border-t"
           style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
