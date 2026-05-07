@@ -60,8 +60,9 @@ async function extractContent(file: File): Promise<{
     });
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
     const pageTextChars = result.pages.reduce((sum, page) => sum + page.length, 0);
-    const includePageText = pageTextChars > 0 && pageTextChars <= MAX_PAGE_TEXT_CHARS;
-    if (!includePageText && pageTextChars > 0) {
+    const hasPageText = pageTextChars > 0;
+    const includePageText = hasPageText && pageTextChars <= MAX_PAGE_TEXT_CHARS;
+    if (hasPageText && !includePageText) {
       console.warn('PDF page text omitted to avoid oversized upload payload:', file.name);
     }
     return {

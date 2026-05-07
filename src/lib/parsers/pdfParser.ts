@@ -56,79 +56,80 @@ export async function parsePDF(file: File, options: PDFParseOptions = {}): Promi
     pages.push(pageText);
 
     // Extract images
-    if (!allowImageExtraction || i > maxImagePages || extractedImages >= maxImages) continue;
+    const shouldExtractImages = allowImageExtraction && i <= maxImagePages && extractedImages < maxImages;
+    if (shouldExtractImages) {
+      const ops = await page.getOperatorList();
+      for (let j = 0; j < ops.fnArray.length; j++) {
+        if (extractedImages >= maxImages) {
+          allowImageExtraction = false;
+          break;
+        }
 
-    const ops = await page.getOperatorList();
-    for (let j = 0; j < ops.fnArray.length; j++) {
-      if (extractedImages >= maxImages) {
-        allowImageExtraction = false;
-        break;
-      }
-
-      if (
-        ops.fnArray[j] === pdfjsLib.OPS.paintImageXObject ||
-        ops.fnArray[j] === pdfjsLib.OPS.paintXObject
-      ) {
-        const objId = ops.argsArray[j][0];
-        try {
-          const imgObj = await new Promise<any>((resolve, reject) => {
-            try {
-              page.objs.get(objId, resolve);
-            } catch (err) {
-              reject(err);
-            }
-          });
-          
-          if (imgObj && imgObj.data && imgObj.width && imgObj.height) {
-            // Downscale to max 800px width/height to save space
-            const MAX_DIM = 800;
-            let targetW = imgObj.width;
-            let targetH = imgObj.height;
-            if (targetW > MAX_DIM || targetH > MAX_DIM) {
-              const ratio = Math.min(MAX_DIM / targetW, MAX_DIM / targetH);
-              targetW = Math.round(targetW * ratio);
-              targetH = Math.round(targetH * ratio);
-            }
- 
-            const canvas = document.createElement('canvas');
-            canvas.width = imgObj.width;
-            canvas.height = imgObj.height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              const imgData = ctx.createImageData(imgObj.width, imgObj.height);
-              
-              if (imgObj.data.length === imgData.data.length) {
-                imgData.data.set(imgObj.data);
-              } else if (imgObj.data.length === (imgObj.width * imgObj.height * 3)) {
-                let dataIndex = 0;
-                for (let k = 0; k < imgObj.data.length; k += 3) {
-                  imgData.data[dataIndex++] = imgObj.data[k];
-                  imgData.data[dataIndex++] = imgObj.data[k + 1];
-                  imgData.data[dataIndex++] = imgObj.data[k + 2];
-                  imgData.data[dataIndex++] = 255;
-                }
+        if (
+          ops.fnArray[j] === pdfjsLib.OPS.paintImageXObject ||
+          ops.fnArray[j] === pdfjsLib.OPS.paintXObject
+        ) {
+          const objId = ops.argsArray[j][0];
+          try {
+            const imgObj = await new Promise<any>((resolve, reject) => {
+              try {
+                page.objs.get(objId, resolve);
+              } catch (err) {
+                reject(err);
               }
-              
-              ctx.putImageData(imgData, 0, 0);
- 
-              // If downscaling is needed, draw to another canvas
-              if (targetW !== imgObj.width) {
-                const scaledCanvas = document.createElement('canvas');
-                scaledCanvas.width = targetW;
-                scaledCanvas.height = targetH;
-                const scaledCtx = scaledCanvas.getContext('2d');
-                if (scaledCtx) {
-                  scaledCtx.drawImage(canvas, 0, 0, targetW, targetH);
-                  images.push(scaledCanvas.toDataURL('image/jpeg', 0.8));
-                }
-              } else {
-                images.push(canvas.toDataURL('image/jpeg', 0.8));
+            });
+            
+            if (imgObj && imgObj.data && imgObj.width && imgObj.height) {
+              // Downscale to max 800px width/height to save space
+              const MAX_DIM = 800;
+              let targetW = imgObj.width;
+              let targetH = imgObj.height;
+              if (targetW > MAX_DIM || targetH > MAX_DIM) {
+                const ratio = Math.min(MAX_DIM / targetW, MAX_DIM / targetH);
+                targetW = Math.round(targetW * ratio);
+                targetH = Math.round(targetH * ratio);
               }
-              extractedImages += 1;
+ 
+              const canvas = document.createElement('canvas');
+              canvas.width = imgObj.width;
+              canvas.height = imgObj.height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                const imgData = ctx.createImageData(imgObj.width, imgObj.height);
+                
+                if (imgObj.data.length === imgData.data.length) {
+                  imgData.data.set(imgObj.data);
+                } else if (imgObj.data.length === (imgObj.width * imgObj.height * 3)) {
+                  let dataIndex = 0;
+                  for (let k = 0; k < imgObj.data.length; k += 3) {
+                    imgData.data[dataIndex++] = imgObj.data[k];
+                    imgData.data[dataIndex++] = imgObj.data[k + 1];
+                    imgData.data[dataIndex++] = imgObj.data[k + 2];
+                    imgData.data[dataIndex++] = 255;
+                  }
+                }
+                
+                ctx.putImageData(imgData, 0, 0);
+ 
+                // If downscaling is needed, draw to another canvas
+                if (targetW !== imgObj.width) {
+                  const scaledCanvas = document.createElement('canvas');
+                  scaledCanvas.width = targetW;
+                  scaledCanvas.height = targetH;
+                  const scaledCtx = scaledCanvas.getContext('2d');
+                  if (scaledCtx) {
+                    scaledCtx.drawImage(canvas, 0, 0, targetW, targetH);
+                    images.push(scaledCanvas.toDataURL('image/jpeg', 0.8));
+                  }
+                } else {
+                  images.push(canvas.toDataURL('image/jpeg', 0.8));
+                }
+                extractedImages += 1;
+              }
             }
+          } catch (err) {
+            console.warn('Failed to extract image from PDF page', i, err);
           }
-        } catch (err) {
-          console.warn('Failed to extract image from PDF page', i, err);
         }
       }
     }
