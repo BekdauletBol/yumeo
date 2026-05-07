@@ -14,20 +14,10 @@ import type { ChatMessage, AnthropicMessage } from '@/lib/types';
 import { EmptyState } from '@/components/ide/EmptyState';
 import { showToast } from '@/lib/utils/toast';
 
-const TASK_VERBS = [
-  'write',
-  'generate',
-  'create',
-  'summarize',
-  'summarise',
-  'draft',
-  'make',
-  'build',
-] as const;
-
-const TASK_PREFIX_RE = new RegExp(`^(please\\s+)?(${TASK_VERBS.join('|')})\\b`, 'i');
+const TASK_VERB_PATTERN = '(write|generate|create|summari[sz]e|draft|make|build)';
+const TASK_PREFIX_RE = new RegExp(`^(please\\s+)?${TASK_VERB_PATTERN}\\b`, 'i');
 const TASK_REQUEST_RE = new RegExp(
-  `\\b(can you|could you|please|kindly|help me|i need you to)\\s+(${TASK_VERBS.join('|')})\\b`,
+  `\\b(can you|could you|please|kindly|help me|i need you to)\\s+${TASK_VERB_PATTERN}\\b`,
   'i',
 );
 
@@ -62,7 +52,7 @@ const AGENT_STEPS = [
   'Writing Conclusion',
 ] as const;
 
-const AGENT_PROGRESS_CHARS = 800;
+const AGENT_PROGRESS_CHARS_PER_STEP = 800;
 
 /**
  * The central chat panel.
@@ -207,7 +197,7 @@ export function ChatPanel() {
           if (chatMode === 'agent') {
             const nextIndex = Math.min(
               AGENT_STEPS.length - 1,
-              Math.floor(fullContent.length / AGENT_PROGRESS_CHARS),
+              Math.floor(fullContent.length / AGENT_PROGRESS_CHARS_PER_STEP),
             );
             setAgentProgressIndex((prev) => (nextIndex > prev ? nextIndex : prev));
           }
