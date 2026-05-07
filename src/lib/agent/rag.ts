@@ -111,48 +111,79 @@ function buildChunks(paragraphs: Paragraph[]): Array<{ content: string; pageStar
   return chunks;
 }
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbeddingsBatch(inputs: string[]): Promise<number[][]> {
   const token = getEmbeddingClient();
   
   if (token) {
-    try {
-      // eslint-disable-next-line no-console
-      console.log('[RAG] 🔑 Using GitHub Models for embedding');
-      const response = await fetch('https://models.inference.ai.azure.com/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-3-small',
-          input: text,
-        }),
-      });
+    let lastError: any;
+    const MAX_RETRIES = 3;
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`GitHub Models API error: ${response.status} - ${error}`);
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`[RAG] 🔑 Using GitHub Models for batch embedding (${inputs.length} items, attempt ${attempt + 1})`);
+        
+        const response = await fetch('https://models.inference.ai.azure.com/embeddings', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'text-embedding-3-small',
+            input: inputs,
+          }),
+        });
+
+        if (response.status === 429) {
+          const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
+          // eslint-disable-next-line no-console
+          console.warn(`[RAG] ⏳ Rate limited. Retrying after ${retryAfter}s...`);
+          await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+          continue;
+        }
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`GitHub Models API error: ${response.status} - ${error}`);
+        }
+
+        const data = await response.json() as { data?: Array<{ embedding?: number[]; index: number }> };
+        if (!data.data) throw new Error('No data returned from GitHub Models');
+        
+        // Sort by index to maintain order
+        const embeddings = data.data
+          .sort((a, b) => a.index - b.index)
+          .map(d => d.embedding)
+          .filter((e): e is number[] => !!e);
+        
+        if (embeddings.length !== inputs.length) {
+          throw new Error(`Embedding count mismatch: expected ${inputs.length}, got ${embeddings.length}`);
+        }
+
+        // eslint-disable-next-line no-console
+        console.log(`[RAG] ✅ Generated ${embeddings.length} embeddings`);
+        return embeddings;
+      } catch (err) {
+        lastError = err;
+        if (attempt < MAX_RETRIES - 1) {
+          const delay = Math.pow(2, attempt) * 1000;
+          // eslint-disable-next-line no-console
+          console.warn(`[RAG] ⚠️ Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, err instanceof Error ? err.message : err);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
       }
-
-      const data = await response.json() as { data?: Array<{ embedding?: number[] }> };
-      const embedding = data.data?.[0]?.embedding;
-      
-      if (!embedding) throw new Error('No embedding returned from GitHub Models');
-      // eslint-disable-next-line no-console
-      console.log('[RAG] ✅ Generated embedding: 1536 dims');
-      return embedding;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[RAG] ❌ Failed to generate embedding via GitHub Models:', err instanceof Error ? err.message : err);
-      throw err;
     }
+    throw lastError;
   } else {
-    // Dummy embedding for local testing if no API key
-    // eslint-disable-next-line no-console
-    console.warn('[RAG] ⚠️  GITHUB_MODELS_TOKEN not set - using dummy random embeddings (RAG will not work)');
-    return Array.from({ length: 1536 }, () => Math.random() - 0.5);
+    // Dummy embedding for local testing
+    return inputs.map(() => Array.from({ length: 1536 }, () => Math.random() - 0.5));
   }
+}
+
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const embeddings = await generateEmbeddingsBatch([text]);
+  return embeddings[0]!;
 }
 
 export async function chunkAndEmbedMaterial(material: Material) {
@@ -165,34 +196,39 @@ export async function chunkAndEmbedMaterial(material: Material) {
   try {
     // eslint-disable-next-line no-console
     console.log(`[materials] 📄 Processing material for embedding: ${material.name} (${material.id})`);
-    // eslint-disable-next-line no-console
-    console.log(`[materials] GITHUB_MODELS_TOKEN available: ${!!process.env.GITHUB_MODELS_TOKEN}`);
     
     const paragraphs = collectParagraphs(material.content, material.metadata.pageText);
-    const chunks = buildChunks(paragraphs);
+    const chunks = buildChunks(paragraphs).filter(c => c.content && c.content.trim().length >= 10);
     
+    if (chunks.length === 0) {
+      // eslint-disable-next-line no-console
+      console.warn(`[materials] ⚠️ No valid chunks for material: ${material.name}`);
+      return;
+    }
+
     // eslint-disable-next-line no-console
     console.log(`[materials] ✂️  Split into ${chunks.length} chunks`);
     
     const supabase = createServiceClient();
 
-    let successCount = 0;
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      if (!chunk?.content || chunk.content.trim().length < 10) continue;
+    // Process in batches of 16 to avoid payload limits and maintain responsiveness
+    const BATCH_SIZE = 16;
+    let totalSuccess = 0;
+
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+      const batchTexts = batchChunks.map(c => c.content);
 
       try {
-        const embedding = await generateEmbedding(chunk.content);
-        // eslint-disable-next-line no-console
-        console.log(`[materials] 🔐 Embedding chunk ${i+1}/${chunks.length}: ${embedding.length} dims`);
-
-        const { error: insertError } = await supabase.from('chunks').insert({
+        const embeddings = await generateEmbeddingsBatch(batchTexts);
+        
+        const rowsToInsert = batchChunks.map((chunk, index) => ({
           material_id: material.id,
           project_id: material.projectId,
           content: chunk.content,
-          embedding,
+          embedding: embeddings[index],
           metadata: {
-            chunkIndex: i,
+            chunkIndex: i + index,
             file_id: material.id,
             project_id: material.projectId,
             file_name: material.name,
@@ -204,22 +240,24 @@ export async function chunkAndEmbedMaterial(material: Material) {
             page_end: chunk.pageEnd,
             section_title: null,
           },
-        });
+        }));
+
+        const { error: insertError } = await supabase.from('chunks').insert(rowsToInsert);
 
         if (insertError) {
           // eslint-disable-next-line no-console
-          console.error(`[materials] ❌ Failed to insert chunk ${i}: ${insertError.message}`);
+          console.error(`[materials] ❌ Failed to insert batch starting at ${i}: ${insertError.message}`);
         } else {
-          successCount++;
+          totalSuccess += rowsToInsert.length;
         }
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error(`[materials] ❌ Error embedding chunk ${i}:`, err instanceof Error ? err.message : err);
+        console.error(`[materials] ❌ Error processing batch starting at ${i}:`, err instanceof Error ? err.message : err);
       }
     }
     
     // eslint-disable-next-line no-console
-    console.log(`[materials] ✅ Successfully embedded ${successCount}/${chunks.length} chunks for: ${material.name}`);
+    console.log(`[materials] ✅ Successfully embedded ${totalSuccess}/${chunks.length} chunks for: ${material.name}`);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[materials] ❌ Failed to process material ${material.name}:`, err instanceof Error ? err.message : err);

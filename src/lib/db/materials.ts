@@ -42,7 +42,10 @@ export async function getMaterial(id: string): Promise<Material> {
  */
 export async function createMaterial(input: CreateMaterialInput): Promise<Material> {
   const serviceClient = createServiceClient();
-  const { data, error } = await serviceClient
+  const needsProcessing = input.section === 'references' || input.section === 'drafts' || input.section === 'tables';
+  const initialStatus = input.status ?? (needsProcessing ? 'processing' : 'ready');
+
+  const { data, error } = await supabase
     .from('materials')
     .insert({
       project_id: input.projectId,
@@ -51,6 +54,7 @@ export async function createMaterial(input: CreateMaterialInput): Promise<Materi
       content: input.content,
       storage_url: input.storageUrl ?? null,
       metadata: input.metadata,
+      status: initialStatus,
     })
     .select()
     .single();
@@ -139,6 +143,7 @@ function rowToMaterial(row: Record<string, unknown>): Material {
     name: row['name'] as string,
     content: row['content'] as string,
     storageUrl: (row['storage_url'] as string | null) ?? undefined,
+    status: (row['status'] as Material['status']) ?? 'ready',
     metadata: row['metadata'] as Material['metadata'],
     createdAt: new Date(row['created_at'] as string),
   };

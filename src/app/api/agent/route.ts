@@ -5,6 +5,7 @@ import { retrieveRelevantChunks } from '@/lib/agent/rag';
 import { BLOCKED_TOPICS } from '@/lib/agent/buildSystemPrompt';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60; // Extend timeout for agent responses
 
 interface AgentRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;

@@ -4,7 +4,10 @@ import { fetchGitHubRepoFiles } from '@/lib/github/client';
 import { getProject } from '@/lib/db/projects';
 import { createMaterial } from '@/lib/db/materials';
 import { chunkAndEmbedMaterial } from '@/lib/agent/rag';
+import { createServiceClient } from '@/lib/db/supabase';
 import type { Material } from '@/lib/types';
+
+export const maxDuration = 60; // Extend timeout for GitHub import
 
 export async function POST(req: Request) {
   try {
@@ -25,8 +28,9 @@ export async function POST(req: Request) {
     const files = await fetchGitHubRepoFiles(repo);
 
     const createdMaterials: Material[] = [];
+    const supabase = createServiceClient();
 
-    // Create materials for each file and chunk/embed them
+    // Create materials for each file
     for (const file of files) {
       const material = await createMaterial({
         projectId,
@@ -39,10 +43,28 @@ export async function POST(req: Request) {
           repoUrl: `https://github.com/${repo}`,
         },
       });
-
-      // Background chunking
-      await chunkAndEmbedMaterial(material);
       createdMaterials.push(material);
+    }
+
+    // Process chunking/embedding in parallel with a concurrency limit
+    const CONCURRENCY = 3;
+    const processBatch = async (materials: Material[]) => {
+      await Promise.all(
+        materials.map(async (m) => {
+          try {
+            await chunkAndEmbedMaterial(m);
+            await supabase.from('materials').update({ status: 'ready' }).eq('id', m.id);
+          } catch (err) {
+            console.error(`Failed to process GitHub material ${m.name}:`, err);
+            await supabase.from('materials').update({ status: 'error' }).eq('id', m.id);
+          }
+        })
+      );
+    };
+
+    for (let i = 0; i < createdMaterials.length; i += CONCURRENCY) {
+      const batch = createdMaterials.slice(i, i + CONCURRENCY);
+      await processBatch(batch);
     }
 
     return NextResponse.json({ materials: createdMaterials });

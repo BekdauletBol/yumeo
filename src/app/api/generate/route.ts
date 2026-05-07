@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/db/supabase';
 import type { ReportAuditEntry, ReportGenerationResponse } from '@/lib/types';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60; // Extend timeout for multiple LLM passes
 
 interface GenerateRequest {
   templateBody: string;

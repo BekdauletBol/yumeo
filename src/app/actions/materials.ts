@@ -85,10 +85,14 @@ export async function createMaterialAction(input: CreateMaterialInput): Promise<
 
 export async function processMaterialAction(material: Material) {
   const supabase = createServiceClient();
+  console.log(`[MaterialAction] Starting processing for ${material.name} (${material.id})`);
   try {
     await chunkAndEmbedMaterial(material);
-    await supabase.from('materials').update({ status: 'ready' }).eq('id', material.id);
+    const { error } = await supabase.from('materials').update({ status: 'ready' }).eq('id', material.id);
+    if (error) throw error;
+    console.log(`[MaterialAction] ✅ Successfully processed ${material.name}`);
   } catch (err) {
+    console.error(`[MaterialAction] ❌ Failed to process ${material.name}:`, err);
     await supabase.from('materials').update({ status: 'error' }).eq('id', material.id);
   }
 }
