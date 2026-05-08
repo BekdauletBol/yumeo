@@ -1,6 +1,8 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 const SPLIT_FADE_DELAY_MS = 800;
@@ -8,6 +10,7 @@ const SPLIT_FADE_DURATION_MS = 600;
 const TEXT_START_DELAY_MS = SPLIT_FADE_DELAY_MS + SPLIT_FADE_DURATION_MS;
 const TEXT_LINE_DELAY_MS = 100;
 const EXIT_FADE_DURATION_MS = 600;
+const CURSOR_BLINK_DURATION_MS = 1000;
 
 const textLines = [
   {
@@ -61,6 +64,14 @@ export default function HomePage() {
   const [splitVisible, setSplitVisible] = useState(false);
   const [textVisible, setTextVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const rootStyle = {
+    '--cursor-blink-duration': `${CURSOR_BLINK_DURATION_MS}ms`,
+  } as CSSProperties;
+  const handleEnter = () => {
+    if (!isExiting) {
+      setIsExiting(true);
+    }
+  };
 
   useEffect(() => {
     const splitTimer = setTimeout(() => setSplitVisible(true), SPLIT_FADE_DELAY_MS);
@@ -73,8 +84,8 @@ export default function HomePage() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter' && !isExiting) {
-        setIsExiting(true);
+      if (event.key === 'Enter') {
+        handleEnter();
       }
     };
 
@@ -95,16 +106,22 @@ export default function HomePage() {
     splitVisible && !isExiting ? 'opacity-100' : 'opacity-0';
 
   return (
-    <div className="min-h-screen w-full bg-[#000000]">
+    <div className="min-h-screen w-full bg-[#000000]" style={rootStyle}>
       <div
         className={`flex h-screen w-full flex-col md:flex-row transition-opacity ${splitOpacityClass}`}
-        style={{ transitionTimingFunction: 'ease', transitionDuration: '600ms' }}
+        style={{
+          transitionTimingFunction: 'ease',
+          transitionDuration: `${SPLIT_FADE_DURATION_MS}ms`,
+        }}
       >
         <div className="relative h-[45vh] w-full bg-[#000000] md:h-full md:w-1/2">
-          <img
+          <Image
             src="/landing-art.jpg"
-            alt="Yumeo landing art"
-            className="h-full w-full object-cover"
+            alt="Abstract research workspace illustration"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover"
           />
           <div
             className="absolute inset-0"
@@ -116,8 +133,16 @@ export default function HomePage() {
         </div>
 
         <div
-          className="flex h-[55vh] w-full flex-col items-start justify-center bg-[#1a1a1a] p-12 text-left md:h-full md:w-1/2"
+          className="flex h-[55vh] w-full flex-col items-start justify-center bg-[#1a1a1a] p-12 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E8611A] focus-visible:outline-offset-2 md:h-full md:w-1/2"
           style={{ fontFamily: 'var(--font-mono)' }}
+          aria-label="Press Enter to continue"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              handleEnter();
+            }
+          }}
         >
           <div className="w-full">
             {textLines.map((line, index) => (

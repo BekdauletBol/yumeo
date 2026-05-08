@@ -249,7 +249,7 @@
 
 .landing-cursor {
   display: inline-block;
-  animation: blink 1s infinite;
+  animation: blink var(--cursor-blink-duration, 1s) infinite;
 }
 
 /* ─── Citation Chip ──────────────────────────────────────────── */
