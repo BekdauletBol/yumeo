@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -64,14 +64,12 @@ export default function HomePage() {
   const [splitVisible, setSplitVisible] = useState(false);
   const [textVisible, setTextVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const handleEnter = useCallback(() => {
+    setIsExiting(true);
+  }, []);
   const rootStyle = {
     '--cursor-blink-duration': `${CURSOR_BLINK_DURATION_MS}ms`,
   } as CSSProperties;
-  const handleEnter = () => {
-    if (!isExiting) {
-      setIsExiting(true);
-    }
-  };
 
   useEffect(() => {
     const splitTimer = setTimeout(() => setSplitVisible(true), SPLIT_FADE_DELAY_MS);
@@ -91,7 +89,7 @@ export default function HomePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExiting]);
+  }, [handleEnter]);
 
   useEffect(() => {
     if (!isExiting) return;
@@ -138,6 +136,7 @@ export default function HomePage() {
           aria-label="Press Enter to continue"
           role="button"
           tabIndex={0}
+          onClick={handleEnter}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               handleEnter();
