@@ -247,6 +247,11 @@
   margin-left: 1px;
 }
 
+.landing-cursor {
+  display: inline-block;
+  animation: blink 1s infinite;
+}
+
 /* ─── Citation Chip ──────────────────────────────────────────── */
 .citation-chip {
   display: inline-flex;
@@ -290,6 +295,11 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .5; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* ─── Section Color Indicators ───────────────────────────────── */

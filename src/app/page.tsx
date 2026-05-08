@@ -1,157 +1,142 @@
 'use client';
 
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Plus, BarChart3, MessageSquare, HardDrive, Menu } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import type { Project } from '@/lib/types';
-import { GlobalSidebar } from '@/components/ui/GlobalSidebar';
+
+const SPLIT_FADE_DELAY_MS = 800;
+const SPLIT_FADE_DURATION_MS = 600;
+const TEXT_START_DELAY_MS = SPLIT_FADE_DELAY_MS + SPLIT_FADE_DURATION_MS;
+const TEXT_LINE_DELAY_MS = 100;
+const EXIT_FADE_DURATION_MS = 600;
+
+const textLines = [
+  {
+    id: 'title',
+    content: 'YUMEO',
+    className:
+      'text-[1.25rem] md:text-[1.5rem] tracking-[0.3em] text-[#F0F0F0] font-normal',
+  },
+  {
+    id: 'tagline',
+    content: '/ research IDE /',
+    className: 'text-[0.65rem] md:text-[0.7rem] text-[#E8611A] mt-1 mb-4',
+  },
+  {
+    id: 'desc-1',
+    content: 'AI workspace for writing academic papers',
+    className: 'text-[0.75rem] md:text-[0.8rem] text-[#777777] leading-[1.9]',
+  },
+  {
+    id: 'desc-2',
+    content: 'without hallucinating sources.',
+    className:
+      'text-[0.75rem] md:text-[0.8rem] text-[#777777] leading-[1.9] mb-4',
+  },
+  {
+    id: 'flow-1',
+    content: 'Upload references →',
+    className: 'text-[0.75rem] md:text-[0.8rem] text-[#777777] leading-[1.9]',
+  },
+  {
+    id: 'flow-2',
+    content: 'AI writes strictly from them →',
+    className: 'text-[0.75rem] md:text-[0.8rem] text-[#777777] leading-[1.9]',
+  },
+  {
+    id: 'flow-3',
+    content: 'Export verified report.',
+    className:
+      'text-[0.75rem] md:text-[0.8rem] text-[#777777] leading-[1.9] mb-4',
+  },
+  {
+    id: 'cta',
+    content: 'Press Enter to continue',
+    className: 'text-[0.75rem] md:text-[0.8rem] text-[#E8611A]',
+    withCursor: true,
+  },
+];
 
 export default function HomePage() {
-  const { user, isLoaded } = useUser();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [splitVisible, setSplitVisible] = useState(false);
+  const [textVisible, setTextVisible] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && !user) {
-      router.push('/sign-in');
-    }
-  }, [isLoaded, user, router]);
+    const splitTimer = setTimeout(() => setSplitVisible(true), SPLIT_FADE_DELAY_MS);
+    const textTimer = setTimeout(() => setTextVisible(true), TEXT_START_DELAY_MS);
+    return () => {
+      clearTimeout(splitTimer);
+      clearTimeout(textTimer);
+    };
+  }, []);
 
-  // Fetch projects for the authenticated user
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setError(null);
-        const response = await fetch('/api/projects');
-        if (!response.ok) {
-          const msg = `Failed to load projects (${response.status})`;
-          console.error(msg);
-          setError(msg);
-          return;
-        }
-        const data = await response.json();
-        setProjects(data || []);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to load projects';
-        console.error('Error fetching projects:', err);
-        setError(msg);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && !isExiting) {
+        setIsExiting(true);
       }
     };
-    if (user) fetchProjects();
-  }, [user]);
 
-  if (!isLoaded || !user) return null;
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExiting]);
+
+  useEffect(() => {
+    if (!isExiting) return;
+    const exitTimer = setTimeout(
+      () => router.push('/sign-in'),
+      EXIT_FADE_DURATION_MS,
+    );
+    return () => clearTimeout(exitTimer);
+  }, [isExiting, router]);
+
+  const splitOpacityClass =
+    splitVisible && !isExiting ? 'opacity-100' : 'opacity-0';
 
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
-      <GlobalSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      
-      <main className="flex-1 overflow-y-auto flex flex-col w-full">
-        {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
-          <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
-            {/* Mobile Hamburger Menu */}
-            <button 
-              className="md:hidden p-2 rounded-md hover:bg-[var(--bg-elevated)] transition-colors"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu size={20} />
-            </button>
-            <span className="hidden sm:inline">Command Menu <kbd className="hidden sm:inline-block ml-1 px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs">⌘K</kbd></span>
-          </div>
-          <div className="flex items-center gap-3">
-            <UserButton afterSignOutUrl="/sign-in" />
-          </div>
-        </header>
+    <div className="min-h-screen w-full bg-[#000000]">
+      <div
+        className={`flex h-screen w-full flex-col md:flex-row transition-opacity ${splitOpacityClass}`}
+        style={{ transitionTimingFunction: 'ease', transitionDuration: '600ms' }}
+      >
+        <div className="relative h-[45vh] w-full bg-[#000000] md:h-full md:w-1/2">
+          <img
+            src="/landing-art.jpg"
+            alt="Yumeo landing art"
+            className="h-full w-full object-cover"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to right, transparent, rgba(0,0,0,0.3))',
+            }}
+          />
+        </div>
 
-        <div className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold mb-1 tracking-tight">Dashboard</h1>
-              <p className="text-[var(--text-secondary)] text-sm">Welcome back</p>
-            </div>
-            <div className="sm:text-right">
-              <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mb-1 font-mono">Pro Plan</p>
-              <p className="text-sm font-medium">Unlimited access</p>
-            </div>
-          </div>
-
-          {/* Stats Row */}
-          {/* Added md:grid-cols-3 to stack stats on mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-sm font-medium text-[var(--text-secondary)]">Projects Created</span>
-                <HardDrive size={16} className="text-[var(--text-tertiary)]" />
+        <div
+          className="flex h-[55vh] w-full flex-col items-start justify-center bg-[#1a1a1a] p-12 text-left md:h-full md:w-1/2"
+          style={{ fontFamily: 'var(--font-mono)' }}
+        >
+          <div className="w-full">
+            {textLines.map((line, index) => (
+              <div
+                key={line.id}
+                className={`${line.className} transition-opacity duration-300 ${
+                  textVisible ? 'opacity-100' : 'opacity-0'
+                }`}
+                style={{ transitionDelay: `${index * TEXT_LINE_DELAY_MS}ms` }}
+              >
+                {line.content}
+                {line.withCursor ? (
+                  <span className="landing-cursor">▊</span>
+                ) : null}
               </div>
-              <div className="text-3xl font-semibold">{projects.length}</div>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">Total active projects</p>
-            </div>
-            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-sm font-medium text-[var(--text-secondary)]">Materials Processed</span>
-                <BarChart3 size={16} className="text-[var(--text-tertiary)]" />
-              </div>
-              <div className="text-3xl font-semibold">0</div>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">This month</p>
-            </div>
-            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-sm font-medium text-[var(--text-secondary)]">Active Chats</span>
-                <MessageSquare size={16} className="text-[var(--text-tertiary)]" />
-              </div>
-              <div className="text-3xl font-semibold">7</div>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">Ongoing sessions</p>
-            </div>
-          </div>
-
-          {/* Error Alert */}
-          {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">⚠️</div>
-              <div className="flex-1">{error}</div>
-            </div>
-          )}
-
-          {/* Recent Activity / Projects */}
-          <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium">Recent Activity (Projects)</h2>
-              <Link href="/projects/new" className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-base)] text-xs font-medium rounded-md hover:opacity-90 transition-opacity">
-                <Plus size={14} /> <span className="hidden sm:inline">New Project</span>
-              </Link>
-            </div>
-            
-            <div className="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)] -mx-6 px-6">
-              {projects.length === 0 ? (
-                 <div className="py-8 text-center text-[var(--text-tertiary)] text-sm">No projects found. Create one to get started!</div>
-              ) : (
-                projects.map(project => (
-                  <div key={project.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-4 group gap-3">
-                    <div className="flex flex-col">
-                      <Link href={`/${project.id}`} className="text-sm font-medium hover:underline text-[var(--text-primary)] max-w-xs truncate">
-                        {project.name}
-                      </Link>
-                      <span className="text-xs text-[var(--text-tertiary)] mt-1 max-w-xs truncate">{project.description || 'No description provided'}</span>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-start gap-4">
-                      <span className="text-xs font-mono text-[var(--text-tertiary)]">{new Date(project.updatedAt).toLocaleDateString()}</span>
-                      <Link href={`/${project.id}`} className="px-3 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                        Open
-                      </Link>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            ))}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
