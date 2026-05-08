@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -64,6 +64,7 @@ export default function HomePage() {
   const [splitVisible, setSplitVisible] = useState(false);
   const [textVisible, setTextVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const actionRef = useRef<HTMLDivElement>(null);
   const handleEnter = useCallback(() => {
     setIsExiting(true);
   }, []);
@@ -81,15 +82,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter') {
-        handleEnter();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleEnter]);
+    if (splitVisible && !isExiting) {
+      actionRef.current?.focus();
+    }
+  }, [splitVisible, isExiting]);
 
   useEffect(() => {
     if (!isExiting) return;
@@ -137,8 +133,10 @@ export default function HomePage() {
           role="button"
           tabIndex={0}
           onClick={handleEnter}
+          ref={actionRef}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+              event.preventDefault();
               handleEnter();
             }
           }}

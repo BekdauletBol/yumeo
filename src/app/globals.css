@@ -249,7 +249,7 @@
 
 .landing-cursor {
   display: inline-block;
-  animation: blink var(--cursor-blink-duration, 1s) infinite;
+  animation: landing-cursor-blink var(--cursor-blink-duration, 1s) infinite;
 }
 
 /* ─── Citation Chip ──────────────────────────────────────────── */
@@ -297,7 +297,7 @@
   50% { opacity: .5; }
 }
 
-@keyframes blink {
+@keyframes landing-cursor-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
