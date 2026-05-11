@@ -114,6 +114,35 @@ export function SettingsDialog() {
             </div>
 
             <div className="h-px" style={{ background: 'var(--border-subtle)' }} />
+            
+            {/* Project Public API Keys */}
+            <div className="space-y-3">
+              <label className="text-xs font-medium uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
+                <Globe size={14} style={{ color: 'var(--accent-refs)' }} />
+                Project API Keys
+              </label>
+              <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                Generate an API key to query this project's references externally.
+              </p>
+              <button
+                onClick={async () => {
+                  try {
+                    const { generateApiKeyAction } = await import('@/app/actions/settings');
+                    const key = await generateApiKeyAction(activeProject.id);
+                    // Use prompt to let user copy the key easily
+                    window.prompt("Copy your new API key now. You won't be able to see it again:", key);
+                  } catch (err: any) {
+                    showToast(err.message);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-medium transition-all"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+              >
+                Generate API Key
+              </button>
+            </div>
+
+            <div className="h-px" style={{ background: 'var(--border-subtle)' }} />
 
             {/* Model Selection */}
             <div className="space-y-3">

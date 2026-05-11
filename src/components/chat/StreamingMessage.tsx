@@ -11,50 +11,30 @@ import { ExternalLink } from 'lucide-react';
 
 interface StreamingMessageProps {
   message: ChatMessage;
-  /** Live content while streaming (overrides message.content) */
   liveContent?: string;
   className?: string;
 }
 
-/**
- * Renders a single chat message.
- * - User messages: plain text, right-aligned
- * - Assistant messages: rendered Markdown with [REF:n] citation chips
- * - Long responses (>500 chars): shows "Open in Yuport" button
- * - Shows blinking cursor while streaming
- */
 export function StreamingMessage({ message, liveContent, className }: StreamingMessageProps) {
   const isUser = message.role === 'user';
   const isStreaming = message.isStreaming === true;
   const content = liveContent ?? message.content;
   const openEditor = useReportEditorStore((s) => s.openWithContent);
 
-  // Strip [REF:n] tags for clean markdown rendering — citations are shown separately
   const cleanContent = useMemo(
     () => content.replace(/\[REF:\d+\]/g, ''),
     [content],
   );
 
-  // For the editor, also strip conversational AI preambles
   const editorContent = useMemo(
     () => stripPreamble(cleanContent),
     [cleanContent],
   );
 
-
-
   if (isUser) {
     return (
       <div className={cn('flex justify-end', className)}>
-        <div
-          className="max-w-[80%] px-3 py-2 border text-sm leading-relaxed whitespace-pre-wrap"
-          style={{
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 8,
-          }}
-        >
+        <div className="max-w-[85%] px-6 py-4 bg-bg-elevated border border-border-subtle rounded-2xl text-sm leading-relaxed whitespace-pre-wrap font-body text-text-primary shadow-sm transition-all hover:scale-[1.01]">
           {content}
         </div>
       </div>
@@ -62,150 +42,35 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
   }
 
   return (
-    <div className={cn('flex gap-3 group', className)}>
+    <div className={cn('flex gap-4 group items-start', className)}>
       {/* Avatar */}
-      <div
-        className="shrink-0 w-6 h-6 border flex items-center justify-center text-xs font-bold mt-0.5"
-        style={{
-          background: 'var(--bg-elevated)',
-          color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-mono)',
-          border: '1px solid var(--border-default)',
-          borderRadius: 4,
-        }}
-        aria-hidden="true"
-      >
+      <div className="shrink-0 w-8 h-8 rounded-xl bg-accent-primary flex items-center justify-center text-white font-mono font-bold text-sm border border-white/10 shadow-sm transition-transform group-hover:scale-105">
         Y
       </div>
 
-      <div className="flex-1 min-w-0">
-        {/* ── Markdown-rendered message body ── */}
-        <div
-          className={cn(
-            'prose prose-sm max-w-none',
-            isStreaming && 'streaming-cursor',
-          )}
-          style={{
-            color: 'var(--text-primary)',
-            // Override prose defaults to match app theme
-            '--tw-prose-body': 'var(--text-primary)',
-            '--tw-prose-headings': 'var(--text-primary)',
-            '--tw-prose-bold': 'var(--text-primary)',
-            '--tw-prose-code': 'var(--accent-refs)',
-            '--tw-prose-pre-bg': 'var(--bg-overlay)',
-            '--tw-prose-bullets': 'var(--text-tertiary)',
-          } as React.CSSProperties}
-        >
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className={cn(
+          "prose prose-invert prose-sm max-w-none p-6 rounded-2xl bg-bg-surface border border-border-subtle shadow-sm transition-all duration-200 hover:scale-[1.01] font-body text-text-primary leading-relaxed",
+          isStreaming && "streaming-cursor",
+        )}>
           <ReactMarkdown
             components={{
-              // Inline code
               code: ({ children, ...props }) => (
-                <code
-                  {...props}
-                  style={{
-                    background: 'var(--bg-overlay)',
-                    color: 'var(--accent-refs)',
-                    padding: '1px 5px',
-                    borderRadius: 3,
-                    fontSize: '0.85em',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
+                <code {...props} className="bg-bg-elevated text-accent-primary px-1.5 py-0.5 rounded font-mono text-[0.9em] border border-border-subtle">
                   {children}
                 </code>
               ),
-              // Fenced code blocks
               pre: ({ children }) => (
-                <pre
-                  style={{
-                    background: 'var(--bg-overlay)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 6,
-                    padding: '10px 14px',
-                    overflowX: 'auto',
-                    fontSize: '0.8em',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
+                <pre className="bg-bg-elevated border border-border-subtle rounded-xl p-4 overflow-x-auto font-mono text-[0.85em] my-4">
                   {children}
                 </pre>
               ),
-              // Headings
-              h1: ({ children }) => (
-                <h1
-                  style={{
-                    fontSize: '1.1em',
-                    fontWeight: 700,
-                    marginBottom: 6,
-                    color: 'var(--text-primary)',
-                    borderBottom: '1px solid var(--border-subtle)',
-                    paddingBottom: 4,
-                  }}
-                >
-                  {children}
-                </h1>
-              ),
-              h2: ({ children }) => (
-                <h2
-                  style={{
-                    fontSize: '1em',
-                    fontWeight: 600,
-                    marginTop: 10,
-                    marginBottom: 4,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3
-                  style={{
-                    fontSize: '0.95em',
-                    fontWeight: 600,
-                    marginTop: 8,
-                    marginBottom: 2,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {children}
-                </h3>
-              ),
-              // Lists
-              ul: ({ children }) => (
-                <ul style={{ paddingLeft: 18, marginTop: 4, marginBottom: 4 }}>{children}</ul>
-              ),
-              ol: ({ children }) => (
-                <ol style={{ paddingLeft: 18, marginTop: 4, marginBottom: 4 }}>{children}</ol>
-              ),
-              li: ({ children }) => (
-                <li style={{ marginBottom: 2, color: 'var(--text-primary)' }}>{children}</li>
-              ),
-              // Paragraphs
-              p: ({ children }) => (
-                <p style={{ marginTop: 0, marginBottom: 6, lineHeight: 1.65 }}>{children}</p>
-              ),
-              // Blockquotes
+              h1: ({ children }) => <h1 className="text-lg font-mono font-bold uppercase tracking-widest border-b border-border-subtle pb-2 mb-4">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-md font-mono font-bold uppercase tracking-wider mt-6 mb-3">{children}</h2>,
               blockquote: ({ children }) => (
-                <blockquote
-                  style={{
-                    borderLeft: '3px solid var(--accent-refs)',
-                    paddingLeft: 10,
-                    marginLeft: 0,
-                    color: 'var(--text-secondary)',
-                    fontStyle: 'italic',
-                  }}
-                >
+                <blockquote className="border-l-2 border-accent-primary pl-4 my-4 italic text-text-secondary">
                   {children}
                 </blockquote>
-              ),
-              // Horizontal rules
-              hr: () => (
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '8px 0' }} />
-              ),
-              // Strong / bold
-              strong: ({ children }) => (
-                <strong style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{children}</strong>
               ),
             }}
           >
@@ -213,38 +78,27 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
           </ReactMarkdown>
         </div>
 
-        {/* ── Citation chips row ── */}
         {!isStreaming && message.citations.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2" role="list" aria-label="Sources used">
+          <div className="flex flex-wrap gap-2 py-1" role="list">
             {message.citations.map((citation) => (
-              <span key={citation.materialId} role="listitem">
-                <CitationTag citation={citation} />
-              </span>
+              <CitationTag key={citation.materialId} citation={citation} />
             ))}
           </div>
         )}
 
-        {/* ── "Open in Yuport" button for tasks ── */}
-        {!isStreaming && message.isTask && (
+        {!isStreaming && (
           <button
             onClick={() => openEditor(editorContent, 'Yuport')}
-            className="mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all hover:opacity-90 active:scale-95"
-            style={{
-              background: 'var(--accent-primary)',
-              color: '#fff',
-              fontFamily: 'var(--font-display)',
-            }}
-            aria-label="Open this response in Yuport"
+            className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-widest px-4 py-2 bg-accent-primary text-white rounded-xl transition-all hover:opacity-90 active:scale-95 shadow-sm"
           >
-            <ExternalLink size={12} aria-hidden="true" />
-            Open in Yuport
+            <ExternalLink size={12} /> Open in Yuport
           </button>
         )}
 
-        {/* ── Streaming indicator ── */}
         {isStreaming && (
-          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-            Thinking…
+          <p className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-text-tertiary flex items-center gap-2 pt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-pulse" />
+            Generating Grounded Response...
           </p>
         )}
       </div>

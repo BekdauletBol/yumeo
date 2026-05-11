@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   '/docs',
   '/api/health(.*)',
   '/api/stripe/webhook(.*)',
+  '/api/v1/(.*)',
   '/favicon.ico',
 ]);
 

@@ -22,9 +22,24 @@ function rowToMaterial(row: Record<string, unknown>): Material {
 }
 
 export async function getMaterialAction(id: string): Promise<Material> {
+  const { userId } = auth();
+  if (!userId) throw new Error('Unauthorized');
+
   const supabase = createServiceClient();
-  const { data, error } = await supabase.from('materials').select().eq('id', id).single();
-  if (error || !data) throw new Error('Material not found');
+  
+  // Verify ownership via inner join with projects table
+  const { data, error } = await supabase
+    .from('materials')
+    .select('*, projects!inner(user_id)')
+    .eq('id', id)
+    .eq('projects.user_id', userId)
+    .single();
+
+  if (error || !data) {
+    console.warn(`[getMaterialAction] ⚠️ Material ${id} not found or access denied for user ${userId}`);
+    throw new Error('Material not found');
+  }
+
   return rowToMaterial(data);
 }
 

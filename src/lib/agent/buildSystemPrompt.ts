@@ -1,4 +1,4 @@
-import type { Material, ProjectSettings, ProjectSection } from '@/lib/types';
+import type { Material, ProjectSettings, ProjectSection, Figure } from '@/lib/types';
 import { truncateToTokens } from '@/lib/utils/truncate';
 
 export const BLOCKED_TOPICS = [
@@ -29,6 +29,7 @@ export function buildSystemPrompt(
   _settings: ProjectSettings,
   activeSections?: ProjectSection[],
   model?: string,
+  figures?: Figure[]
 ): string {
   // Filter materials to only include those from active sections
   let filteredMaterials = materials;
@@ -43,13 +44,13 @@ export function buildSystemPrompt(
   // Categorize materials
   const references = filteredMaterials.filter(m => m.section === 'references');
   const drafts     = filteredMaterials.filter(m => m.section === 'drafts');
-  const figures    = filteredMaterials.filter(m => m.section === 'figures');
   const tables     = filteredMaterials.filter(m => m.section === 'tables');
   const equations  = filteredMaterials.filter(m => m.section === 'equations');
   const diagrams   = filteredMaterials.filter(m => m.section === 'diagrams');
   const templates  = filteredMaterials.filter(m => m.section === 'templates');
 
   const activeTemplate = templates[0];
+  const figuresList = figures || [];
 
   // Draft budget: up to 25% of context, capped at 3 000 tokens for small models
   const draftBudget = Math.min(Math.floor(contextBudget * 0.25), resolvedModel.includes('gpt-5') ? 20_000 : 3_000);
@@ -80,7 +81,7 @@ WORKSPACE MATERIALS
 ═══════════════════════════════════════════
 Uploaded References (${references.length}): ${references.length > 0 ? references.map(r => r.name).join(', ') : 'None'}
 ${draftContent}
-${figures.length > 0 ? `Figures (${figures.length}):\n${figures.map((f, i) => `• Figure ${f.metadata.figureNumber || i + 1}: ${f.metadata.caption || f.name}`).join('\n')}` : ''}
+${figuresList.length > 0 ? `Figures in this project (${figuresList.length}):\n${figuresList.map((f, i) => `- Figure ${f.orderIndex || i + 1}: [${f.caption || 'No caption'}] (from material_id: ${f.materialId || 'unknown'}) [${f.url}]`).join('\n')}` : ''}
 ${tables.length > 0 ? `Tables (${tables.length}):\n${tables.map((t, i) => `• Table ${t.metadata.figureNumber || i + 1}: ${t.metadata.caption || t.name}`).join('\n')}` : ''}
 ${equations.length > 0 ? `Equations (${equations.length}):\n${equations.map((e, i) => `• Eq ${e.metadata.figureNumber || i + 1}: ${e.content}`).join('\n')}` : ''}
 ${diagrams.length > 0 ? `Diagrams (${diagrams.length}):\n${diagrams.map((d, i) => `• Diagram ${d.metadata.figureNumber || i + 1}: ${d.content}`).join('\n')}` : ''}

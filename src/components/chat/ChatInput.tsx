@@ -1,210 +1,86 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Send, AlertCircle } from 'lucide-react';
-import { useChatStore } from '@/stores/chatStore';
-import { useMaterialsStore } from '@/stores/materialsStore';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Paperclip, Loader2, Command } from 'lucide-react';
+import { useProjectStore } from '@/stores/projectStore';
+import { useStreamingChat } from '@/hooks/useStreamingChat';
 import { cn } from '@/lib/utils/cn';
 
-interface ChatInputProps {
-  onSubmit: (message: string) => Promise<void>;
-  disabled?: boolean;
-  placeholder?: string;
-}
-
-const MAX_CHARS = 4000;
-
-/**
- * Chat input bar at the bottom of the chat panel.
- * - ⌘Enter / Ctrl+Enter to submit
- * - Enter for newline
- * - Warns when no materials are loaded
- * - Shows character counter near limit
- */
-export function ChatInput({ onSubmit, disabled = false, placeholder }: ChatInputProps) {
-  const [value, setValue] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function ChatInput({ onSubmit }: { onSubmit?: (text: string) => Promise<void> }) {
+  const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isStreaming = useChatStore((s) => s.isStreaming);
-  const chatMode = useChatStore((s) => s.chatMode);
-  const setChatMode = useChatStore((s) => s.setChatMode);
-  const totalMaterials = useMaterialsStore((s) => s.materials.length);
-
-  const isDisabled = disabled || isStreaming || isSubmitting;
-  const charsLeft = MAX_CHARS - value.length;
-  const isNearLimit = charsLeft < 200;
+  const { sendMessage, isStreaming: isLoading } = useStreamingChat();
+  const activeProject = useProjectStore((s) => s.activeProject);
 
   // Auto-resize textarea
   useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = `${Math.min(ta.scrollHeight, 180)}px`;
-  }, [value]);
-
-  const handleSubmit = useCallback(async () => {
-    const trimmed = value.trim();
-    if (!trimmed || isDisabled) return;
-
-    setValue('');
-    setIsSubmitting(true);
-    try {
-      await onSubmit(trimmed);
-    } finally {
-      setIsSubmitting(false);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
-    textareaRef.current?.focus();
-  }, [value, isDisabled, onSubmit]);
+  }, [input]);
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    // ⌘Enter or Ctrl+Enter → submit
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+  const handleSend = async () => {
+    if (!input.trim() || isLoading || !activeProject) return;
+    const content = input.trim();
+    setInput('');
+    if (onSubmit) {
+      await onSubmit(content);
+    } else {
+      await sendMessage(content);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      void handleSubmit();
+      void handleSend();
     }
-  }
-
-  const noMaterials = totalMaterials === 0;
-  const defaultPlaceholder = noMaterials
-    ? 'Upload materials first…'
-    : chatMode === 'agent'
-      ? 'Describe the task you want me to complete… (Cmd/Ctrl+Enter to send)'
-      : 'Ask about your research materials… (Cmd/Ctrl+Enter to send)';
+  };
 
   return (
-    <div
-      className="px-4 py-3 border-t"
-      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
-    >
-      {/* Mode toggle */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Mode
-        </span>
-        <div
-          className="inline-flex border rounded-full overflow-hidden"
-          style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}
-        >
-          <button
-            type="button"
-            onClick={() => setChatMode('ask')}
-            className="px-3 py-1 text-xs font-medium transition-colors"
-            style={{
-              background: chatMode === 'ask' ? 'var(--accent-primary)' : 'transparent',
-              color: chatMode === 'ask' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              fontFamily: 'var(--font-mono)',
-            }}
-            aria-pressed={chatMode === 'ask'}
-          >
-            💬 Ask
+    <div className="p-6 bg-black border-t border-border-subtle">
+      <div className="max-w-4xl mx-auto relative group">
+        <div className={cn(
+          "relative flex items-end gap-2 p-3 bg-[#111111] border border-border-subtle rounded-xl transition-all duration-300",
+          "focus-within:border-border-default focus-within:ring-1 focus-within:ring-white/5 shadow-sm"
+        )}>
+          <button className="p-2 text-text-tertiary hover:text-text-secondary transition-colors rounded-lg">
+            <Paperclip size={18} />
           </button>
+
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask Yumeo about your research..."
+            className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text-primary placeholder:text-text-tertiary resize-none py-2 min-h-[40px] font-body"
+          />
+
+          <div className="flex items-center gap-2 px-2 py-1 bg-black/40 rounded-lg text-[10px] font-mono font-bold text-text-tertiary border border-border-subtle select-none">
+            <Command size={10} /> ENTER
+          </div>
+
           <button
-            type="button"
-            onClick={() => setChatMode('agent')}
-            className="px-3 py-1 text-xs font-medium transition-colors"
-            style={{
-              background: chatMode === 'agent' ? 'var(--accent-primary)' : 'transparent',
-              color: chatMode === 'agent' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              fontFamily: 'var(--font-mono)',
-            }}
-            aria-pressed={chatMode === 'agent'}
+            onClick={() => void handleSend()}
+            disabled={!input.trim() || isLoading}
+            className={cn(
+              "p-2.5 rounded-xl transition-all flex items-center justify-center",
+              input.trim() && !isLoading
+                ? "bg-accent-primary text-white"
+                : "bg-bg-elevated text-text-tertiary cursor-not-allowed"
+            )}
           >
-            🤖 Agent
+            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>
         </div>
+
+        <p className="mt-3 text-[10px] text-center text-text-tertiary font-mono font-bold uppercase tracking-[0.2em]">
+          Yumeo only uses your uploaded knowledge base.
+        </p>
       </div>
-
-      {/* No-materials warning */}
-      {noMaterials && (
-        <div
-          className="flex items-center gap-2 mb-2 px-3 py-1.5 border text-xs"
-          role="alert"
-          style={{
-            background: 'var(--bg-elevated)',
-            borderColor: 'var(--border-default)',
-            color: 'var(--status-warning)',
-          }}
-        >
-          <AlertCircle size={12} aria-hidden="true" />
-          <span>
-            Upload a reference file first — Yumeo answers only from your materials.
-          </span>
-        </div>
-      )}
-
-      {/* Input row */}
-      <div
-        className="flex items-end gap-2 px-3 py-2 border"
-        style={{
-          background: 'var(--bg-elevated)',
-          borderColor: 'var(--border-default)',
-          transition: 'border-color var(--transition-fast)',
-        }}
-      >
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value.slice(0, MAX_CHARS))}
-          onKeyDown={handleKeyDown}
-          disabled={isDisabled}
-          placeholder={
-            placeholder ?? defaultPlaceholder
-          }
-          aria-label="Research question input"
-          rows={1}
-          className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed"
-          style={{
-            color: 'var(--text-primary)',
-            caretColor: 'var(--text-accent)',
-          }}
-        />
-
-        {/* Character counter (near limit only) */}
-        {isNearLimit && value.length > 0 && (
-          <span
-            className="text-xs shrink-0 self-center"
-            style={{
-              color: charsLeft < 50 ? 'var(--status-error)' : 'var(--status-warning)',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
-            {charsLeft}
-          </span>
-        )}
-
-        {/* Send button */}
-        <button
-          onClick={() => void handleSubmit()}
-          disabled={isDisabled || value.trim() === ''}
-          aria-label="Send message (⌘Enter)"
-          className={cn(
-            'shrink-0 w-7 h-7 border flex items-center justify-center transition-all',
-            value.trim() && !isDisabled ? 'opacity-100' : 'opacity-30',
-          )}
-          style={{
-            background: 'transparent',
-            color: 'var(--text-primary)',
-            borderColor: 'var(--border-default)',
-          }}
-        >
-          {isStreaming || isSubmitting ? (
-            <span
-              className="w-3 h-3 rounded-sm animate-pulse"
-              style={{ background: '#000' }}
-              aria-hidden="true"
-            />
-          ) : (
-            <Send size={13} aria-hidden="true" />
-          )}
-        </button>
-      </div>
-
-      {/* Keyboard hint */}
-      <p className="text-center text-xs mt-1.5" style={{ color: 'var(--text-tertiary)' }}>
-        <kbd style={{ fontFamily: 'var(--font-mono)' }}>⌘/Ctrl↵</kbd> to send
-        {' · '}
-        <kbd style={{ fontFamily: 'var(--font-mono)' }}>↵</kbd> for new line
-      </p>
     </div>
   );
 }

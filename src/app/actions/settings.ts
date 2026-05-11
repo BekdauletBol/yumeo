@@ -24,6 +24,8 @@ export async function saveClaudeKeyAction(apiKey: string) {
   }
 }
 
+import crypto from 'crypto';
+
 export async function hasClaudeKeyAction() {
   const { userId } = auth();
   if (!userId) return false;
@@ -37,4 +39,47 @@ export async function hasClaudeKeyAction() {
     .single();
 
   return !!data?.encrypted_claude_key;
+}
+
+export async function generateApiKeyAction(projectId: string) {
+  const { userId } = auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const supabase = createServiceClient();
+  
+  // verify user owns project
+  const { data: project } = await supabase.from('projects').select('user_id').eq('id', projectId).single();
+  if (project?.user_id !== userId) throw new Error('Unauthorized project access');
+
+  const clearKey = `sk_yumeo_${crypto.randomBytes(32).toString('hex')}`;
+  const keyHash = crypto.createHash('sha256').update(clearKey).digest('hex');
+
+  const { error } = await supabase.from('api_keys').insert({
+    project_id: projectId,
+    key_hash: keyHash,
+  });
+
+  if (error) throw new Error(error.message);
+
+  return clearKey;
+}
+
+export async function getApiKeysAction(projectId: string) {
+  const { userId } = auth();
+  if (!userId) throw new Error('Unauthorized');
+  
+  const supabase = createServiceClient();
+  const { data, error } = await supabase.from('api_keys').select('id, created_at, key_hash').eq('project_id', projectId);
+  if (error) throw new Error(error.message);
+  
+  return data;
+}
+
+export async function deleteApiKeyAction(id: string) {
+  const { userId } = auth();
+  if (!userId) throw new Error('Unauthorized');
+  
+  const supabase = createServiceClient();
+  const { error } = await supabase.from('api_keys').delete().eq('id', id);
+  if (error) throw new Error(error.message);
 }

@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { useChatStore } from '@/stores/chatStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useFiguresStore } from '@/stores/figuresStore';
 import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
 import type { ChatMessage } from '@/lib/types';
@@ -56,7 +57,8 @@ export function useStreamingChat() {
       });
       setIsStreaming(true);
 
-      const systemPrompt = buildSystemPrompt(materials, activeProject.settings);
+      const figures = useFiguresStore.getState().figures;
+      const systemPrompt = buildSystemPrompt(materials, activeProject.settings, undefined, undefined, figures);
 
       const history = [
         ...messages

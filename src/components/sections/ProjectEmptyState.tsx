@@ -7,15 +7,14 @@ import { showToast } from '@/lib/utils/toast';
 import { useProjectSections } from '@/hooks/useProjectSections';
 import { SECTION_OPTIONS } from './AddSectionButton';
 import type { MaterialSection } from '@/lib/types';
+import { cn } from '@/lib/utils/cn';
 
 interface ProjectEmptyStateProps {
   projectId: string;
 }
 
 /**
- * Two-step section selection flow:
- * 1. User selects sections from grid
- * 2. User clicks "Start Research" to confirm selection
+ * Redesigned ProjectEmptyState for the Pure Black system.
  */
 export function ProjectEmptyState({
   projectId,
@@ -37,14 +36,12 @@ export function ProjectEmptyState({
 
     try {
       setIsLoading(true);
-      // Create all selected sections in parallel
       const results = await Promise.allSettled(
         selectedSections.map(sectionType =>
           createProjectSectionAction(projectId, sectionType)
         )
       );
       
-      // Check for failures
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length > 0) {
         const errorMsg = failures.length === 1
@@ -56,37 +53,31 @@ export function ProjectEmptyState({
       }
       
       showToast(`Successfully created ${selectedSections.length} sections`);
-      
-      // Refetch sections to update store and close empty state
       await refetchSections();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to create sections';
-      console.error('Failed to create sections:', err);
       showToast(errorMsg);
       setIsLoading(false);
     }
   }, [projectId, selectedSections, refetchSections]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-8 px-6 py-12">
-      {/* Step 1: Title */}
-      <div className="text-center">
-        <div className="inline-block p-4 rounded-full mb-4" style={{ background: 'var(--bg-secondary)' }}>
-          <BookMarked className="w-8 h-8" style={{ color: 'var(--accent-refs)' }} />
+    <div className="flex flex-col items-center justify-center h-full gap-12 px-6 py-12 bg-black text-text-primary">
+      {/* Title Area */}
+      <div className="text-center space-y-4">
+        <div className="inline-block p-5 rounded-2xl bg-bg-surface border border-border-subtle">
+          <BookMarked className="w-10 h-10 text-accent-primary" />
         </div>
         
-        <h1 className="text-3xl font-bold mb-3">Welcome to Yumeo</h1>
-        <p className="text-base mb-2" style={{ color: 'var(--text-secondary)', maxWidth: '500px' }}>
-          Step 1: Choose the sections you need for your research
-        </p>
-        <p className="text-sm" style={{ color: 'var(--text-tertiary)', maxWidth: '500px' }}>
-          You can add or remove sections anytime. Only the sections you select will appear in your workspace.
+        <h1 className="text-4xl font-mono font-bold uppercase tracking-tight">Setup Workspace</h1>
+        <p className="text-text-secondary text-sm font-medium uppercase tracking-widest max-w-md mx-auto">
+          Step 1: Choose required research modules
         </p>
       </div>
 
-      {/* Step 2: Section grid */}
-      <div className="w-full max-w-4xl">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      {/* Grid */}
+      <div className="w-full max-w-5xl">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {SECTION_OPTIONS.map(({ type, label, description }) => {
             const isSelected = selectedSections.includes(type);
             return (
@@ -94,26 +85,22 @@ export function ProjectEmptyState({
                 key={type}
                 onClick={() => handleSelectSection(type)}
                 disabled={isLoading}
-                className={`p-4 rounded-lg border-2 transition-all text-left flex flex-col gap-2 ${
-                  isLoading
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isSelected
-                    ? 'ring-2 ring-offset-2'
-                    : 'hover:border-current cursor-pointer'
-                }`}
-                style={{
-                  borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-subtle)',
-                  background: isSelected ? 'var(--bg-elevated)' : 'var(--bg-secondary)',
-                }}
+                className={cn(
+                  'p-6 rounded-2xl border transition-all text-left flex flex-col gap-3 group',
+                  isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]',
+                  isSelected ? 'bg-bg-elevated border-accent-primary shadow-sm' : 'bg-bg-surface border-border-subtle hover:border-border-default'
+                )}
               >
-                <div className="text-xl">{label.split(' ')[0]}</div>
-                <div className="font-medium text-sm">{label.split(' ').slice(1).join(' ')}</div>
-                <div className="text-xs leading-tight" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-2xl">{label.split(' ')[0]}</div>
+                <div className="font-mono font-bold text-[11px] uppercase tracking-widest text-text-primary">
+                  {label.split(' ').slice(1).join(' ')}
+                </div>
+                <div className="text-[11px] leading-relaxed text-text-secondary">
                   {description}
                 </div>
                 {isSelected && (
-                  <div className="text-xs font-semibold pt-1" style={{ color: 'var(--accent-primary)' }}>
-                    ✓ Selected
+                  <div className="text-[10px] font-mono font-bold text-accent-primary pt-1">
+                    [ SELECTED ]
                   </div>
                 )}
               </button>
@@ -122,37 +109,34 @@ export function ProjectEmptyState({
         </div>
       </div>
 
-      {/* Step 3: CTA Button */}
-      <div className="flex flex-col items-center gap-4">
+      {/* Footer / CTA */}
+      <div className="flex flex-col items-center gap-6">
         <button
           onClick={handleStartResearch}
           disabled={selectedSections.length === 0 || isLoading}
-          className="px-8 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base"
-          style={{
-            background: selectedSections.length > 0 ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-            color: selectedSections.length > 0 ? 'var(--text-on-accent)' : 'var(--text-tertiary)',
-          }}
+          className={cn(
+            "px-10 py-4 rounded-xl transition-all font-mono font-bold text-sm uppercase tracking-widest",
+            selectedSections.length > 0 && !isLoading
+              ? "bg-accent-primary text-white hover:opacity-90"
+              : "bg-bg-elevated text-text-tertiary cursor-not-allowed border border-border-subtle"
+          )}
         >
           {isLoading
-            ? 'Creating sections...'
+            ? 'Initializing Modules...'
             : selectedSections.length === 0
-            ? 'Select at least one section to continue'
-            : `Start Research with ${selectedSections.length} section${selectedSections.length !== 1 ? 's' : ''}`}
+            ? 'Select modules to continue'
+            : `Initialize Research IDE [${selectedSections.length}]`}
         </button>
 
         {/* Tips */}
-        <div
-          className="mt-4 p-4 rounded-lg max-w-xl"
-          style={{ background: 'var(--bg-secondary)' }}
-        >
-          <p className="text-xs font-semibold mb-2">💡 Getting Started:</p>
-          <ul className="text-xs space-y-1" style={{ color: 'var(--text-secondary)' }}>
-            <li>• <strong>References:</strong> Upload research papers and PDFs</li>
-            <li>• <strong>Drafts:</strong> Write notes and outlines</li>
-            <li>• <strong>Figures:</strong> Add charts, diagrams, and images</li>
-            <li>• <strong>Tables:</strong> Upload datasets and spreadsheets</li>
-            <li>• <strong>LaTeX & Diagrams:</strong> Code-based content</li>
-          </ul>
+        <div className="p-6 rounded-2xl bg-bg-surface border border-border-subtle max-w-2xl font-mono text-[10px] uppercase tracking-[0.15em] text-text-tertiary">
+          <p className="font-bold text-text-secondary mb-3 tracking-[0.25em]">/ System Capabilities /</p>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+            <div>• References: PDF/BibTeX Upload</div>
+            <div>• Drafts: Structured Outlining</div>
+            <div>• Figures: Image Analysis</div>
+            <div>• Tables: Dataset Grounding</div>
+          </div>
         </div>
       </div>
     </div>

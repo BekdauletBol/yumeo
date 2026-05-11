@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus, Download, Trash2, Copy } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface SectionActionButtonsProps {
   onAddToReport?: () => void;
@@ -23,19 +24,20 @@ export function SectionActionButtons({
   showCopy = false,
   showDelete = false,
 }: SectionActionButtonsProps) {
+  const btnClass = "p-1.5 rounded-lg transition-all text-text-tertiary hover:text-text-primary hover:bg-bg-elevated border border-transparent hover:border-border-subtle";
+
   return (
-    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
       {showAddToReport && onAddToReport && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             onAddToReport();
           }}
-          className="p-1 rounded hover:bg-white/10"
-          style={{ color: 'var(--text-tertiary)' }}
+          className={btnClass}
           title="Add to report"
         >
-          <Plus size={12} />
+          <Plus size={14} />
         </button>
       )}
 
@@ -45,11 +47,10 @@ export function SectionActionButtons({
             e.stopPropagation();
             onDownload();
           }}
-          className="p-1 rounded hover:bg-white/10"
-          style={{ color: 'var(--text-tertiary)' }}
+          className={btnClass}
           title="Download"
         >
-          <Download size={12} />
+          <Download size={14} />
         </button>
       )}
 
@@ -59,11 +60,10 @@ export function SectionActionButtons({
             e.stopPropagation();
             onCopy();
           }}
-          className="p-1 rounded hover:bg-white/10"
-          style={{ color: 'var(--text-tertiary)' }}
+          className={btnClass}
           title="Copy"
         >
-          <Copy size={12} />
+          <Copy size={14} />
         </button>
       )}
 
@@ -73,11 +73,10 @@ export function SectionActionButtons({
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1 rounded hover:bg-white/10"
-          style={{ color: 'var(--text-tertiary)' }}
+          className={cn(btnClass, "hover:text-status-error")}
           title="Delete"
         >
-          <Trash2 size={12} />
+          <Trash2 size={14} />
         </button>
       )}
     </div>

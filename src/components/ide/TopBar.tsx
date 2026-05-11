@@ -1,144 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { UserButton } from '@clerk/nextjs';
-import Image from 'next/image';
-import { FileText, Keyboard } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { 
+  ChevronLeft, 
+  Settings, 
+  Search,
+  ExternalLink
+} from 'lucide-react';
 import { useProjectStore } from '@/stores/projectStore';
-import { useMaterialsStore } from '@/stores/materialsStore';
-import { useUIStore } from '@/stores/uiStore';
-import { cn } from '@/lib/utils/cn';
-import { PlanBadge } from '@/components/sections/PlanBadge';
-import { SettingsDialog } from './SettingsDialog';
 
-interface TopBarProps {
-  className?: string;
-}
-
-/**
- * 48px top bar with: Logo | Project name | Source counter | Plan badge | User
- */
-export function TopBar({ className }: TopBarProps) {
-  const router = useRouter();
+export function TopBar() {
   const activeProject = useProjectStore((s) => s.activeProject);
-  const totalMaterials = useMaterialsStore((s) => s.materials.length);
-  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
-    <div
-      className={cn('flex items-center px-4 gap-4 h-full border-b', className)}
-      style={{ background: 'var(--bg-surface)' }}
-    >
-      {/* Back button */}
-      <button
-        onClick={() => router.push('/')}
-        className="flex items-center justify-center w-7 h-7 rounded hover:bg-white/10 transition-colors"
-        style={{ color: 'var(--text-secondary)' }}
-        aria-label="Back to dashboard"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
-
-      {/* Logo */}
-      <div className="flex items-center gap-2 shrink-0">
-        <Image
-          src="/logo.png"
-          alt="Yumeo logo"
-          width={20}
-          height={20}
-          style={{ filter: 'invert(1)', objectFit: 'contain' }}
-          priority
-        />
-        <span
-          className="text-xs tracking-[0.22em] uppercase"
-          style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}
+    <header className="ide-topbar flex items-center justify-between px-6 bg-black border-b border-border-subtle shrink-0">
+      <div className="flex items-center gap-4">
+        <Link 
+          href="/" 
+          className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group"
         >
-          Yumeo
-        </span>
+          <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
+          <span className="font-mono font-bold text-sm tracking-tighter">YUMEO</span>
+        </Link>
+        
+        <div className="h-4 w-px bg-border-subtle" />
+        
+        <h1 className="text-sm font-mono font-bold text-text-primary uppercase tracking-tight truncate max-w-[200px]">
+          {activeProject?.name || 'Loading...'}
+        </h1>
       </div>
 
-      {/* Divider */}
-      <div
-        className="h-3 w-px shrink-0"
-        style={{ background: 'var(--border-default)' }}
-        aria-hidden="true"
-      />
-
-      {/* Project name */}
-      <div className="flex-1 min-w-0">
-        {activeProject ? (
-          <h1
-            className="text-sm truncate"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}
-            title={activeProject.name}
-          >
-            {activeProject.name}
-          </h1>
-        ) : (
-          <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            No project open
-          </span>
-        )}
-      </div>
-
-      {/* Source counter */}
-      {activeProject && (
-        <button
-          aria-label={`${totalMaterials} source files loaded`}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs border transition-colors hidden sm:flex"
-          style={{
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-secondary)',
-            borderColor: 'var(--border-default)',
-          }}
-        >
-          <FileText size={12} aria-hidden="true" />
-          <span style={{ fontFamily: 'var(--font-mono)' }}>
-            {totalMaterials} source{totalMaterials !== 1 ? 's' : ''}
-          </span>
+      <div className="flex items-center gap-3">
+        <button className="p-2 text-text-secondary hover:text-text-primary transition-colors rounded-lg hover:bg-bg-surface">
+          <Search size={16} />
         </button>
-      )}
-
-      {/* Keyboard shortcut hint */}
-      <button
-        onClick={() => setCommandPaletteOpen(true)}
-        aria-label="Open command palette (⌘K)"
-        className="flex items-center gap-1 px-2 py-1 text-xs border transition-colors hover:opacity-80 hidden sm:flex"
-        style={{
-          background: 'var(--bg-elevated)',
-          color: 'var(--text-tertiary)',
-          borderColor: 'var(--border-default)',
-        }}
-      >
-        <Keyboard size={11} aria-hidden="true" />
-        <kbd className="text-xs" style={{ fontFamily: 'var(--font-mono)' }}>⌘K</kbd>
-      </button>
-
-      <SettingsDialog />
-      {/* Plan badge */}
-      <PlanBadge />
-
-      {/* Clerk user button */}
-      {mounted ? (
-        <UserButton
-          afterSignOutUrl="/"
-          appearance={{
-            elements: {
-              avatarBox: 'w-7 h-7',
-            },
-          }}
-        />
-      ) : (
-        <div className="w-7 h-7 rounded-full bg-white/5 animate-pulse" />
-      )}
-    </div>
+        <button className="p-2 text-text-secondary hover:text-text-primary transition-colors rounded-lg hover:bg-bg-surface">
+          <Settings size={16} />
+        </button>
+        
+        <button className="flex items-center gap-2 px-4 py-1.5 bg-accent-primary text-white text-[11px] font-mono font-bold rounded-xl transition-all hover:opacity-90 ml-2 uppercase">
+          Open in Yuport <ExternalLink size={12} />
+        </button>
+      </div>
+    </header>
   );
 }

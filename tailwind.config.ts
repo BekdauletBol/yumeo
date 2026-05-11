@@ -9,55 +9,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Map CSS variables to Tailwind utilities
         bg: {
-          base: 'var(--bg-base)',
-          surface: 'var(--bg-surface)',
-          elevated: 'var(--bg-elevated)',
-          overlay: 'var(--bg-overlay)',
+          base: '#000000',
+          surface: '#111111',
+          elevated: '#1a1a1a',
+          overlay: '#222222',
         },
         text: {
-          primary: 'var(--text-primary)',
-          secondary: 'var(--text-secondary)',
-          tertiary: 'var(--text-tertiary)',
-          accent: 'var(--text-accent)',
+          primary: '#F0F0F0',
+          secondary: '#888888',
+          tertiary: '#555555',
+          accent: '#E8611A',
         },
         border: {
-          subtle: 'var(--border-subtle)',
-          default: 'var(--border-default)',
-          strong: 'var(--border-strong)',
+          subtle: '#222222',
+          default: '#333333',
+          strong: '#444444',
         },
         accent: {
-          refs: 'var(--accent-refs)',
-          drafts: 'var(--accent-drafts)',
-          figures: 'var(--accent-figures)',
-          tables: 'var(--accent-tables)',
-          template: 'var(--accent-template)',
-        },
-        status: {
-          success: 'var(--status-success)',
-          warning: 'var(--status-warning)',
-          error: 'var(--status-error)',
+          primary: '#E8611A',
         },
       },
       fontFamily: {
-        display: ['var(--font-display)'],
-        body: ['var(--font-body)'],
-        mono: ['var(--font-mono)'],
+        display: ['JetBrains Mono', 'monospace'],
+        body: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {
-        sm: 'var(--radius-sm)',
-        md: 'var(--radius-md)',
-        lg: 'var(--radius-lg)',
+        sm: '8px',
+        md: '10px',
+        lg: '12px',
+        xl: '12px',
+        '2xl': '16px',
       },
       transitionDuration: {
-        fast: '100ms',
-        base: '180ms',
+        base: '200ms',
       },
       animation: {
-        'cursor-blink': 'cursor-blink 1s step-end infinite',
-        'fade-in': 'fade-in 200ms ease-out',
-        'slide-up': 'slide-up 200ms ease-out',
+        'cursor-blink': 'cursor-blink 500ms step-end infinite',
+        'fade-in': 'fade-in 400ms ease-out',
+        'slide-up': 'slide-up 400ms ease-out',
       },
       keyframes: {
         'cursor-blink': {
@@ -69,7 +60,7 @@ const config: Config = {
           to: { opacity: '1' },
         },
         'slide-up': {
-          from: { transform: 'translateY(4px)', opacity: '0' },
+          from: { transform: 'translateY(10px)', opacity: '0' },
           to: { transform: 'translateY(0)', opacity: '1' },
         },
       },

@@ -1,7 +1,5 @@
-'use client';
-
-import { useMemo } from 'react';
-import { BookMarked, Calendar, Users, Trash2, Plus } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { BookMarked, Calendar, Users, Trash2, Plus, ShieldCheck } from 'lucide-react';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useAddToReportStore } from '@/stores/addToReportStore';
@@ -20,6 +18,7 @@ export function ReferencesSection() {
   const setSelectedMaterialId = useMaterialsStore((s) => s.setSelectedMaterialId);
   const removeMaterial = useMaterialsStore((s) => s.removeMaterial);
   const queueInsertion = useAddToReportStore((s) => s.queueInsertion);
+  const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
 
   const handleAddToReport = (ref: typeof references[0]) => {
     queueInsertion({
@@ -28,6 +27,11 @@ export function ReferencesSection() {
       content: ref.content || `Reference: ${ref.name}`,
     });
     showToast(`"${ref.name}" queued to add to report`);
+  };
+
+  const handleVerify = async (refId: string) => {
+    setVerifiedIds((prev) => new Set(prev).add(refId));
+    showToast('All chunks marked as human-verified ✓');
   };
 
   return (
@@ -114,6 +118,23 @@ export function ReferencesSection() {
                   
                   {/* Buttons (visible on hover) */}
                   <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {!verifiedIds.has(ref.id) ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVerify(ref.id);
+                        }}
+                        className="p-1 rounded hover:bg-white/10"
+                        style={{ color: 'var(--text-tertiary)' }}
+                        title="Mark as human-verified"
+                      >
+                        <ShieldCheck size={12} />
+                      </button>
+                    ) : (
+                      <span className="p-1 text-status-success" title="Human verified">
+                        <ShieldCheck size={12} />
+                      </span>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

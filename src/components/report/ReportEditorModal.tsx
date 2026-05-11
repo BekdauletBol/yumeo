@@ -233,6 +233,72 @@ export function ReportEditorModal() {
     }
   };
 
+  // ── Verification ────────────────────────────────────────────────────────────
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifiedSentences, setVerifiedSentences] = useState<Array<{text: string, verified: boolean, score: number, source: string, page: number}>>([]);
+
+  const handleVerify = async () => {
+    if (!activeProject || !content) return;
+    setIsVerifying(true);
+    setVerifiedSentences([]);
+    
+    // Simple sentence split
+    const sentences = content.match(/[^.!?]+[.!?]+/g) || [content];
+    const results = [];
+    
+    for (const sentence of sentences) {
+      if (sentence.trim().length < 10) continue; // skip very short sentences
+      
+      try {
+        const res = await fetch('/api/verify-sentence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sentence: sentence.trim(), projectId: activeProject.id }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          results.push({
+            text: sentence.trim(),
+            verified: data.verified,
+            score: data.score,
+            source: data.source,
+            page: data.page
+          });
+        }
+      } catch (err) {
+        console.error('Verify error:', err);
+      }
+    }
+    setVerifiedSentences(results);
+    setIsVerifying(false);
+  };
+
+  const renderVerificationOverlay = (text: string) => {
+    if (!verifiedSentences.length) return text;
+    let result: React.ReactNode[] = [];
+    let remaining = text;
+    
+    for (const v of verifiedSentences) {
+      const idx = remaining.indexOf(v.text);
+      if (idx !== -1) {
+        result.push(<span key={nanoid()}>{remaining.substring(0, idx)}</span>);
+        result.push(
+          <span 
+            key={nanoid()} 
+            className={v.verified ? "bg-[#22c55e]/20" : "bg-[#ef4444]/20"}
+            title={v.verified ? `Source: ${v.source} (p.${v.page}) - Score: ${v.score.toFixed(2)}` : "Unverified"}
+            style={{ pointerEvents: 'auto', color: 'transparent' }}
+          >
+            {v.text}
+          </span>
+        );
+        remaining = remaining.substring(idx + v.text.length);
+      }
+    }
+    result.push(<span key={nanoid()}>{remaining}</span>);
+    return result;
+  };
+
   if (!isOpen) return null;
 
   const hasReferences = materials.some((m) => m.section === 'references');
@@ -293,6 +359,24 @@ export function ReportEditorModal() {
             </button>
           </div>
 
+          {/* Verification Counter & Button */}
+          {verifiedSentences.length > 0 ? (
+            <div className="flex items-center gap-2 text-xs px-2">
+              <span className="text-status-success">{verifiedSentences.filter(v => v.verified).length} verified ✓</span>
+              <span className="text-status-error">{verifiedSentences.filter(v => !v.verified).length} unverified ⚠️</span>
+              <button onClick={() => setVerifiedSentences([])} className="text-text-tertiary hover:text-text-primary ml-2">Clear</button>
+            </div>
+          ) : (
+            <button
+              onClick={handleVerify}
+              disabled={isVerifying}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+            >
+              {isVerifying ? 'Verifying...' : 'Verify Sources'}
+            </button>
+          )}
+
           {/* Save as draft */}
           {!activeDraftId && (
             <button
@@ -308,7 +392,13 @@ export function ReportEditorModal() {
 
           {/* Export — opens format picker */}
           <button
-            onClick={() => setShowExportModal(true)}
+            onClick={() => {
+              if (verifiedSentences.some(v => !v.verified)) {
+                alert("Cannot export: Please fix unverified (red) sentences before exporting.");
+                return;
+              }
+              setShowExportModal(true);
+            }}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
             aria-label="Export report"
@@ -385,6 +475,20 @@ export function ReportEditorModal() {
           <div ref={containerRef} className="flex-1 relative overflow-y-auto px-12 py-8">
             {viewMode === 'edit' ? (
               <>
+                {/* Verification Overlay */}
+                {verifiedSentences.length > 0 && (
+                  <div
+                    className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      color: 'transparent',
+                      lineHeight: '1.75',
+                    }}
+                  >
+                    {renderVerificationOverlay(content)}
+                  </div>
+                )}
+                
                 {/* Ghost text overlay (autocomplete) */}
                 {ghost && (
                   <div
@@ -412,9 +516,9 @@ export function ReportEditorModal() {
                       ? 'Start writing… AI will suggest continuations as you type (Tab to accept).'
                       : 'Write here…'
                   }
-                  className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7"
+                  className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7 relative z-10"
                   style={{
-                    color: 'var(--text-primary)',
+                    color: verifiedSentences.length > 0 ? 'var(--text-primary)' : 'var(--text-primary)',
                     fontFamily: 'var(--font-mono)',
                     minHeight: 400,
                     caretColor: 'var(--accent-refs)',

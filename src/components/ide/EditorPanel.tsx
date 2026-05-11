@@ -1,94 +1,49 @@
 'use client';
 
-import { useUIStore } from '@/stores/uiStore';
-import { useMaterialsStore } from '@/stores/materialsStore';
-import { ReferencesSection } from '@/components/sections/ReferencesSection';
-import { FiguresSection } from '@/components/sections/FiguresSection';
-import { TablesSection } from '@/components/sections/TablesSection';
-import { TemplatesSection } from '@/components/sections/TemplatesSection';
-import { MermaidSection } from '@/components/sections/MermaidSection';
-import { LatexSection } from '@/components/sections/LatexSection';
-import { DraftsSection } from '@/components/sections/DraftsSection';
+import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
+import { cn } from '@/lib/utils/cn';
 
-const TABS = [
-  { key: 'drafts'     as const, label: 'Draft', accent: 'var(--accent-drafts)', sectionKey: 'drafts' },
-  { key: 'references' as const, label: 'Refs', accent: 'var(--accent-refs)', sectionKey: 'references' },
-  { key: 'figures'    as const, label: 'Figs', accent: 'var(--accent-figures)', sectionKey: 'figures' },
-  { key: 'tables'     as const, label: 'Tables', accent: 'var(--accent-tables)', sectionKey: 'tables' },
-  { key: 'templates'  as const, label: 'Template', accent: 'var(--accent-template)', sectionKey: 'templates' },
-  { key: 'mermaid'    as const, label: 'Mermaid', accent: 'var(--text-secondary)', sectionKey: 'diagrams' },
-  { key: 'latex'      as const, label: 'LaTeX', accent: 'var(--text-secondary)', sectionKey: 'equations' },
-] as const;
-
-/**
- * Right panel with tab switcher for References, Figures, Tables, Templates.
- */
 export function EditorPanel() {
-  const { rightPanelTab, setRightPanelTab } = useUIStore();
-  const materials = useMaterialsStore((s) => s.materials);
+  const { activeSectionId, sections } = useProjectSectionsStore();
+  const activeSection = sections.find(s => s.id === activeSectionId);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Tab bar */}
-      <div
-        className="flex border-b shrink-0"
-        role="tablist"
-        aria-label="Right panel sections"
-        style={{ borderColor: 'var(--border-subtle)' }}
-      >
-        {TABS.map((tab) => {
-          const count = materials.filter((m) => m.section === tab.sectionKey).length;
-          const isActive = rightPanelTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`panel-${tab.key}`}
-              onClick={() => setRightPanelTab(tab.key)}
-              className="flex-1 py-2.5 text-xs font-medium transition-colors relative"
-              style={{
-                color: isActive ? tab.accent : 'var(--text-tertiary)',
-                background: isActive ? 'var(--bg-elevated)' : 'transparent',
-              }}
-            >
-              {tab.label}
-              {count > 0 && (
-                <span
-                  className="ml-1 text-xs"
-                  style={{ color: tab.accent, fontFamily: 'var(--font-mono)' }}
-                >
-                  {count}
-                </span>
-              )}
-              {isActive && (
-                <span
-                  className="absolute bottom-0 left-0 right-0 h-px"
-                  style={{ background: tab.accent }}
-                  aria-hidden="true"
-                />
-              )}
-            </button>
-          );
-        })}
+    <section className="ide-editor flex flex-col bg-black border-l border-border-subtle overflow-hidden">
+      {/* Minimal Tabs */}
+      <div className="h-12 flex items-center px-6 border-b border-border-subtle gap-8">
+        <button className="text-[11px] font-mono font-bold text-text-primary uppercase tracking-widest border-b-2 border-accent-primary h-full px-2">
+          {activeSection?.name || 'Context'}
+        </button>
+        <button className="text-[11px] font-mono font-bold text-text-tertiary hover:text-text-secondary transition-colors uppercase tracking-widest h-full px-2">
+          History
+        </button>
       </div>
 
-      {/* Panel content */}
-      <div className="flex-1 overflow-y-auto">
-        <div
-          role="tabpanel"
-          id={`panel-${rightPanelTab}`}
-          aria-label={rightPanelTab}
-        >
-          {rightPanelTab === 'drafts'     && <DraftsSection />}
-          {rightPanelTab === 'references' && <ReferencesSection />}
-          {rightPanelTab === 'figures'    && <FiguresSection />}
-          {rightPanelTab === 'tables'     && <TablesSection />}
-          {rightPanelTab === 'templates'  && <TemplatesSection />}
-          {rightPanelTab === 'mermaid'    && <MermaidSection />}
-          {rightPanelTab === 'latex'      && <LatexSection />}
+      <div className="flex-1 overflow-y-auto p-10 scrollbar-thin">
+        <div className="max-w-2xl mx-auto space-y-12">
+          <div className="space-y-4">
+            <h2 className="text-2xl font-mono font-bold text-text-primary uppercase tracking-tight">
+              {activeSection?.name || 'No Section Selected'}
+            </h2>
+            <div className="h-px w-20 bg-accent-primary" />
+          </div>
+
+          <div className="bg-[#111111] border border-border-subtle rounded-2xl p-8 min-h-[400px] shadow-sm">
+             <div className="prose prose-invert prose-sm max-w-none font-body text-text-secondary leading-relaxed">
+               {activeSectionId ? (
+                 <p>Select a material or start writing. Every sentence you type here is checked against your references in real-time.</p>
+               ) : (
+                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                   <div className="w-12 h-12 rounded-full border border-dashed border-border-subtle flex items-center justify-center text-text-tertiary">
+                     ?
+                   </div>
+                   <p className="font-mono uppercase text-[10px] tracking-widest">Select a section to begin</p>
+                 </div>
+               )}
+             </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

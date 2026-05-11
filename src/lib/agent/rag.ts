@@ -265,12 +265,28 @@ export async function chunkAndEmbedMaterial(material: Material) {
   }
 }
 
-export async function retrieveRelevantChunks(projectId: string, query: string, topK: number = 8) {
+export async function retrieveRelevantChunks(projectId: string, query: string, topK: number = 8, userId?: string) {
   try {
     // eslint-disable-next-line no-console
-    console.log('[RAG] 🔍 retrieveRelevantChunks called:', { projectId, query: query.substring(0, 50), topK });
+    console.log('[RAG] 🔍 retrieveRelevantChunks called:', { projectId, query: query.substring(0, 50), topK, userId });
 
     const supabase = createServiceClient();
+
+    // Verify project ownership if userId is provided
+    if (userId) {
+      const { data: project, error: authError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .eq('user_id', userId)
+        .single();
+
+      if (authError || !project) {
+        // eslint-disable-next-line no-console
+        console.warn(`[RAG] ⚠️ Unauthorized access attempt: user ${userId} requested project ${projectId}`);
+        return [];
+      }
+    }
 
     // ── Try vector + hybrid RPC first ─────────────────────────────────
     if (process.env.GITHUB_MODELS_TOKEN) {

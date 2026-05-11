@@ -8,7 +8,6 @@ export type MaterialSection =
   | 'equations'
   | 'diagrams';
 
-/** A single uploaded research material */
 export interface Material {
   id: string;
   projectId: string;
@@ -22,6 +21,17 @@ export interface Material {
   /** Status of the background processing task */
   status?: 'uploading' | 'processing' | 'ready' | 'error';
   metadata: MaterialMetadata;
+  createdAt: Date;
+}
+
+export interface Figure {
+  id: string;
+  projectId: string;
+  materialId?: string;
+  url: string;
+  pageNumber?: number;
+  caption: string;
+  orderIndex: number;
   createdAt: Date;
 }
 
@@ -39,7 +49,7 @@ export interface ProjectSection {
 
 /** File-level metadata attached to a material */
 export interface MaterialMetadata {
-  fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex' | 'latex' | 'mermaid';
+  fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex' | 'latex' | 'mermaid' | 'docx';
   fileSize: number;
   pageCount?: number;
   /** Raw page text for server-side chunking (PDF only). */

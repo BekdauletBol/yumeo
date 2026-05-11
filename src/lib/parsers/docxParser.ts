@@ -9,27 +9,37 @@
  */
 export interface DocxParseResult {
   text: string;
-  /** Any messages/warnings from mammoth */
+  images?: string[];
   warnings: string[];
 }
 
 export async function parseDocx(file: File): Promise<DocxParseResult> {
-  // Dynamic import — keeps the bundle small; only loaded when needed
   const mammoth = await import('mammoth');
-
   const arrayBuffer = await file.arrayBuffer();
+  
+  const images: string[] = [];
+  const options = {
+    convertImage: mammoth.images.imgElement((image) => {
+      return image.read("base64").then((imageBuffer) => {
+        const src = "data:" + image.contentType + ";base64," + imageBuffer;
+        images.push(src);
+        return { src };
+      });
+    })
+  };
 
-  // extractRawText gives us clean plain text without any HTML
-  const result = await mammoth.extractRawText({ arrayBuffer });
+  const htmlResult = await mammoth.convertToHtml({ arrayBuffer }, options);
+  const rawResult = await mammoth.extractRawText({ arrayBuffer });
 
-  const text = result.value
-    .replace(/\r\n/g, '\n')        // normalize line endings
-    .replace(/\n{3,}/g, '\n\n')    // collapse triple+ blank lines
+  const text = rawResult.value
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
   return {
     text,
-    warnings: result.messages
+    images,
+    warnings: [...htmlResult.messages, ...rawResult.messages]
       .filter((m) => m.type === 'warning')
       .map((m) => m.message),
   };

@@ -1,148 +1,117 @@
+'use client';
+
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Highlight from '@tiptap/extension-highlight';
+import Typography from '@tiptap/extension-typography';
+import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
-import { useEffect, useRef, useCallback } from 'react';
-import { useMaterialsStore } from '@/stores/materialsStore';
+import { useEffect } from 'react';
+import { cn } from '@/lib/utils/cn';
 
 interface TiptapEditorProps {
-  initialContent: string;
-  onSave: (content: string) => void;
+  content: string;
+  onChange?: (content: string) => void;
+  className?: string;
   placeholder?: string;
 }
 
-export function TiptapEditor({ initialContent, onSave }: TiptapEditorProps) {
-  const materials = useMaterialsStore((s) => s.materials);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const processFigureTags = useCallback((content: string) => {
-    return content.replace(/\[FIGURE:\s*([^,]+),\s*([^\]]+)\]/g, (match, filename, figureId) => {
-      const cleanFilename = filename.trim();
-      const cleanFigId = figureId.trim().replace(/^Figure\s+/i, '');
-      
-      const material = materials.find(m => 
-        m.section === 'figures' && 
-        (m.name.toLowerCase().includes(cleanFilename.toLowerCase())) &&
-        (m.metadata.figureNumber === cleanFigId || m.name.toLowerCase().includes(`figure ${cleanFigId}`))
-      );
-
-      if (material?.storageUrl) {
-        // Return HTML for the image
-        return `<img src="${material.storageUrl}" alt="${cleanFilename} - Figure ${cleanFigId}" data-figure-tag="${match}" />`;
-      }
-      return match;
-    });
-  }, [materials]);
-
+export function TiptapEditor({
+  content,
+  onChange,
+  className,
+  placeholder = 'Start writing your research...',
+}: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image.configure({
-        HTMLAttributes: {
-          class: 'rounded-lg border shadow-sm max-w-full h-auto my-4',
-        },
+      Highlight,
+      Typography,
+      Image,
+      Placeholder.configure({
+        placeholder,
       }),
     ],
-    content: processFigureTags(initialContent),
+    content,
     onUpdate: ({ editor }) => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        onSave(editor.getHTML());
-      }, 1000);
+      onChange?.(editor.getHTML());
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[300px] p-8 text-sm leading-relaxed',
-        style: 'color: var(--text-primary); font-family: var(--font-sans);',
+        class: cn(
+          'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[400px] font-body leading-relaxed text-text-primary',
+          'selection:bg-accent-primary/30 selection:text-white',
+        ),
       },
-      handleDrop: (view, event, _slice, moved) => {
-        if (!moved && event.dataTransfer) {
-          // Check for internal figure material
-          const internalData = event.dataTransfer.getData('application/x-yumeo-material');
-          if (internalData) {
-            try {
-              const material = JSON.parse(internalData);
-              if (material.section === 'figures' && material.storageUrl) {
-                const imageNode = view.state.schema.nodes.image;
-                if (!imageNode) return false;
-                
-                const figureTag = `[FIGURE: ${material.name.split(' - ')[0] || material.name}, Figure ${material.metadata.figureNumber || '1'}]`;
-                
-                view.dispatch(
-                  view.state.tr.replaceSelectionWith(
-                    imageNode.create({ 
-                      src: material.storageUrl,
-                      alt: material.name,
-                      'data-figure-tag': figureTag
-                    })
-                  )
-                );
-                return true;
-              }
-            } catch (err) {
-              console.error('Failed to parse dropped material:', err);
-            }
-          }
-
-          // Fallback to file drop
-          if (event.dataTransfer.files && event.dataTransfer.files[0]) {
-            const file = event.dataTransfer.files[0];
-            if (file.type.startsWith('image/')) {
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                const src = e.target?.result as string;
-                const imageNode = view.state.schema.nodes.image;
-                if (!imageNode) return;
-                view.dispatch(view.state.tr.replaceSelectionWith(imageNode.create({ src })));
-              };
-              reader.readAsDataURL(file);
-              return true;
-            }
-          }
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+          const file = event.dataTransfer.files[0];
+          const src = URL.createObjectURL(file);
+          const imageNode = view.state.schema.nodes.image;
+          if (!imageNode) return false;
+          view.dispatch(view.state.tr.replaceSelectionWith(imageNode.create({ src })));
+          return true;
         }
         return false;
       },
     },
   });
 
+  // Sync content if changed from outside
   useEffect(() => {
-    if (editor && initialContent !== editor.getHTML()) {
-      editor.commands.setContent(processFigureTags(initialContent));
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
     }
-  }, [editor, initialContent, processFigureTags]);
+  }, [content, editor]);
 
-  if (!editor) {
-    return null;
-  }
+  // Listen for insert events
+  useEffect(() => {
+    const handleInsert = (e: Event) => {
+      const customEvent = e as CustomEvent<{ content: string }>;
+      if (editor) {
+        editor.commands.insertContent(customEvent.detail.content);
+      }
+    };
+    window.addEventListener('insert-editor-content', handleInsert);
+    return () => window.removeEventListener('insert-editor-content', handleInsert);
+  }, [editor]);
+
+  if (!editor) return null;
 
   return (
-    <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}>
-      <div className="flex items-center gap-1 p-1.5 border-b bg-muted/30" style={{ borderColor: 'var(--border-subtle)' }}>
-        <button 
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1 rounded text-xs ${editor.isActive('bold') ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
-        >
-          B
-        </button>
-        <button 
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1 rounded text-xs italic ${editor.isActive('italic') ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
-        >
-          I
-        </button>
-        <button 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-1 rounded text-xs ${editor.isActive('heading', { level: 2 }) ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
-        >
-          H2
-        </button>
-        <button 
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1 rounded text-xs ${editor.isActive('bulletList') ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
-        >
-          List
-        </button>
-      </div>
+    <div className={cn('tiptap-container group', className)}>
       <EditorContent editor={editor} />
+      
+      <style jsx global>{`
+        .tiptap p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: var(--text-tertiary);
+          pointer-events: none;
+          height: 0;
+          font-family: var(--font-mono);
+          text-transform: uppercase;
+          font-size: 10px;
+          letter-spacing: 0.1em;
+        }
+        
+        .tiptap h1 { font-family: var(--font-mono); font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; }
+        .tiptap h2 { font-family: var(--font-mono); font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; margin-top: 2rem; }
+        
+        .tiptap blockquote {
+          border-left: 3px solid var(--accent-primary);
+          padding-left: 1.5rem;
+          font-style: italic;
+          color: var(--text-secondary);
+        }
+        
+        .tiptap mark {
+          background-color: rgba(232, 97, 26, 0.2);
+          color: inherit;
+          padding: 0 2px;
+          border-radius: 2px;
+        }
+      `}</style>
     </div>
   );
 }

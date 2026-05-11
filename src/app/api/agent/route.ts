@@ -98,7 +98,8 @@ export async function POST(req: Request): Promise<Response> {
   try {
     // eslint-disable-next-line no-console
     console.log('[agent] 🔍 Starting RAG retrieval for query:', userQuery.substring(0, 50));
-    const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8)) as RetrievedChunk[];
+    // SECURE: Passing userId to enforce ownership check inside retrieveRelevantChunks
+    const chunks = (await retrieveRelevantChunks(projectId, userQuery, 8, userId)) as RetrievedChunk[];
     // eslint-disable-next-line no-console
     console.log('[agent] RAG result:', {
       chunksRetrieved: chunks?.length || 0,

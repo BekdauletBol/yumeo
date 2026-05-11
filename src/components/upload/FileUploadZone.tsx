@@ -15,9 +15,7 @@ import { nanoid } from 'nanoid';
 
 interface FileUploadZoneProps {
   section: MaterialSection;
-  /** Reference to project_sections table (for new dynamic sections) */
   sectionId?: string;
-  /** Compact mode for sidebar inline upload */
   compact?: boolean;
   onUploadComplete?: () => void;
 }
@@ -32,143 +30,45 @@ interface UploadProgress {
 
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
-// Keep PDF pageText small so server action payloads stay comfortably under ~1 MB.
 const MAX_PAGE_TEXT_CHARS = 120_000;
-// Skip PDF image extraction for large files to avoid long client-side processing.
 const MAX_PDF_IMAGE_BYTES = 12 * 1024 * 1024;
-// Cap image extraction work for big PDFs even when size is small.
 const MAX_PDF_IMAGE_PAGES = 25;
 const MAX_PDF_IMAGES = 20;
-
-/**
- * Cap extracted text at 200 000 chars (≈ 50k tokens) before saving to Supabase.
- * This prevents the Next.js server-action 1 MB body limit from being exceeded
- * while still providing far more content than the AI can use in one call.
- */
 const MAX_CONTENT_CHARS = 200_000;
 
-
-/** Extract text content from any file type */
-async function extractContent(file: File): Promise<{
-  content: string;
-  metadata: CreateMaterialInput['metadata'];
-  images?: string[];
-}> {
-  // PDF
+async function extractContent(file: File) {
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    const shouldExtractImages = file.size <= MAX_PDF_IMAGE_BYTES;
     const result = await parsePDF(file, {
-      extractImages: shouldExtractImages,
+      extractImages: file.size <= MAX_PDF_IMAGE_BYTES,
       maxImagePages: MAX_PDF_IMAGE_PAGES,
       maxImages: MAX_PDF_IMAGES,
     });
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
-    let pageTextChars = 0;
-    for (const page of result.pages) {
-      pageTextChars += page.length;
-      if (pageTextChars > MAX_PAGE_TEXT_CHARS) break;
-    }
-    const hasPageText = pageTextChars > 0;
-    const includePageText = hasPageText && pageTextChars <= MAX_PAGE_TEXT_CHARS;
-    if (hasPageText && !includePageText) {
-      console.warn('PDF page text omitted to avoid oversized upload payload:', file.name);
-    }
     return {
       content: result.text,
-      metadata: {
-        fileType: 'pdf',
-        fileSize: file.size,
-        pageCount: result.pageCount,
-        ...(includePageText ? { pageText: result.pages } : {}),
-        ...hints,
-      },
+      metadata: { fileType: 'pdf' as const, fileSize: file.size, pageCount: result.pageCount, ...hints },
       images: result.images,
     };
   }
-
-  // Images
   if (file.type.startsWith('image/')) {
     const analysis = await analyzeImage(file);
     return {
       content: `${analysis.description}\n\nExtracted text:\n${analysis.extractedText}`,
-      metadata: {
-        fileType: 'image',
-        fileSize: file.size,
-        caption: analysis.suggestedCaption,
-      },
+      metadata: { fileType: 'image' as const, fileSize: file.size, caption: analysis.suggestedCaption },
     };
   }
-
-  // BibTeX
-  if (file.name.endsWith('.bib')) {
+  if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.toLowerCase().endsWith('.docx')) {
+    const result = await parseDocx(file);
     return {
-      content: await file.text(),
-      metadata: { fileType: 'bibtex', fileSize: file.size },
+      content: result.text,
+      metadata: { fileType: 'docx' as const, fileSize: file.size },
+      images: result.images,
     };
   }
-
-  // Markdown
-  if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
-    return {
-      content: await file.text(),
-      metadata: { fileType: 'markdown', fileSize: file.size },
-    };
-  }
-
-  // LaTeX
-  if (file.name.endsWith('.tex')) {
-    return {
-      content: await file.text(),
-      metadata: { fileType: 'latex', fileSize: file.size },
-    };
-  }
-
-  // Mermaid / diagram
-  if (file.name.endsWith('.mmd')) {
-    return {
-      content: await file.text(),
-      metadata: { fileType: 'mermaid', fileSize: file.size },
-    };
-  }
-
-  // DOCX / Office formats — extract real text using mammoth.js
-  if (
-    file.name.toLowerCase().endsWith('.docx') ||
-    file.name.toLowerCase().endsWith('.doc') ||
-    file.name.toLowerCase().endsWith('.odt') ||
-    file.name.toLowerCase().endsWith('.rtf')
-  ) {
-    let content = '';
-    try {
-      const result = await parseDocx(file);
-      content = result.text;
-      if (result.warnings.length > 0) {
-        console.warn('DOCX parse warnings:', result.warnings);
-      }
-    } catch (err) {
-      console.error('mammoth DOCX extraction failed:', err);
-      content = `[Could not extract text from ${file.name} — try converting to PDF]`;
-    }
-    return {
-      content: content || `[No text content found in ${file.name}]`,
-      metadata: { fileType: 'text', fileSize: file.size },
-    };
-  }
-
-  // Plain text / CSV / any other readable format
-  let content = '';
-  try {
-    content = await file.text();
-  } catch {
-    content = `[Binary file: ${file.name}]`;
-  }
-
   return {
-    content,
-    metadata: {
-      fileType: file.name.endsWith('.csv') ? 'text' : 'text',
-      fileSize: file.size,
-    },
+    content: await file.text(),
+    metadata: { fileType: 'text' as const, fileSize: file.size },
+    images: [],
   };
 }
 
@@ -176,18 +76,12 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
   const inputId = useId();
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState<UploadProgress[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
   const addMaterial = useMaterialsStore((s) => s.addMaterial);
   const activeProject = useProjectStore((s) => s.activeProject);
   const sections = useProjectSectionsStore((s) => s.sections);
 
   const processFiles = useCallback(async (files: File[]) => {
-    if (!activeProject) {
-      console.warn('No active project — cannot upload files');
-      return;
-    }
-    if (files.length === 0) return;
-
+    if (!activeProject) return;
     setStatus('processing');
     const results: UploadProgress[] = files.map((f) => ({ filename: f.name, status: 'extracting' }));
     setProgress([...results]);
@@ -195,255 +89,83 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!file) continue;
-
       try {
-        // Validate size
-        if (file.size > MAX_FILE_SIZE) {
-          results[i] = {
-            filename: file.name,
-            status: 'error',
-            error: `Too large (max ${MAX_FILE_SIZE_MB} MB)`,
-          };
-          setProgress([...results]);
-          continue;
-        }
-
-        // Determine actual section — use prop, but for "any file" drops use auto-detect
-        const targetSection: MaterialSection = section;
-
-        // Extract content (handles all formats gracefully)
-        const { content: rawContent, metadata, images } = await extractContent(file);
-
-        // Truncate to avoid exceeding Next.js server action body limit (1 MB default)
-        const content = rawContent.length > MAX_CONTENT_CHARS
-          ? rawContent.slice(0, MAX_CONTENT_CHARS) + '\n\n[Content truncated — document too large to store in full]'
-          : rawContent;
-
+        if (file.size > MAX_FILE_SIZE) throw new Error('File too large');
+        const { content: raw, metadata, images } = await extractContent(file);
+        const content = raw.length > MAX_CONTENT_CHARS ? raw.slice(0, MAX_CONTENT_CHARS) + '\n[Truncated]' : raw;
+        
         results[i] = { filename: file.name, status: 'saving' };
         setProgress([...results]);
 
-        const materialInput: CreateMaterialInput & { sectionId?: string } = {
-          projectId: activeProject.id,
-          section: targetSection,
-          sectionId,
-          name: file.name,
-          content,
-          metadata,
-        };
-
-        try {
-          // Try persisting to Supabase via server action
-          const createdMaterial = await createMaterialAction(materialInput);
-          addMaterial(createdMaterial);
-
-          if (createdMaterial.status === 'processing') {
-            // Fire-and-forget background processing
-            processMaterialAction(createdMaterial).catch((err) => {
-              console.error('Background processing failed:', err);
-            });
-          }
-
-          // EXTRACTION: If PDF has images, auto-extract them into Figures section
-          if (images && images.length > 0) {
-            const figuresSection = sections.find(s => s.sectionType === 'figures');
-            
-            for (let j = 0; j < images.length; j++) {
-              const figDataUrl = images[j];
-              if (!figDataUrl) continue;
-              
-              const figureName = `${file.name} - Figure ${j + 1}`;
-              const figureInput: CreateMaterialInput = {
-                projectId: activeProject.id,
-                section: 'figures',
-                sectionId: figuresSection?.id,
-                name: figureName,
-                content: `[Extracted image from ${file.name}, page ?]`,
-                storageUrl: figDataUrl, // For now, store base64 as storageUrl for local preview
-                metadata: {
-                  fileType: 'image',
-                  fileSize: Math.round((figDataUrl.length * 3) / 4),
-                  figureNumber: `${j + 1}`,
-                  caption: `Extracted from ${file.name}`,
-                },
-              };
-
+        const materialInput = { projectId: activeProject.id, section, sectionId, name: file.name, content, metadata };
+        const created = await createMaterialAction(materialInput);
+        addMaterial(created);
+        
+        if (images && images.length > 0) {
+          const { createFigureAction } = await import('@/app/actions/figures');
+          for (let imgIndex = 0; imgIndex < images.length; imgIndex++) {
+            const imgData = images[imgIndex];
+            if (imgData) {
               try {
-                const createdFig = await createMaterialAction(figureInput);
-                addMaterial(createdFig);
-              } catch {
-                // Local fallback
-                addMaterial({
-                  id: nanoid(),
-                  ...figureInput,
-                  createdAt: new Date(),
-                } as any);
+                await createFigureAction({
+                  projectId: activeProject.id,
+                  materialId: created.id,
+                  imageBase64: imgData,
+                  caption: `Figure ${imgIndex + 1} from ${file.name}`,
+                });
+              } catch (e) {
+                console.error('Failed to save figure:', e);
               }
             }
           }
-        } catch (serverErr) {
-          // Supabase not configured / offline — fall back to local-only store
-          console.warn('Server action failed, using local store:', serverErr);
-          const localMaterial = {
-            id: nanoid(),
-            projectId: activeProject.id,
-            section: targetSection,
-            name: file.name,
-            content,
-            metadata,
-            createdAt: new Date(),
-          };
-          addMaterial(localMaterial);
         }
+        
+        if (created.status === 'processing') processMaterialAction(created);
 
         results[i] = { filename: file.name, status: 'done' };
         setProgress([...results]);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Upload failed';
-        results[i] = { filename: file.name, status: 'error', error: msg };
+      } catch (err: any) {
+        results[i] = { filename: file.name, status: 'error', error: err.message };
         setProgress([...results]);
       }
     }
+    setStatus(results.some(r => r.status === 'error') ? 'error' : 'success');
+    setTimeout(() => { setStatus('idle'); setProgress([]); onUploadComplete?.(); }, 2000);
+  }, [activeProject, section, sectionId, addMaterial, onUploadComplete]);
 
-    const hasError = results.some((r) => r.status === 'error');
-    setStatus(hasError ? 'error' : 'success');
-
-    setTimeout(() => {
-      setStatus('idle');
-      setProgress([]);
-      onUploadComplete?.();
-    }, 2500);
-  }, [activeProject, section, sectionId, addMaterial, onUploadComplete, sections]);
-
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setStatus('dragging');
-  }
-  function handleDragLeave(e: React.DragEvent) {
-    e.preventDefault();
-    if (status === 'dragging') setStatus('idle');
-  }
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    const files = Array.from(e.dataTransfer.files);
-    void processFiles(files);
-  }
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    void processFiles(files);
-    e.target.value = '';
-  }
-
-  const isProcessing = status === 'processing';
-
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); processFiles(Array.from(e.dataTransfer.files)); };
+  
   if (compact) {
     return (
-      <label
-        htmlFor={inputId}
-        className={cn(
-          'upload-zone flex items-center gap-2 px-3 py-2 cursor-pointer text-xs',
-          status === 'dragging' && 'dragging',
-        )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        style={{ color: 'var(--text-tertiary)' }}
-      >
-        <input
-          id={inputId}
-          ref={inputRef}
-          type="file"
-          multiple
-          onChange={handleChange}
-          className="sr-only"
-          aria-label={`Upload ${section} files`}
-        />
-        {isProcessing ? (
-          <Loader2 size={13} className="animate-spin" aria-hidden="true" />
-        ) : (
-          <UploadCloud size={13} aria-hidden="true" />
-        )}
-        <span>{isProcessing ? 'Processing…' : 'Drop or click to upload'}</span>
+      <label htmlFor={inputId} className={cn("flex items-center gap-2 p-2 rounded-xl bg-bg-surface border border-border-subtle text-[10px] font-mono font-bold uppercase transition-all cursor-pointer hover:border-accent-primary", status === 'dragging' && 'border-accent-primary')}>
+        <input id={inputId} type="file" multiple onChange={(e) => processFiles(Array.from(e.target.files ?? []))} className="sr-only" />
+        {status === 'processing' ? <Loader2 size={12} className="animate-spin" /> : <UploadCloud size={12} />}
+        <span>{status === 'processing' ? 'Working...' : 'Upload Reference'}</span>
       </label>
     );
   }
 
   return (
-    <div>
-      <label
-        htmlFor={inputId}
-        className={cn(
-          'upload-zone flex flex-col items-center gap-3 p-8 cursor-pointer transition-colors',
-          status === 'dragging' && 'dragging',
-        )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        aria-label={`Upload ${section} files`}
-      >
-        <input
-          id={inputId}
-          ref={inputRef}
-          type="file"
-          multiple
-          onChange={handleChange}
-          className="sr-only"
-        />
-
-        {isProcessing ? (
-          <Loader2
-            size={28}
-            className="animate-spin"
-            style={{ color: 'var(--text-accent)' }}
-            aria-hidden="true"
-          />
-        ) : (
-          <UploadCloud
-            size={28}
-            style={{ color: status === 'dragging' ? 'var(--text-accent)' : 'var(--text-tertiary)' }}
-            aria-hidden="true"
-          />
-        )}
-        <div className="text-center">
-          <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-            {isProcessing
-              ? 'Processing files…'
-              : status === 'dragging'
-              ? 'Release to upload'
-              : <>Drop files here or <span style={{ color: 'var(--text-accent)' }}>browse</span></>}
-          </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-            PDF, DOCX, TXT, MD, BibTeX, CSV, images · max {MAX_FILE_SIZE_MB} MB
-          </p>
-        </div>
+    <div className="w-full">
+      <label htmlFor={inputId} onDrop={handleDrop} onDragOver={(e) => { e.preventDefault(); setStatus('dragging'); }} onDragLeave={() => setStatus('idle')} className={cn("flex flex-col items-center justify-center p-12 rounded-2xl border-2 border-dashed transition-all cursor-pointer group bg-[#080808]", status === 'dragging' ? 'border-accent-primary bg-bg-elevated' : 'border-border-subtle hover:border-border-default')}>
+        <input id={inputId} type="file" multiple onChange={(e) => processFiles(Array.from(e.target.files ?? []))} className="sr-only" />
+        <UploadCloud size={32} className={cn("mb-4 transition-colors", status === 'dragging' ? 'text-accent-primary' : 'text-text-tertiary group-hover:text-text-secondary')} />
+        <p className="text-sm font-mono font-bold uppercase tracking-widest text-text-primary mb-1">
+          {status === 'processing' ? 'Processing Knowledge Base...' : status === 'dragging' ? 'Release to Store' : 'Drop Research Materials'}
+        </p>
+        <p className="text-[10px] font-mono text-text-tertiary uppercase tracking-tighter">PDF, BibTeX, DOCX · Max 50MB</p>
       </label>
-
-      {/* Progress list */}
+      
       {progress.length > 0 && (
-        <ul className="mt-3 space-y-1.5" aria-label="Upload progress">
+        <div className="mt-4 space-y-2">
           {progress.map((p, i) => (
-            <li
-              key={i}
-              className="flex items-center gap-2 text-xs px-2 py-1.5 rounded"
-              style={{ background: 'var(--bg-elevated)' }}
-            >
-              {p.status === 'done' ? (
-                <CheckCircle2 size={12} style={{ color: 'var(--status-success)' }} aria-label="Done" />
-              ) : p.status === 'error' ? (
-                <AlertCircle size={12} style={{ color: 'var(--status-error)' }} aria-label="Error" />
-              ) : (
-                <Loader2 size={12} className="animate-spin" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-              )}
-              <span className="flex-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-                {p.filename}
-              </span>
-              <span style={{ color: p.status === 'error' ? 'var(--status-error)' : 'var(--text-tertiary)' }}>
-                {p.status === 'error' ? p.error : p.status === 'done' ? '✓' : p.status}
-              </span>
-            </li>
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-bg-surface border border-border-subtle font-mono text-[10px] uppercase">
+              {p.status === 'done' ? <CheckCircle2 size={12} className="text-status-success" /> : p.status === 'error' ? <AlertCircle size={12} className="text-status-error" /> : <Loader2 size={12} className="animate-spin" />}
+              <span className="flex-1 truncate text-text-secondary tracking-tight">{p.filename}</span>
+              <span className={p.status === 'error' ? 'text-status-error' : 'text-text-tertiary'}>{p.status}</span>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
