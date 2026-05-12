@@ -29,9 +29,8 @@ export async function parsePDF(file: File, options: PDFParseOptions = {}): Promi
   // Dynamic import to avoid SSR issues with PDF.js
   const pdfjsLib = await import('pdfjs-dist');
 
-  // Use the locally bundled worker served from /public — avoids CSP issues
-  // and external CDN failures on mobile / Vercel deployments.
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+  // Use CDN worker matching the exact version to prevent parsing errors and Vercel routing issues
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
   const arrayBuffer = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ 
