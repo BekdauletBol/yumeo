@@ -82,9 +82,8 @@ export default function HomePage() {
       <main>
         {/* ── Hero with art ──────────────────────────────────── */}
         <section
-          className={`relative transition-all duration-700 ease-out ${
-            phase === 'black' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
-          }`}
+          className={`relative transition-all duration-700 ease-out ${phase === 'black' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
+            }`}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 min-h-[85vh]">
             {/* Left — text */}
@@ -129,7 +128,7 @@ export default function HomePage() {
             <div className="relative hidden md:flex items-center justify-center overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing-art.png"
+                src="/landing-art.gif"
                 alt="yumeo research visualization"
                 className="w-full h-full object-cover"
                 style={{ opacity: 0.85 }}
@@ -144,7 +143,7 @@ export default function HomePage() {
           <div className="md:hidden relative h-64 overflow-hidden -mt-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/landing-art.png"
+              src="/landing-art.gif"
               alt="yumeo research visualization"
               className="w-full h-full object-cover"
               style={{ opacity: 0.7 }}
@@ -156,9 +155,8 @@ export default function HomePage() {
         {/* ── Features ───────────────────────────────────────── */}
         <section
           id="features"
-          className={`px-8 md:px-16 py-24 md:py-32 transition-all duration-700 delay-200 ${
-            phase === 'black' ? 'opacity-0' : 'opacity-100'
-          }`}
+          className={`px-8 md:px-16 py-24 md:py-32 transition-all duration-700 delay-200 ${phase === 'black' ? 'opacity-0' : 'opacity-100'
+            }`}
           style={{ borderTop: '1px solid #161616' }}
         >
           <div className="max-w-5xl mx-auto">
