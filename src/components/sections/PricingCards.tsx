@@ -24,31 +24,31 @@ export function PricingCards({ currentPlan = 'free', onUpgrade }: PricingCardsPr
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 max-w-3xl mx-auto p-4">
+    <div className="flex flex-col md:flex-row gap-5 max-w-3xl mx-auto p-4">
       <PricingCard
         planKey="free"
-        name="Community"
+        name="community"
         price={0}
         features={PLANS.free.features}
         isCurrent={currentPlan === 'free'}
         icon={<BookOpen size={20} />}
-        cta={currentPlan === 'free' ? 'Current Plan' : 'Downgrade'}
+        cta={currentPlan === 'free' ? 'current plan' : 'downgrade'}
         ctaDisabled
       />
 
       <PricingCard
         planKey="pro"
-        name="Researcher"
+        name="researcher"
         price={PLANS.pro.price}
         features={PLANS.pro.features}
         isCurrent={currentPlan === 'pro'}
         icon={<Zap size={20} />}
         cta={
           currentPlan === 'pro'
-            ? 'Active Subscription'
+            ? 'active subscription'
             : isLoading
-              ? 'Connecting Stripe...'
-              : 'Upgrade to Pro'
+              ? 'connecting...'
+              : 'upgrade to pro'
         }
         ctaDisabled={currentPlan === 'pro'}
         onCta={currentPlan !== 'pro' ? () => void handleUpgrade() : undefined}
@@ -77,37 +77,38 @@ function PricingCard({
   return (
     <div
       className={cn(
-        "flex-1 rounded-2xl p-8 flex flex-col transition-all duration-200 border",
+        "flex-1 rounded-xl p-7 flex flex-col transition-all duration-200 border",
         highlighted 
-          ? "bg-bg-surface border-accent-primary shadow-sm hover:scale-[1.02]" 
-          : "bg-bg-surface border-border-subtle hover:border-border-default"
+          ? "border-accent-primary shadow-sm hover:scale-[1.01]" 
+          : "border-border-subtle hover:border-border-default"
       )}
+      style={{ background: 'var(--bg-surface)' }}
     >
-      <div className="mb-8">
+      <div className="mb-7">
         <div className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center mb-4 border",
-          highlighted ? "bg-accent-primary/10 border-accent-primary/20 text-accent-primary" : "bg-bg-elevated border-border-subtle text-text-secondary"
-        )}>
+          "w-10 h-10 rounded-lg flex items-center justify-center mb-4 border",
+          highlighted ? "border-accent-primary/20 text-accent-primary" : "border-border-subtle text-text-secondary"
+        )} style={{ background: 'var(--bg-elevated)' }}>
           {icon}
         </div>
-        <h3 className="text-sm font-mono font-bold uppercase tracking-[0.2em] text-text-primary mb-1">
+        <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>
           {name}
         </h3>
         <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-mono font-bold text-text-primary tracking-tighter">
+          <span className="text-3xl font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)', letterSpacing: '-0.02em' }}>
             ${price}
           </span>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-tertiary">
-            / Month
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
+            / month
           </span>
         </div>
       </div>
 
-      <ul className="flex-1 space-y-4 mb-10" role="list">
+      <ul className="flex-1 space-y-3 mb-8" role="list">
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-3">
+          <li key={feature} className="flex items-start gap-2.5">
             <Check size={14} className={cn("mt-0.5 shrink-0", highlighted ? "text-accent-primary" : "text-text-tertiary")} />
-            <span className="text-xs font-medium text-text-secondary uppercase tracking-tight">{feature}</span>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>{feature}</span>
           </li>
         ))}
       </ul>
@@ -116,11 +117,16 @@ function PricingCard({
         onClick={onCta}
         disabled={ctaDisabled || !onCta}
         className={cn(
-          "w-full py-4 px-6 rounded-xl font-mono font-bold text-xs uppercase tracking-widest transition-all",
+          "w-full py-3 px-6 rounded-lg text-sm font-medium transition-all",
           highlighted && !ctaDisabled
             ? "bg-accent-primary text-white hover:opacity-90"
-            : "bg-bg-elevated text-text-tertiary border border-border-subtle cursor-not-allowed"
+            : "border cursor-not-allowed"
         )}
+        style={
+          highlighted && !ctaDisabled
+            ? { fontFamily: 'var(--font-body)' }
+            : { background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)', fontFamily: 'var(--font-body)' }
+        }
       >
         {cta}
       </button>

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Upload,
   MessageSquare,
@@ -11,96 +10,94 @@ import {
   ChevronRight,
   CheckCircle2,
   Github,
+  Layout,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Documentation — Yumeo Research IDE',
+  title: 'documentation — yumeo research IDE',
   description:
-    'Learn how to use Yumeo: upload references, chat with AI grounded in your materials, and export your research report.',
+    'learn how to use yumeo: upload references, chat with AI grounded in your materials, and export your research report.',
 };
 
 const CONTACT_EMAIL = 'yumeo.lab@gmail.com';
+const font = 'var(--font-body)';
 
 const steps = [
   {
     number: '01',
     icon: Upload,
-    title: 'Upload Your References',
-    color: 'var(--accent-refs)',
+    title: 'upload your references',
     description:
-      'Start by dragging any file directly onto the workspace, or click "Upload references" in the onboarding panel.',
-    formats: ['PDF papers and articles', 'DOCX / Word documents', 'Markdown (.md) notes', 'BibTeX (.bib) files', 'Plain text (.txt)', 'CSV data tables', 'Images (PNG, JPG) — auto-described by AI'],
-    tip: 'You can upload multiple files at once. Yumeo reads the full content of each file and makes it available to the AI.',
+      'start by dragging any file directly onto the workspace, or click the upload area in the onboarding panel.',
+    formats: ['PDF papers and articles', 'DOCX / Word documents', 'Markdown (.md) notes', 'BibTeX (.bib) files', 'plain text (.txt)', 'CSV data tables', 'images (PNG, JPG) — auto-described by AI'],
+    tip: 'you can upload multiple files at once. yumeo reads the full content of each file and makes it available to the AI.',
   },
   {
     number: '02',
     icon: MessageSquare,
-    title: 'Chat With Your Materials',
-    color: 'var(--accent-drafts)',
+    title: 'chat with your materials',
     description:
-      'Once at least one reference is uploaded, the chat interface appears. Every AI answer is grounded exclusively in your uploaded materials — no hallucinations from the open web.',
+      'once at least one reference is uploaded, the chat interface appears. every AI answer is grounded exclusively in your uploaded materials — no hallucinations.',
     formats: [
-      '"Summarize the key findings of the uploaded paper"',
-      '"What methodology does [paper name] use?"',
-      '"Compare the results across the uploaded studies"',
-      '"Extract all statistics from the tables"',
-      '"Draft an introduction based on my references"',
+      '"summarize the key findings of the uploaded paper"',
+      '"what methodology does [paper name] use?"',
+      '"compare the results across the uploaded studies"',
+      '"extract all statistics from the tables"',
+      '"draft an introduction based on my references"',
     ],
-    tip: 'The AI can only see what you\'ve uploaded. If you ask about something not in your materials, it will say so.',
+    tip: 'the AI can only see what you\'ve uploaded. if you ask about something not in your materials, it will tell you.',
   },
   {
     number: '03',
-    icon: Zap,
-    title: 'Use the Right Panel',
-    color: 'var(--accent-figures)',
+    icon: Layout,
+    title: 'use the right panel',
     description:
-      'The right panel has specialized tabs for different types of content in your research workflow.',
+      'the right panel has specialized tabs for different types of content in your research workflow.',
     formats: [
-      'Refs — view and manage uploaded references',
-      'Figs — organize figures and images',
-      'Tables — manage extracted data tables',
-      'Templates — fill structured report templates',
-      'Mermaid — create and export flowcharts & diagrams',
-      'LaTeX — write and preview mathematical equations',
+      'references — view and manage uploaded files',
+      'figures — organize images and charts',
+      'tables — manage extracted data tables',
+      'templates — fill structured report templates',
+      'diagrams — create flowcharts with mermaid',
+      'equations — write and preview LaTeX math',
     ],
-    tip: 'Each tab shows a count badge when it has content. Click any tab to open the corresponding tool.',
+    tip: 'each tab shows a count badge when it has content. click any tab to open the corresponding tool.',
   },
   {
     number: '04',
     icon: Download,
-    title: 'Export Your Report',
-    color: 'var(--accent-template)',
+    title: 'export your report',
     description:
-      'When you have a draft ready, export it in your preferred format. Export is available from the Templates tab once a draft is saved.',
-    formats: ['DOCX — Microsoft Word compatible', 'LaTeX — ready for journal submission', 'PDF — via your browser print dialog', 'Markdown — for static sites or GitHub'],
-    tip: 'Use the Templates tab to structure your draft before exporting. Templates guide the AI to produce report-ready content.',
+      'when you have a draft ready, export it in your preferred format from the templates tab.',
+    formats: ['DOCX — Microsoft Word compatible', 'LaTeX — ready for journal submission', 'PDF — via browser print dialog', 'Markdown — for static sites or GitHub'],
+    tip: 'use templates to structure your draft before exporting. they guide the AI to produce report-ready content.',
   },
 ];
 
 const faqs = [
   {
-    q: 'Can the AI access the internet or my other files?',
-    a: 'No. The AI is strictly grounded in the files you upload to the current project. It cannot browse the web, access your local file system, or see files from other projects.',
+    q: 'can the AI access the internet or my other files?',
+    a: 'no. the AI is strictly grounded in the files you upload. it cannot browse the web, access your local file system, or see files from other projects.',
   },
   {
-    q: 'What is the file size limit?',
-    a: 'Free plan: 25 MB per file. Pro plan: 100 MB per file.',
+    q: 'what is the file size limit?',
+    a: 'free plan: 25 MB per file. pro plan: 100 MB per file.',
   },
   {
-    q: 'Which AI model does Yumeo use?',
-    a: 'Yumeo uses state-of-the-art AI to deliver fast, accurate responses grounded exclusively in your uploaded materials.',
+    q: 'which AI model does yumeo use?',
+    a: 'yumeo uses state-of-the-art models to deliver fast, accurate responses grounded exclusively in your uploaded materials.',
   },
   {
-    q: 'Is my data private?',
-    a: 'Yes. Your uploaded files and chat history are stored in your personal workspace and are never shared with other users or used to train any AI model.',
+    q: 'is my data private?',
+    a: 'yes. your uploaded files and chat history are stored in your personal workspace and are never shared or used to train AI models.',
   },
   {
-    q: 'Why does the AI say "I cannot find this in your materials"?',
-    a: 'This is by design. Yumeo prevents the AI from guessing or confabulating. If the information is not in your uploaded files, the AI will tell you honestly rather than hallucinate an answer.',
+    q: 'why does the AI say "I cannot find this in your materials"?',
+    a: 'this is by design. yumeo prevents the AI from guessing. if the information isn\'t in your files, it will tell you honestly rather than hallucinate.',
   },
   {
-    q: 'Can I use Yumeo for non-academic writing?',
-    a: 'Absolutely. Yumeo works for any research-based writing: market research reports, technical documentation, legal analysis, journalism, and more.',
+    q: 'can I use yumeo for non-academic writing?',
+    a: 'absolutely. yumeo works for any research-based writing: market research, technical docs, legal analysis, journalism, and more.',
   },
 ];
 
@@ -109,78 +106,77 @@ export default function DocsPage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
       {/* Top bar */}
       <header
-        className="sticky top-0 z-10 h-12 flex items-center px-6 border-b"
-        style={{ borderColor: 'var(--border-subtle)', background: 'rgba(17,17,17,0.9)', backdropFilter: 'blur(8px)' }}
+        className="sticky top-0 z-10 h-14 flex items-center px-6 md:px-10 border-b backdrop-blur-md"
+        style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--bg-base) 85%, transparent)' }}
       >
         <div className="max-w-4xl w-full mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+              className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70"
+              style={{ color: 'var(--text-tertiary)', fontFamily: font }}
             >
-              <ArrowLeft size={13} />
-              Back
+              <ArrowLeft size={14} />
+              back
             </Link>
-            <span style={{ color: 'var(--border-default)' }}>|</span>
+            <span style={{ color: 'var(--border-default)' }}>·</span>
             <div className="flex items-center gap-2">
-              <Image src="/logo.png" alt="Yumeo" width={18} height={18} style={{ filter: 'invert(1)' }} priority />
-              <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-display)' }}>
-                Yumeo
+              <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--accent-primary)' }}>
+                <span className="text-white font-bold text-[11px]" style={{ fontFamily: font }}>y</span>
+              </div>
+              <span className="text-sm font-semibold" style={{ fontFamily: font }}>
+                yumeo docs
               </span>
             </div>
           </div>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-opacity hover:opacity-70"
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
             style={{
               background: 'var(--bg-surface)',
               border: '1px solid var(--border-subtle)',
               color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-mono)',
+              fontFamily: font,
             }}
           >
-            <Mail size={11} />
-            Contact
+            <Mail size={12} />
+            contact
           </a>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-16 space-y-24">
+      <main className="max-w-4xl mx-auto px-6 md:px-10 py-16 space-y-20">
         {/* Hero */}
-        <section className="space-y-6">
-          <div className="space-y-1">
-            <p
-              className="text-xs uppercase tracking-widest"
-              style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-            >
-              Documentation
+        <section className="space-y-5">
+          <div className="space-y-2">
+            <p className="text-xs font-medium" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
+              documentation
             </p>
             <h1
-              className="text-4xl font-medium leading-tight"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+              className="text-3xl md:text-4xl font-medium leading-tight"
+              style={{ fontFamily: font, letterSpacing: '-0.02em' }}
             >
-              How to use Yumeo
+              how to use yumeo
             </h1>
           </div>
-          <p className="text-base max-w-2xl leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            Yumeo is a Research IDE — a structured workspace where every AI response is grounded
-            exclusively in your own uploaded materials. No hallucinations. No open-web browsing.
-            Just your research, powered by AI.
+          <p className="text-base max-w-2xl leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: font }}>
+            yumeo is a research IDE — a structured workspace where every AI response is grounded
+            exclusively in your own uploaded materials. no hallucinations. no open-web browsing.
+            just your research, powered by AI.
           </p>
 
           {/* Quick links */}
-          <div className="flex flex-wrap gap-3">
-            {['Getting Started', 'Chat Tips', 'Right Panel', 'Export', 'FAQ'].map((label, i) => (
+          <div className="flex flex-wrap gap-2">
+            {['getting started', 'chat tips', 'right panel', 'export', 'FAQ'].map((label, i) => (
               <a
                 key={label}
                 href={`#section-${i}`}
-                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-opacity hover:opacity-70"
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
                 style={{
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-subtle)',
                   color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: font,
                 }}
               >
                 {label}
@@ -204,25 +200,25 @@ export default function DocsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <span
-                      className="text-3xl font-medium"
-                      style={{ color: step.color, fontFamily: 'var(--font-mono)' }}
+                      className="text-2xl font-medium"
+                      style={{ color: 'var(--accent-primary)', fontFamily: font }}
                     >
                       {step.number}
                     </span>
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ background: `${step.color}15`, border: `1px solid ${step.color}30` }}
+                      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
                     >
-                      <Icon size={16} style={{ color: step.color }} />
+                      <Icon size={16} style={{ color: 'var(--accent-primary)' }} />
                     </div>
                   </div>
                   <h2
                     className="text-xl font-medium"
-                    style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+                    style={{ fontFamily: font }}
                   >
                     {step.title}
                   </h2>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: font }}>
                     {step.description}
                   </p>
 
@@ -230,12 +226,13 @@ export default function DocsPage() {
                   <div
                     className="p-3 rounded-lg text-xs leading-relaxed"
                     style={{
-                      background: `${step.color}08`,
-                      border: `1px solid ${step.color}25`,
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-subtle)',
                       color: 'var(--text-secondary)',
+                      fontFamily: font,
                     }}
                   >
-                    <span style={{ color: step.color, fontFamily: 'var(--font-mono)' }}>TIP </span>
+                    <span className="font-medium" style={{ color: 'var(--accent-primary)' }}>tip · </span>
                     {step.tip}
                   </div>
                 </div>
@@ -246,19 +243,19 @@ export default function DocsPage() {
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
                 >
                   <p
-                    className="text-xs mb-3"
-                    style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+                    className="text-xs font-medium mb-3"
+                    style={{ color: 'var(--text-tertiary)', fontFamily: font }}
                   >
-                    {i === 0 ? 'Supported formats' : i === 1 ? 'Example prompts' : i === 2 ? 'Available tabs' : 'Export formats'}
+                    {i === 0 ? 'supported formats' : i === 1 ? 'example prompts' : i === 2 ? 'available tabs' : 'export formats'}
                   </p>
                   {step.formats.map((item) => (
                     <div key={item} className="flex items-start gap-2">
                       <CheckCircle2
                         size={13}
                         className="shrink-0 mt-0.5"
-                        style={{ color: step.color }}
+                        style={{ color: 'var(--accent-primary)' }}
                       />
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: font }}>
                         {item}
                       </span>
                     </div>
@@ -277,24 +274,24 @@ export default function DocsPage() {
           <div className="flex items-start gap-4">
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(74,158,255,0.1)', border: '1px solid rgba(74,158,255,0.25)' }}
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
             >
-              <Zap size={18} style={{ color: 'var(--accent-refs)' }} />
+              <Zap size={18} style={{ color: 'var(--accent-primary)' }} />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                Powered by AI · State-of-the-art models
+              <h3 className="text-sm font-medium" style={{ fontFamily: font }}>
+                powered by state-of-the-art AI
               </h3>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Yumeo is powered by state-of-the-art AI models. The AI only has access to
-                the materials you upload; it cannot browse the internet or access any external data source.
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: font }}>
+                the AI only has access to the materials you upload — it cannot browse the internet
+                or access any external data source. your research stays private.
               </p>
               <a
                 href="https://github.com/marketplace/models"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs mt-2 transition-opacity hover:opacity-70"
-                style={{ color: 'var(--accent-refs)', fontFamily: 'var(--font-mono)' }}
+                style={{ color: 'var(--accent-primary)', fontFamily: font }}
               >
                 <Github size={12} />
                 GitHub Models marketplace
@@ -306,32 +303,27 @@ export default function DocsPage() {
 
         {/* FAQ */}
         <section id="section-4" className="space-y-6">
-          <div className="space-y-1">
-            <p
-              className="text-xs uppercase tracking-widest"
-              style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-            >
+          <div className="space-y-2">
+            <p className="text-xs font-medium" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
               FAQ
             </p>
             <h2
               className="text-2xl font-medium"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+              style={{ fontFamily: font, letterSpacing: '-0.01em' }}
             >
-              Frequently asked questions
+              frequently asked questions
             </h2>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {faqs.map((faq) => (
               <div
                 key={faq.q}
                 className="p-5 rounded-xl"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
               >
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                  {faq.q}
-                </p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm font-medium mb-2" style={{ fontFamily: font }}>{faq.q}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: font }}>
                   {faq.a}
                 </p>
               </div>
@@ -342,75 +334,59 @@ export default function DocsPage() {
         {/* Contact CTA */}
         <section
           className="p-8 rounded-xl text-center space-y-4"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-          }}
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
         >
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center mx-auto"
-            style={{ background: 'rgba(74,158,255,0.1)', border: '1px solid rgba(74,158,255,0.25)' }}
+            className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
           >
-            <Mail size={20} style={{ color: 'var(--accent-refs)' }} />
+            <Mail size={20} style={{ color: 'var(--accent-primary)' }} />
           </div>
           <div className="space-y-1">
-            <h2 className="text-xl font-medium" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
-              Have a question?
+            <h2 className="text-lg font-medium" style={{ fontFamily: font }}>
+              have a question?
             </h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              We&apos;re here to help researchers get the most out of Yumeo.
+            <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: font }}>
+              we&apos;re here to help researchers get the most out of yumeo.
             </p>
           </div>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-            style={{
-              background: 'var(--accent-refs)',
-              color: '#fff',
-            }}
+            style={{ background: 'var(--accent-primary)', color: '#fff', fontFamily: font }}
           >
             <Mail size={14} />
             {CONTACT_EMAIL}
           </a>
-          <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-            We aim to respond within 24 hours.
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>
+            we aim to respond within 24 hours.
           </p>
         </section>
       </main>
 
       {/* Footer */}
       <footer
-        className="border-t mt-16 px-6 py-8"
+        className="border-t mt-16 px-6 md:px-10 py-8"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Yumeo" width={16} height={16} style={{ filter: 'invert(1)' }} />
-            <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-              Yumeo — Research IDE
+            <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: 'var(--accent-primary)' }}>
+              <span className="text-white text-[10px] font-bold">y</span>
+            </div>
+            <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>
+              yumeo — research IDE
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="text-xs transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-            >
-              Dashboard
+            <Link href="/" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>
+              dashboard
             </Link>
-            <Link
-              href="/pricing"
-              className="text-xs transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-            >
-              Pricing
+            <Link href="/pricing" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>
+              pricing
             </Link>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="text-xs transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-            >
-              Contact
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>
+              contact
             </a>
           </div>
         </div>
