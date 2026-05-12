@@ -17,7 +17,7 @@ export const BLOCKED_TOPICS = [
 function getContextBudget(model: string): number {
   if (model.includes('gpt-5') || model.includes('gpt5')) return 60_000;  // gpt-5: huge context
   if (model.includes('claude')) return 40_000;
-  return 4_000; // gpt-4o safe default (leaves ~4k for static text + history)
+  return 2_500; // gpt-4o: 8k total limit, leave room for system text + history
 }
 
 /**
@@ -65,7 +65,7 @@ export function buildSystemPrompt(
   // Reference content: use remaining budget split evenly across files
   const referenceContext = buildMaterialContext(references, contextBudget);
 
-  return `You are a STRICT RESEARCH ASSISTANT for Yumeo.
+  const prompt = `You are a STRICT RESEARCH ASSISTANT for Yumeo.
 
 ═══════════════════════════════════════════
 ROLE & PRINCIPLES
@@ -106,6 +106,13 @@ STRICT OPERATIONAL RULES
 8. STYLE & STRUCTURE: If a template is provided, strictly follow its writing style and structure. If no template is provided, use standard academic format and add a [WARNING: No template provided, using default structure] at the very beginning of the response.
 
 Help the researcher produce rigorous, evidence-backed academic work.`;
+
+  // Safety: cap total prompt length to avoid 413 errors on small models
+  const maxChars = resolvedModel.includes('gpt-5') ? 240_000 : resolvedModel.includes('claude') ? 160_000 : 24_000;
+  if (prompt.length > maxChars) {
+    return prompt.slice(0, maxChars) + '\n[System prompt truncated to fit model limits]';
+  }
+  return prompt;
 }
 
 function buildMaterialContext(materials: Material[], totalBudget: number): string {

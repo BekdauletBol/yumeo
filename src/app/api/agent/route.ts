@@ -112,8 +112,14 @@ export async function POST(req: Request): Promise<Response> {
         .map((c) => `[REFERENCE EXCERPT]\nFile: ${c.metadata?.file_name || 'Unknown'}\nPage: ${c.metadata?.page || '?'}\n${c.content}`)
         .join('\n\n');
       finalSystemPrompt += `\n\nADDITIONAL RELEVANT EXCERPTS FROM KNOWLEDGE BASE:\n${context}`;
+      // Cap total prompt to avoid 413 on gpt-4o (8k token limit ≈ 32k chars)
+      const isLarge = model.includes('gpt-5') || model.includes('claude');
+      const maxPromptChars = isLarge ? 200_000 : 24_000;
+      if (finalSystemPrompt.length > maxPromptChars) {
+        finalSystemPrompt = finalSystemPrompt.slice(0, maxPromptChars) + '\n[Truncated to fit model limits]';
+      }
       // eslint-disable-next-line no-console
-      console.log(`[agent] ✅ RAG enriched prompt with ${chunks.length} chunks`);
+      console.log(`[agent] ✅ RAG enriched prompt with ${chunks.length} chunks (${finalSystemPrompt.length} chars)`);
     } else {
       // eslint-disable-next-line no-console
       console.log('[agent] ℹ️  No relevant chunks found - proceeding with base knowledge');

@@ -60,10 +60,11 @@ export function useStreamingChat() {
       const figures = useFiguresStore.getState().figures;
       const systemPrompt = buildSystemPrompt(materials, activeProject.settings, undefined, undefined, figures);
 
+      const projectMessages = messages.filter(
+        (m) => m.projectId === activeProject.id && m.role !== 'system' && m.content
+      );
       const history = [
-        ...messages
-          .filter((m) => m.role !== 'system' && m.content)
-          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+        ...projectMessages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
         { role: 'user' as const, content: userText },
       ];
 
