@@ -1,48 +1,74 @@
 'use client';
 
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
-import { cn } from '@/lib/utils/cn';
+import { ReferencesSection } from '@/components/sections/ReferencesSection';
+import { DraftsSection } from '@/components/sections/DraftsSection';
+import { FiguresSection } from '@/components/sections/FiguresSection';
 
 export function EditorPanel() {
   const { activeSectionId, sections } = useProjectSectionsStore();
   const activeSection = sections.find(s => s.id === activeSectionId);
 
+  const renderSectionContent = () => {
+    if (!activeSection) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border border-dashed flex items-center justify-center"
+            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
+          >
+            ?
+          </div>
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
+            select a section to begin
+          </p>
+        </div>
+      );
+    }
+
+    switch (activeSection.sectionType) {
+      case 'references':
+        return <ReferencesSection />;
+      case 'drafts':
+        return <DraftsSection />;
+      case 'figures':
+        return <FiguresSection />;
+      default:
+        return (
+          <div className="p-6">
+            <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>
+              select a material or start writing.
+            </p>
+          </div>
+        );
+    }
+  };
+
   return (
-    <section className="ide-editor flex flex-col bg-black border-l border-border-subtle overflow-hidden">
-      {/* Minimal Tabs */}
-      <div className="h-12 flex items-center px-6 border-b border-border-subtle gap-8">
-        <button className="text-[11px] font-mono font-bold text-text-primary uppercase tracking-widest border-b-2 border-accent-primary h-full px-2">
-          {activeSection?.name || 'Context'}
+    <section className="ide-editor flex flex-col overflow-hidden"
+      style={{ background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)' }}
+    >
+      {/* Tabs */}
+      <div className="h-11 flex items-center px-4 md:px-5 gap-5 shrink-0"
+        style={{ borderBottom: '1px solid var(--border-subtle)' }}
+      >
+        <button className="text-xs font-medium h-full px-1"
+          style={{ 
+            color: 'var(--text-primary)', 
+            borderBottom: '2px solid var(--accent-primary)',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          {activeSection?.name || 'context'}
         </button>
-        <button className="text-[11px] font-mono font-bold text-text-tertiary hover:text-text-secondary transition-colors uppercase tracking-widest h-full px-2">
-          History
+        <button className="text-xs font-medium h-full px-1 transition-colors hover:opacity-70"
+          style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}
+        >
+          history
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-10 scrollbar-thin">
-        <div className="max-w-2xl mx-auto space-y-12">
-          <div className="space-y-4">
-            <h2 className="text-2xl font-mono font-bold text-text-primary uppercase tracking-tight">
-              {activeSection?.name || 'No Section Selected'}
-            </h2>
-            <div className="h-px w-20 bg-accent-primary" />
-          </div>
-
-          <div className="bg-[#111111] border border-border-subtle rounded-2xl p-8 min-h-[400px] shadow-sm">
-             <div className="prose prose-invert prose-sm max-w-none font-body text-text-secondary leading-relaxed">
-               {activeSectionId ? (
-                 <p>Select a material or start writing. Every sentence you type here is checked against your references in real-time.</p>
-               ) : (
-                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                   <div className="w-12 h-12 rounded-full border border-dashed border-border-subtle flex items-center justify-center text-text-tertiary">
-                     ?
-                   </div>
-                   <p className="font-mono uppercase text-[10px] tracking-widest">Select a section to begin</p>
-                 </div>
-               )}
-             </div>
-          </div>
-        </div>
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {renderSectionContent()}
       </div>
     </section>
   );

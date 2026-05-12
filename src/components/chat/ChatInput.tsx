@@ -39,12 +39,14 @@ export function ChatInput({ onSubmit }: { onSubmit?: (text: string) => Promise<v
   };
 
   return (
-    <div className="p-6 bg-black border-t border-border-subtle">
+    <div className="p-4 md:p-6 border-t border-border-subtle" style={{ background: 'var(--bg-base)' }}>
       <div className="max-w-4xl mx-auto relative group">
         <div className={cn(
-          "relative flex items-end gap-2 p-3 bg-[#111111] border border-border-subtle rounded-xl transition-all duration-300",
+          "relative flex items-end gap-2 p-3 border border-border-subtle rounded-xl transition-all duration-300",
           "focus-within:border-border-default focus-within:ring-1 focus-within:ring-white/5 shadow-sm"
-        )}>
+        )}
+        style={{ background: 'var(--bg-surface)' }}
+        >
           <button className="p-2 text-text-tertiary hover:text-text-secondary transition-colors rounded-lg">
             <Paperclip size={18} />
           </button>
@@ -59,7 +61,7 @@ export function ChatInput({ onSubmit }: { onSubmit?: (text: string) => Promise<v
             className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text-primary placeholder:text-text-tertiary resize-none py-2 min-h-[40px] font-body"
           />
 
-          <div className="flex items-center gap-2 px-2 py-1 bg-black/40 rounded-lg text-[10px] font-mono font-bold text-text-tertiary border border-border-subtle select-none">
+          <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-lg text-[10px] font-mono font-bold text-text-tertiary border border-border-subtle select-none" style={{ background: 'var(--bg-overlay)' }}>
             <Command size={10} /> ENTER
           </div>
 
@@ -77,8 +79,8 @@ export function ChatInput({ onSubmit }: { onSubmit?: (text: string) => Promise<v
           </button>
         </div>
 
-        <p className="mt-3 text-[10px] text-center text-text-tertiary font-mono font-bold uppercase tracking-[0.2em]">
-          Yumeo only uses your uploaded knowledge base.
+        <p className="mt-3 text-[11px] text-center" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
+          yumeo only uses your uploaded knowledge base.
         </p>
       </div>
     </div>

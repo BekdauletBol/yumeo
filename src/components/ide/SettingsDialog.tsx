@@ -6,18 +6,18 @@ import { updateProjectAction } from '@/app/actions/projects';
 import { saveClaudeKeyAction, hasClaudeKeyAction } from '@/app/actions/settings';
 import { showToast } from '@/lib/utils/toast';
 
-export function SettingsDialog() {
+export function SettingsDialog({ onClose }: { onClose?: () => void }) {
   const { activeProject, setActiveProject } = useProjectStore();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(onClose ? true : false);
   const [apiKey, setApiKey] = useState('');
   const [hasKey, setHasKey] = useState(false);
   const [isSavingKey, setIsSavingKey] = useState(false);
 
   useEffect(() => {
-    if (open) {
+    if (open || onClose) {
       hasClaudeKeyAction().then(setHasKey);
     }
-  }, [open]);
+  }, [open, onClose]);
 
   if (!activeProject) return null;
 
@@ -55,17 +55,24 @@ export function SettingsDialog() {
     }
   };
 
+  const handleOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val && onClose) onClose();
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
-        <button
-          aria-label="Project settings"
-          className="p-1 rounded hover:bg-white/10 transition-colors"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          <Settings size={16} />
-        </button>
-      </Dialog.Trigger>
+    <Dialog.Root open={onClose ? true : open} onOpenChange={handleOpenChange}>
+      {!onClose && (
+        <Dialog.Trigger asChild>
+          <button
+            aria-label="Project settings"
+            className="p-1 rounded hover:bg-white/10 transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            <Settings size={16} />
+          </button>
+        </Dialog.Trigger>
+      )}
       
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />

@@ -3,12 +3,12 @@ import type { ReactNode } from 'react';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 selection:bg-[#E8611A]/20">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'var(--bg-base)' }}>
       <div className="w-full max-w-md flex flex-col items-center space-y-10">
-        {/* Y YUMEO Logo in Monospace */}
+        {/* Logo */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-[#E8611A] flex items-center justify-center text-white font-mono font-bold text-2xl">Y</div>
-          <span className="font-mono text-xl font-bold tracking-[0.3em] text-[#F0F0F0]">YUMEO</span>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-2xl" style={{ background: 'var(--accent-primary)', fontFamily: 'var(--font-body)' }}>y</div>
+          <span className="text-xl font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>yumeo</span>
         </div>
 
         <ClerkLoaded>

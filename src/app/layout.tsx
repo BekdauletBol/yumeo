@@ -21,9 +21,9 @@ export default function RootLayout({
         <body>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
-            disableTransitionOnChange
+            storageKey="yumeo-theme"
           >
             {children}
           </ThemeProvider>

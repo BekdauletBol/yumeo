@@ -207,19 +207,19 @@ export function EmptyState() {
         {/* Greeting */}
         <div className="space-y-1">
           <p
-            className="text-xs uppercase tracking-widest"
-            style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+            className="text-xs"
+            style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}
           >
-            Good {timeOfDay}
+            good {timeOfDay}
           </p>
           <h2
-            className="text-2xl font-medium"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
+            className="text-xl font-medium"
+            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)', letterSpacing: '-0.01em' }}
           >
             {name}
           </h2>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Research starts here. Follow these steps.
+          <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>
+            research starts here. follow these steps.
           </p>
         </div>
 
@@ -250,13 +250,13 @@ export function EmptyState() {
             </>
           ) : (
             <>
-              <UploadCloud size={28} style={{ color: 'var(--accent-refs)' }} />
+              <UploadCloud size={24} style={{ color: 'var(--accent-refs)' }} />
               <div className="text-center">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  Drop any file here or{' '}
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>
+                  drop any file here or{' '}
                   <span style={{ color: 'var(--accent-refs)' }}>browse</span>
                 </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
                   PDF, DOCX, TXT, MD, BibTeX, CSV, images
                 </p>
               </div>
@@ -300,11 +300,12 @@ export function EmptyState() {
                   style={{
                     color: step.done ? 'var(--status-success)' : step.locked ? 'var(--text-tertiary)' : 'var(--text-primary)',
                     textDecoration: step.done ? 'line-through' : 'none',
+                    fontFamily: 'var(--font-body)',
                   }}
                 >
                   {['①', '②', '③'][i]} {step.label}
                 </span>
-                <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
                   {step.description}
                 </span>
               </span>
@@ -328,9 +329,9 @@ export function EmptyState() {
 
         <p
           className="text-center text-xs"
-          style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+          style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}
         >
-          Every AI answer is grounded in your own materials.
+          every AI answer is grounded in your own materials.
         </p>
       </div>
     </div>

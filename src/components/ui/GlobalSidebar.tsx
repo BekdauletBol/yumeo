@@ -56,14 +56,14 @@ export function GlobalSidebar({ isOpen = false, setIsOpen }: GlobalSidebarProps)
       )}
 
       {/* Sidebar Container */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col h-screen w-64 bg-black border-r border-border-subtle overflow-y-auto transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col h-screen w-64 border-r border-border-subtle overflow-y-auto transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ background: 'var(--bg-surface)' }}>
         {/* Brand Header */}
         <div className="px-8 py-10 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group" onClick={() => setIsOpen?.(false)}>
-            <div className="w-8 h-8 rounded-xl bg-accent-primary flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="text-white font-mono font-bold text-lg">Y</span>
+          <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setIsOpen?.(false)}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: 'var(--accent-primary)' }}>
+              <span className="text-white font-bold text-base" style={{ fontFamily: 'var(--font-body)' }}>y</span>
             </div>
-            <span className="text-xl font-mono font-bold tracking-tighter text-text-primary">YUMEO</span>
+            <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>yumeo</span>
           </Link>
           
           <button 

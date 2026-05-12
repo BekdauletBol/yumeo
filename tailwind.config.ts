@@ -10,24 +10,36 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          base: '#000000',
-          surface: '#111111',
-          elevated: '#1a1a1a',
-          overlay: '#222222',
+          base: 'var(--bg-base)',
+          surface: 'var(--bg-surface)',
+          elevated: 'var(--bg-elevated)',
+          overlay: 'var(--bg-overlay)',
         },
         text: {
-          primary: '#F0F0F0',
-          secondary: '#888888',
-          tertiary: '#555555',
-          accent: '#E8611A',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
+          accent: 'var(--text-accent)',
         },
         border: {
-          subtle: '#222222',
-          default: '#333333',
-          strong: '#444444',
+          subtle: 'var(--border-subtle)',
+          default: 'var(--border-default)',
+          strong: 'var(--border-strong)',
         },
         accent: {
-          primary: '#E8611A',
+          primary: 'var(--accent-primary)',
+          refs: 'var(--accent-refs)',
+          drafts: 'var(--accent-drafts)',
+          figures: 'var(--accent-figures)',
+          tables: 'var(--accent-tables)',
+          template: 'var(--accent-template)',
+          equations: 'var(--accent-equations)',
+          diagrams: 'var(--accent-diagrams)',
+        },
+        status: {
+          success: 'var(--status-success)',
+          warning: 'var(--status-warning)',
+          error: 'var(--status-error)',
         },
       },
       fontFamily: {

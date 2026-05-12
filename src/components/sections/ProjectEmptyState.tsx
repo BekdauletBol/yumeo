@@ -62,7 +62,7 @@ export function ProjectEmptyState({
   }, [projectId, selectedSections, refetchSections]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-12 px-6 py-12 bg-black text-text-primary">
+    <div className="flex flex-col items-center justify-center h-full gap-12 px-6 py-12 text-text-primary" style={{ background: 'var(--bg-base)' }}>
       {/* Title Area */}
       <div className="text-center space-y-4">
         <div className="inline-block p-5 rounded-2xl bg-bg-surface border border-border-subtle">

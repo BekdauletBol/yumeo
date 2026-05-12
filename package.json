@@ -71,6 +71,7 @@
         "stripe": "^17.0.0",
         "tailwind-merge": "^2.5.0",
         "tailwindcss-animate": "^1.0.7",
+        "vercel": "^53.4.0",
         "zustand": "^5.0.0"
     },
     "devDependencies": {

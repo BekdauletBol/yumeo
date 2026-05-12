@@ -62,7 +62,7 @@ export function CitationTag({ citation, className }: CitationTagProps) {
           className="absolute bottom-full left-0 mb-3 z-50 animate-slide-up"
           style={{ minWidth: 280, maxWidth: 360 }}
         >
-          <div className="rounded-2xl shadow-xl p-5 bg-bg-overlay border border-border-default backdrop-blur-md bg-black/80">
+          <div className="rounded-2xl shadow-xl p-5 border border-border-default backdrop-blur-md" style={{ background: 'var(--bg-overlay)' }}>
             <div className="flex items-start justify-between gap-3 mb-3 pb-3 border-b border-border-subtle">
               <div>
                 <p className="text-[11px] font-bold text-text-primary leading-tight truncate max-w-[200px]">

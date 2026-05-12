@@ -137,29 +137,29 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
   
   if (compact) {
     return (
-      <label htmlFor={inputId} className={cn("flex items-center gap-2 p-2 rounded-xl bg-bg-surface border border-border-subtle text-[10px] font-mono font-bold uppercase transition-all cursor-pointer hover:border-accent-primary", status === 'dragging' && 'border-accent-primary')}>
+      <label htmlFor={inputId} className={cn("flex items-center gap-2 p-2 rounded-lg border text-xs font-medium transition-all cursor-pointer hover:border-accent-primary", status === 'dragging' && 'border-accent-primary')} style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)', fontFamily: 'var(--font-body)' }}>
         <input id={inputId} type="file" multiple onChange={(e) => processFiles(Array.from(e.target.files ?? []))} className="sr-only" />
         {status === 'processing' ? <Loader2 size={12} className="animate-spin" /> : <UploadCloud size={12} />}
-        <span>{status === 'processing' ? 'Working...' : 'Upload Reference'}</span>
+        <span>{status === 'processing' ? 'working...' : 'upload reference'}</span>
       </label>
     );
   }
 
   return (
     <div className="w-full">
-      <label htmlFor={inputId} onDrop={handleDrop} onDragOver={(e) => { e.preventDefault(); setStatus('dragging'); }} onDragLeave={() => setStatus('idle')} className={cn("flex flex-col items-center justify-center p-12 rounded-2xl border-2 border-dashed transition-all cursor-pointer group bg-[#080808]", status === 'dragging' ? 'border-accent-primary bg-bg-elevated' : 'border-border-subtle hover:border-border-default')}>
+      <label htmlFor={inputId} onDrop={handleDrop} onDragOver={(e) => { e.preventDefault(); setStatus('dragging'); }} onDragLeave={() => setStatus('idle')} className={cn("flex flex-col items-center justify-center p-12 rounded-2xl border-2 border-dashed transition-all cursor-pointer group", status === 'dragging' ? 'border-accent-primary' : 'border-border-subtle hover:border-border-default')} style={{ background: status === 'dragging' ? 'var(--bg-elevated)' : 'var(--bg-surface)' }}>
         <input id={inputId} type="file" multiple onChange={(e) => processFiles(Array.from(e.target.files ?? []))} className="sr-only" />
         <UploadCloud size={32} className={cn("mb-4 transition-colors", status === 'dragging' ? 'text-accent-primary' : 'text-text-tertiary group-hover:text-text-secondary')} />
-        <p className="text-sm font-mono font-bold uppercase tracking-widest text-text-primary mb-1">
-          {status === 'processing' ? 'Processing Knowledge Base...' : status === 'dragging' ? 'Release to Store' : 'Drop Research Materials'}
+        <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>
+          {status === 'processing' ? 'processing...' : status === 'dragging' ? 'release to upload' : 'drop research materials'}
         </p>
-        <p className="text-[10px] font-mono text-text-tertiary uppercase tracking-tighter">PDF, BibTeX, DOCX · Max 50MB</p>
+        <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>PDF, BibTeX, DOCX · max 50MB</p>
       </label>
       
       {progress.length > 0 && (
         <div className="mt-4 space-y-2">
           {progress.map((p, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-bg-surface border border-border-subtle font-mono text-[10px] uppercase">
+            <div key={i} className="flex items-center gap-3 p-3 rounded-lg border text-xs" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)', fontFamily: 'var(--font-body)' }}>
               {p.status === 'done' ? <CheckCircle2 size={12} className="text-status-success" /> : p.status === 'error' ? <AlertCircle size={12} className="text-status-error" /> : <Loader2 size={12} className="animate-spin" />}
               <span className="flex-1 truncate text-text-secondary tracking-tight">{p.filename}</span>
               <span className={p.status === 'error' ? 'text-status-error' : 'text-text-tertiary'}>{p.status}</span>

@@ -36,9 +36,9 @@ export function ReferencesSection() {
 
   return (
     <div className="p-3 space-y-3">
-      <p className="text-section-label" style={{ color: 'var(--accent-refs)' }}>
-        References
-        <span className="ml-2 text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textTransform: 'none', letterSpacing: 0 }}>
+      <p className="text-xs font-medium" style={{ color: 'var(--accent-refs)', fontFamily: 'var(--font-body)' }}>
+        references
+        <span className="ml-2" style={{ color: 'var(--text-tertiary)' }}>
           {references.length} files
         </span>
       </p>
@@ -88,11 +88,11 @@ export function ReferencesSection() {
                         </span>
                       )}
                       {ref.metadata.doi && (
-                        <span className="text-xs" style={{ color: 'var(--accent-refs)', fontFamily: 'var(--font-mono)' }}>
+                        <span className="text-xs" style={{ color: 'var(--accent-refs)', fontFamily: 'var(--font-body)' }}>
                           DOI
                         </span>
                       )}
-                      <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                      <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
                         {ref.metadata.fileSize ? formatFileSize(ref.metadata.fileSize) : ''}
                       </span>
                       {ref.metadata.pageCount && (
