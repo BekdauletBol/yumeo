@@ -1,3 +1,3 @@
-# 🎓 Yumeo - The Research IDE
+#Yumeo - The Research IDE
 
 
