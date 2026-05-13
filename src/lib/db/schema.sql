@@ -43,9 +43,14 @@ create table if not exists materials (
   name        text not null,
   content     text not null default '',
   storage_url text,
+  status      text not null default 'ready' check (status in ('processing','ready','error')),
   metadata    jsonb not null default '{}',
   created_at  timestamptz not null default now()
 );
+
+-- Add missing columns to existing databases (safe to run multiple times)
+alter table materials add column if not exists status text not null default 'ready' check (status in ('processing','ready','error'));
+alter table materials add column if not exists section_id uuid references project_sections(id) on delete cascade;
 
 create table if not exists messages (
   id          uuid primary key default gen_random_uuid(),

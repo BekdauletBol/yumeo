@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/webhook(.*)',
   '/api/v1/(.*)',
   '/favicon.ico',
+  '/pdf.worker.min.mjs', // PDF.js worker must be publicly accessible
 ]);
 
 export default clerkMiddleware((auth, request) => {
@@ -24,14 +25,13 @@ export default clerkMiddleware((auth, request) => {
 
 export const config = {
   matcher: [
-    // Protect workspace routes
-    '/projects(.*)',
-    '/settings(.*)',
-    '/api-keys(.*)',
-    '/api-docs(.*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
-    // Skip Next.js internals and static files
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    /*
+     * Match all request paths EXCEPT:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - Static file extensions
+     */
+    '/((?!_next/static|_next/image|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|mjs|woff|woff2|ttf|otf|csv|zip|webmanifest)).*)',
   ],
 };

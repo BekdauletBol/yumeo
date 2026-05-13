@@ -30,7 +30,8 @@ export async function parsePDF(file: File, options: PDFParseOptions = {}): Promi
   const pdfjsLib = await import('pdfjs-dist');
 
   // Use CDN worker matching the exact version to prevent parsing errors and Vercel routing issues
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  // Use local worker from /public to avoid CDN dependency and version mismatches
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
   const arrayBuffer = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ 
