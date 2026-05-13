@@ -138,6 +138,18 @@ create policy "users read own plan"
 -- Run this separately in Supabase dashboard → Storage, or via:
 -- insert into storage.buckets (id, name, public) values ('materials', 'materials', false);
 
+CREATE POLICY "Allow authenticated uploads" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'materials');
+
+CREATE POLICY "Allow authenticated reads" ON storage.objects
+FOR SELECT TO authenticated
+USING (bucket_id = 'materials');
+
+CREATE POLICY "Allow authenticated deletes" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'materials');
+
 -- Storage policy: users can only access files in their own project folders
 -- create policy "users own their files"
 --   on storage.objects for all
