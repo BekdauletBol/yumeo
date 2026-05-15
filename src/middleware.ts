@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -13,21 +15,22 @@ const isPublicRoute = createRouteMatcher([
   '/pdf.worker.min.mjs', // PDF.js worker must be publicly accessible
 ]);
 
-export default clerkMiddleware((auth, request) => {
-  // If the publishable key is missing, skip protection to avoid crashing the build/runtime.
-  // The RootLayout safety check will handle the UI state.
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  // If the publishable key is missing, skip Clerk entirely to prevent crashing.
+  // The RootLayout safety check will display the appropriate configuration error UI.
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return;
+    return NextResponse.next();
   }
 
-  // Protect all routes except public ones
-  if (!isPublicRoute(request)) {
-    auth().protect();
-  }
-}, {
-  // Check if we need to debug
-  debug: process.env.NODE_ENV === 'development',
-});
+  return clerkMiddleware((auth, req) => {
+    // Protect all routes except public ones
+    if (!isPublicRoute(req)) {
+      auth().protect();
+    }
+  }, {
+    debug: process.env.NODE_ENV === 'development',
+  })(request, event);
+}
 
 export const config = {
   matcher: [
