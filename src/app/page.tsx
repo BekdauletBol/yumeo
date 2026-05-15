@@ -29,8 +29,9 @@ function TypingDemo() {
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setIsInView(true);
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) setIsInView(true);
       },
       { threshold: 0.5 }
     );

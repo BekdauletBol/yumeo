@@ -14,6 +14,12 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware((auth, request) => {
+  // If the publishable key is missing, skip protection to avoid crashing the build/runtime.
+  // The RootLayout safety check will handle the UI state.
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return;
+  }
+
   // Protect all routes except public ones
   if (!isPublicRoute(request)) {
     auth().protect();
