@@ -3,8 +3,32 @@
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTheme } from 'next-themes';
 import { DashboardView } from '@/components/dashboard/DashboardView';
-import { ArrowRight, Shield, BookOpen, FileText, Check, Upload, MessageSquare, Download } from 'lucide-react';
+import { ArrowRight, Shield, BookOpen, FileText, Check, Upload, MessageSquare, Download, Sun, Moon } from 'lucide-react';
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return <div className="w-9 h-9" />;
+
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+      aria-label="Toggle theme"
+    >
+      {theme === 'dark' ? (
+        <Sun size={18} className="text-[var(--text-secondary)]" />
+      ) : (
+        <Moon size={18} className="text-[var(--text-secondary)]" />
+      )}
+    </button>
+  );
+}
 
 function HeroTerminal() {
   const [lines, setLines] = useState<string[]>([]);
@@ -30,19 +54,19 @@ function HeroTerminal() {
   }, []);
 
   return (
-    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[#2a2a2a] shadow-2xl flex flex-col" style={{ background: '#0d0d0d' }}>
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: 'var(--bg-base)' }}>
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
       </div>
-      <div className="p-6 font-mono text-[12px] md:text-sm text-[#888] space-y-2">
+      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--text-secondary)] space-y-2">
         {lines.map((line, i) => (
-          <div key={i} className={i === lines.length - 1 ? "text-[#E8611A] animate-in fade-in duration-500" : ""}>
+          <div key={i} className={i === lines.length - 1 ? "text-[var(--accent-primary)] animate-in fade-in duration-500" : ""}>
             {line}
           </div>
         ))}
-        <div className="w-2 h-4 bg-[#E8611A] animate-pulse inline-block align-middle ml-1" />
+        <div className="w-2 h-4 bg-[var(--accent-primary)] animate-pulse inline-block align-middle ml-1" />
       </div>
     </div>
   );
@@ -139,28 +163,28 @@ function TypingDemo() {
   }, [isInView]);
 
   return (
-    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[#2a2a2a]" style={{ background: '#1a1a1a' }}>
+    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: 'var(--bg-surface)' }}>
       {/* Window Header */}
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[#2a2a2a]">
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
         <div className="ml-auto flex gap-1.5">
-          <div className="w-12 h-1.5 rounded-full bg-[#2a2a2a]" />
+          <div className="w-12 h-1.5 rounded-full bg-[var(--border-subtle)]" />
         </div>
       </div>
       {/* Window Content */}
       <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[400px] flex flex-col">
         <div className="flex-1 space-y-4">
           {lines.map((line, i) => (
-            <div key={i} className="whitespace-pre-wrap leading-relaxed" style={{ color: i < 3 ? '#888' : i === 4 ? '#E8611A' : '#ccc' }}>
+            <div key={i} className="whitespace-pre-wrap leading-relaxed" style={{ color: i < 3 ? 'var(--text-tertiary)' : i === 4 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
               {line}
             </div>
           ))}
         </div>
         
         {showBadge && (
-           <div className="mt-8 self-start px-3 py-1.5 rounded-lg text-xs font-bold border border-[#E8611A]/30 bg-[#E8611A]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: '#E8611A' }}>
+           <div className="mt-8 self-start px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: 'var(--accent-primary)' }}>
              ✓ verified · grounded in your materials
            </div>
         )}
@@ -202,44 +226,47 @@ export default function HomePage() {
     }
   }, [isLoaded, user, handleEnter]);
 
-  if (!isLoaded) return <div className="fixed inset-0" style={{ background: '#0a0a0a' }} />;
+  if (!isLoaded) return <div className="fixed inset-0 bg-[var(--bg-base)]" />;
   if (user) return <DashboardView />;
 
   const font = 'Inter, system-ui, sans-serif';
 
   return (
     <div
-      className={`fixed inset-0 overflow-y-auto transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
-      style={{ background: '#0a0a0a', color: '#e5e5e5' }}
+      className={`fixed inset-0 overflow-y-auto transition-opacity duration-500 bg-[var(--bg-base)] text-[var(--text-primary)] ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
     >
       {/* ── Navbar ────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-8 md:px-16 py-5">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#E8611A' }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-primary)' }}>
             <span className="text-white font-bold text-sm" style={{ fontFamily: font }}>y</span>
           </div>
           <span className="text-base font-semibold" style={{ fontFamily: font }}>yumeo</span>
         </div>
         <nav className="hidden md:flex items-center gap-8">
-          <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>features</button>
-          <button onClick={() => document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>how it works</button>
-          <button onClick={() => router.push('/docs')} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>docs</button>
-          <button onClick={() => router.push('/pricing')} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>pricing</button>
+          <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-secondary)', fontFamily: font }}>features</button>
+          <button onClick={() => document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-secondary)', fontFamily: font }}>how it works</button>
+          <button onClick={() => router.push('/docs')} className="text-sm transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-secondary)', fontFamily: font }}>docs</button>
+          <button onClick={() => router.push('/pricing')} className="text-sm transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-secondary)', fontFamily: font }}>pricing</button>
+          <ThemeToggle />
           <button
             onClick={handleEnter}
             className="text-sm font-medium px-4 py-2 rounded-lg transition-all hover:opacity-90"
-            style={{ background: '#E8611A', color: 'white', fontFamily: font }}
+            style={{ background: 'var(--accent-primary)', color: 'white', fontFamily: font }}
           >
             get started
           </button>
         </nav>
-        <button
-          onClick={handleEnter}
-          className="md:hidden text-sm font-medium px-4 py-2 rounded-lg"
-          style={{ background: '#E8611A', color: 'white', fontFamily: font }}
-        >
-          get started
-        </button>
+        <div className="md:hidden flex items-center gap-3">
+          <ThemeToggle />
+          <button
+            onClick={handleEnter}
+            className="text-sm font-medium px-4 py-2 rounded-lg"
+            style={{ background: 'var(--accent-primary)', color: 'white', fontFamily: font }}
+          >
+            get started
+          </button>
+        </div>
       </header>
 
       <main>
@@ -254,7 +281,7 @@ export default function HomePage() {
               <div className="max-w-lg">
                 <h1
                   className="text-4xl md:text-[3.5rem] font-medium leading-[1.08] mb-6"
-                  style={{ fontFamily: font, letterSpacing: '-0.03em', color: '#f0f0f0' }}
+                  style={{ fontFamily: font, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
                 >
                   research without
                   <br />
@@ -262,7 +289,7 @@ export default function HomePage() {
                 </h1>
                 <p
                   className="text-base md:text-lg leading-relaxed mb-10"
-                  style={{ fontFamily: font, color: '#777' }}
+                  style={{ fontFamily: font, color: 'var(--text-secondary)' }}
                 >
                   upload your papers. ask questions. write reports.
                   <br />
@@ -272,14 +299,14 @@ export default function HomePage() {
                   <button
                     onClick={handleEnter}
                     className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg transition-all hover:opacity-90"
-                    style={{ background: '#E8611A', color: 'white', fontFamily: font }}
+                    style={{ background: 'var(--accent-primary)', color: 'white', fontFamily: font }}
                   >
                     start researching <ArrowRight size={16} />
                   </button>
                   <button
                     onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                     className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg transition-all hover:opacity-80"
-                    style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#ccc', fontFamily: font }}
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: font }}
                   >
                     see how it works
                   </button>
@@ -303,10 +330,10 @@ export default function HomePage() {
         <section 
           id="demo"
           className="px-8 md:px-16 py-24 md:py-32"
-          style={{ borderTop: '1px solid #161616' }}
+          style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-center text-xs font-medium mb-12 uppercase tracking-widest" style={{ color: '#E8611A', fontFamily: font }}>
+            <h2 className="text-center text-xs font-medium mb-12 uppercase tracking-widest" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
               see how it works
             </h2>
             <TypingDemo />
@@ -318,13 +345,13 @@ export default function HomePage() {
           id="features"
           className={`px-8 md:px-16 py-24 md:py-32 transition-all duration-700 delay-200 ${phase === 'black' ? 'opacity-0' : 'opacity-100'
             }`}
-          style={{ borderTop: '1px solid #161616' }}
+          style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
           <div className="max-w-5xl mx-auto">
-            <p className="text-xs font-medium mb-4" style={{ fontFamily: font, color: '#E8611A' }}>features</p>
+            <p className="text-xs font-medium mb-4" style={{ fontFamily: font, color: 'var(--accent-primary)' }}>features</p>
             <h2
               className="text-3xl md:text-4xl font-medium leading-tight mb-16"
-              style={{ fontFamily: font, letterSpacing: '-0.02em', color: '#f0f0f0' }}
+              style={{ fontFamily: font, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}
             >
               everything you need
               <br />
@@ -338,13 +365,13 @@ export default function HomePage() {
                 { icon: FileText, title: 'export anywhere', desc: 'generate publication-ready reports in DOCX or PDF. properly formatted and cited.' },
               ].map((f) => (
                 <div key={f.title} className="space-y-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#1a1a1a', border: '1px solid #222' }}>
-                    <f.icon size={18} style={{ color: '#E8611A' }} />
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                    <f.icon size={18} style={{ color: 'var(--accent-primary)' }} />
                   </div>
-                  <h3 className="text-base font-medium" style={{ fontFamily: font, color: '#f0f0f0' }}>
+                  <h3 className="text-base font-medium" style={{ fontFamily: font, color: 'var(--text-primary)' }}>
                     {f.title}
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ fontFamily: font, color: '#777' }}>
+                  <p className="text-sm leading-relaxed" style={{ fontFamily: font, color: 'var(--text-secondary)' }}>
                     {f.desc}
                   </p>
                 </div>
@@ -357,13 +384,13 @@ export default function HomePage() {
         <section
           id="how"
           className="px-8 md:px-16 py-24 md:py-32"
-          style={{ borderTop: '1px solid #161616' }}
+          style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
           <div className="max-w-5xl mx-auto">
-            <p className="text-xs font-medium mb-4" style={{ fontFamily: font, color: '#E8611A' }}>how it works</p>
+            <p className="text-xs font-medium mb-4" style={{ fontFamily: font, color: 'var(--accent-primary)' }}>how it works</p>
             <h2
               className="text-3xl md:text-4xl font-medium leading-tight mb-16"
-              style={{ fontFamily: font, letterSpacing: '-0.02em', color: '#f0f0f0' }}
+              style={{ fontFamily: font, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}
             >
               three steps to
               <br />
@@ -377,13 +404,13 @@ export default function HomePage() {
                 { step: '03', icon: Download, title: 'export', desc: 'generate reports in DOCX or PDF with proper academic formatting and citations.' },
               ].map((s) => (
                 <div key={s.step} className="relative">
-                  <span className="text-5xl font-medium" style={{ fontFamily: font, color: '#1a1a1a' }}>{s.step}</span>
+                  <span className="text-5xl font-medium" style={{ fontFamily: font, color: 'var(--bg-elevated)' }}>{s.step}</span>
                   <div className="mt-4 space-y-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#1a1a1a', border: '1px solid #222' }}>
-                      <s.icon size={18} style={{ color: '#E8611A' }} />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                      <s.icon size={18} style={{ color: 'var(--accent-primary)' }} />
                     </div>
-                    <h3 className="text-base font-medium" style={{ fontFamily: font, color: '#f0f0f0' }}>{s.title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ fontFamily: font, color: '#777' }}>{s.desc}</p>
+                    <h3 className="text-base font-medium" style={{ fontFamily: font, color: 'var(--text-primary)' }}>{s.title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ fontFamily: font, color: 'var(--text-secondary)' }}>{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -394,18 +421,18 @@ export default function HomePage() {
         {/* ── Trust section ──────────────────────────────────── */}
         <section
           className="px-8 md:px-16 py-24 md:py-32"
-          style={{ borderTop: '1px solid #161616' }}
+          style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
           <div className="max-w-3xl mx-auto">
             <h2
               className="text-3xl md:text-4xl font-medium leading-tight mb-6"
-              style={{ fontFamily: font, letterSpacing: '-0.02em', color: '#f0f0f0' }}
+              style={{ fontFamily: font, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}
             >
               it remembers
               <br />
               your research.
             </h2>
-            <p className="text-sm leading-relaxed mb-8" style={{ fontFamily: font, color: '#777' }}>
+            <p className="text-sm leading-relaxed mb-8" style={{ fontFamily: font, color: 'var(--text-secondary)' }}>
               every paper you upload, every question you ask, every draft you write.
               yumeo builds a private knowledge base and uses it to give you answers
               you can actually cite in your work.
@@ -417,8 +444,8 @@ export default function HomePage() {
                 'works offline with local materials · no internet needed for answers',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
-                  <Check size={16} style={{ color: '#E8611A' }} />
-                  <span className="text-sm" style={{ fontFamily: font, color: '#aaa' }}>{item}</span>
+                  <Check size={16} style={{ color: 'var(--accent-primary)' }} />
+                  <span className="text-sm" style={{ fontFamily: font, color: 'var(--text-secondary)' }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -428,43 +455,43 @@ export default function HomePage() {
         {/* ── CTA ────────────────────────────────────────────── */}
         <section
           className="px-8 md:px-16 py-24 text-center"
-          style={{ borderTop: '1px solid #161616' }}
+          style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
           <h2
             className="text-2xl md:text-3xl font-medium mb-4"
-            style={{ fontFamily: font, letterSpacing: '-0.02em', color: '#f0f0f0' }}
+            style={{ fontFamily: font, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}
           >
             ready to write with confidence?
           </h2>
-          <p className="text-sm mb-8 max-w-md mx-auto" style={{ fontFamily: font, color: '#777' }}>
+          <p className="text-sm mb-8 max-w-md mx-auto" style={{ fontFamily: font, color: 'var(--text-secondary)' }}>
             join researchers who cite real sources.
             free to start, no credit card required.
           </p>
           <button
             onClick={handleEnter}
             className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-medium rounded-lg transition-all hover:opacity-90"
-            style={{ background: '#E8611A', color: 'white', fontFamily: font }}
+            style={{ background: 'var(--accent-primary)', color: 'white', fontFamily: font }}
           >
             get started free <ArrowRight size={16} />
           </button>
         </section>
 
         {/* ── Footer ─────────────────────────────────────────── */}
-        <footer className="px-8 md:px-16 py-8" style={{ borderTop: '1px solid #161616' }}>
+        <footer className="px-8 md:px-16 py-8" style={{ borderTop: '1px solid var(--border-subtle)' }}>
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: '#E8611A' }}>
+              <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: 'var(--accent-primary)' }}>
                 <span className="text-white text-[10px] font-bold">y</span>
               </div>
-              <span className="text-xs" style={{ fontFamily: font, color: '#555' }}>
+              <span className="text-xs" style={{ fontFamily: font, color: 'var(--text-tertiary)' }}>
                 yumeo — research IDE
               </span>
             </div>
             <div className="flex items-center gap-6">
-              <button onClick={() => router.push('/docs')} className="text-xs transition-colors hover:text-white" style={{ color: '#555', fontFamily: font }}>docs</button>
-              <button onClick={() => router.push('/pricing')} className="text-xs transition-colors hover:text-white" style={{ color: '#555', fontFamily: font }}>pricing</button>
-              <a href="mailto:yumeo.lab@gmail.com" className="text-xs transition-colors hover:text-white" style={{ color: '#555', fontFamily: font }}>contact</a>
-              <span className="text-xs" style={{ color: '#333', fontFamily: font }}>© 2026</span>
+              <button onClick={() => router.push('/docs')} className="text-xs transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>docs</button>
+              <button onClick={() => router.push('/pricing')} className="text-xs transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>pricing</button>
+              <a href="mailto:yumeo.lab@gmail.com" className="text-xs transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>contact</a>
+              <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: font }}>© 2026</span>
             </div>
           </div>
         </footer>
