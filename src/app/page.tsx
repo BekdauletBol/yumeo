@@ -19,7 +19,8 @@ function HeroTerminal() {
     let currentLine = 0;
     const interval = setInterval(() => {
       if (currentLine < fullLines.length) {
-        setLines(prev => [...prev, fullLines[currentLine]]);
+        const line = fullLines[currentLine];
+        if (line) setLines(prev => [...prev, line]);
         currentLine++;
       } else {
         clearInterval(interval);
@@ -242,7 +243,7 @@ export default function HomePage() {
       </header>
 
       <main>
-        {/* ── Hero with art ──────────────────────────────────── */}
+        {/* ── Hero ──────────────────────────────────────────── */}
         <section
           className={`relative transition-all duration-700 ease-out ${phase === 'black' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
             }`}
