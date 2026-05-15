@@ -2,9 +2,128 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DashboardView } from '@/components/dashboard/DashboardView';
 import { ArrowRight, Shield, BookOpen, FileText, Check, Upload, MessageSquare, Download } from 'lucide-react';
+
+function TypingDemo() {
+  const [lines, setLines] = useState<string[]>([]);
+  const [showBadge, setShowBadge] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const steps = [
+    { type: 'text', content: '> uploading "climate_study_2024.pdf" ✓', delay: 40 },
+    { type: 'text', content: '> uploading "biodiversity_report.pdf" ✓', delay: 40 },
+    { type: 'text', content: '> 2 references loaded', delay: 40 },
+    { type: 'pause', content: '', delay: 800 },
+    { type: 'text', content: '> "what are the main findings on carbon emissions?"', delay: 50 },
+    { type: 'pause', content: '', delay: 1000 },
+    { type: 'text', content: 'Analyzing your references...', delay: 30 },
+    { type: 'pause', content: '', delay: 500 },
+    { type: 'text', content: 'The study found that carbon emissions increased \nby 12% between 2020-2024, primarily driven by \nindustrial activity...', delay: 25 },
+    { type: 'pause', content: '', delay: 500 },
+    { type: 'text', content: '(Source: climate_study_2024.pdf, p. 4)', delay: 25 },
+    { type: 'badge', content: '', delay: 0 }
+  ];
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIsInView(true);
+      },
+      { threshold: 0.5 }
+    );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let currentStep = 0;
+    let currentChar = 0;
+    let timeout: NodeJS.Timeout;
+
+    const run = () => {
+      if (currentStep >= steps.length) {
+        timeout = setTimeout(() => {
+          setLines([]);
+          setShowBadge(false);
+          currentStep = 0;
+          currentChar = 0;
+          run();
+        }, 8000);
+        return;
+      }
+
+      const step = steps[currentStep];
+
+      if (step.type === 'pause') {
+        timeout = setTimeout(() => {
+          currentStep++;
+          run();
+        }, step.delay);
+      } else if (step.type === 'badge') {
+        setShowBadge(true);
+        currentStep++;
+        timeout = setTimeout(run, 2000);
+      } else {
+        if (currentChar === 0) {
+          setLines(prev => [...prev, '']);
+        }
+
+        if (currentChar < step.content.length) {
+          setLines(prev => {
+            const last = prev.length - 1;
+            const updated = [...prev];
+            updated[last] = step.content.slice(0, currentChar + 1);
+            return updated;
+          });
+          currentChar++;
+          timeout = setTimeout(run, step.delay);
+        } else {
+          currentStep++;
+          currentChar = 0;
+          timeout = setTimeout(run, 600);
+        }
+      }
+    };
+
+    run();
+    return () => clearTimeout(timeout);
+  }, [isInView]);
+
+  return (
+    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[#2a2a2a]" style={{ background: '#1a1a1a' }}>
+      {/* Window Header */}
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[#2a2a2a]">
+        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
+        <div className="ml-auto flex gap-1.5">
+          <div className="w-12 h-1.5 rounded-full bg-[#2a2a2a]" />
+        </div>
+      </div>
+      {/* Window Content */}
+      <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[400px] flex flex-col">
+        <div className="flex-1 space-y-4">
+          {lines.map((line, i) => (
+            <div key={i} className="whitespace-pre-wrap leading-relaxed" style={{ color: i < 3 ? '#888' : i === 4 ? '#E8611A' : '#ccc' }}>
+              {line}
+            </div>
+          ))}
+        </div>
+        
+        {showBadge && (
+           <div className="mt-8 self-start px-3 py-1.5 rounded-lg text-xs font-bold border border-[#E8611A]/30 bg-[#E8611A]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: '#E8611A' }}>
+             ✓ verified · grounded in your materials
+           </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { user, isLoaded } = useUser();
@@ -58,7 +177,7 @@ export default function HomePage() {
           <span className="text-base font-semibold" style={{ fontFamily: font }}>yumeo</span>
         </div>
         <nav className="hidden md:flex items-center gap-8">
-          <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>features</button>
+          <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>features</button>
           <button onClick={() => document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>how it works</button>
           <button onClick={() => router.push('/docs')} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>docs</button>
           <button onClick={() => router.push('/pricing')} className="text-sm transition-colors hover:text-white" style={{ color: '#888', fontFamily: font }}>pricing</button>
@@ -114,7 +233,7 @@ export default function HomePage() {
                     start researching <ArrowRight size={16} />
                   </button>
                   <button
-                    onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                    onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                     className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg transition-all hover:opacity-80"
                     style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#ccc', fontFamily: font }}
                   >
@@ -139,16 +258,35 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Mobile art — shows below text on small screens */}
-          <div className="md:hidden relative h-64 overflow-hidden -mt-4">
+            {/* Mobile art — shows below text on small screens */}
+          <div className="md:hidden relative h-64 overflow-hidden -mt-4 flex items-center justify-center bg-[#0a0a0a]">
+            {/* Simple animated CSS visualization as fallback/overlay */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-30">
+              <div className="w-48 h-48 rounded-full border border-[var(--accent-primary)] animate-pulse" />
+              <div className="absolute w-32 h-32 rounded-full border border-[var(--accent-secondary)] animate-ping" />
+            </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/landing-art.gif"
+              src="/landing-art.GIF"
               alt="yumeo research visualization"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover relative z-10"
               style={{ opacity: 0.7 }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent z-20" />
+          </div>
+        </section>
+
+        {/* ── Product Demo ──────────────────────────────────── */}
+        <section 
+          id="demo"
+          className="px-8 md:px-16 py-24 md:py-32"
+          style={{ borderTop: '1px solid #161616' }}
+        >
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-center text-xs font-medium mb-12 uppercase tracking-widest" style={{ color: '#E8611A', fontFamily: font }}>
+              see how it works
+            </h2>
+            <TypingDemo />
           </div>
         </section>
 

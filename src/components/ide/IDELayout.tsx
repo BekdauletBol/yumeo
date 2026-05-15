@@ -4,6 +4,7 @@ import React from 'react';
 import { Library, MessageSquare, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useUIStore } from '@/stores/uiStore';
+import { ReferencesSection } from '@/components/sections/ReferencesSection';
 
 interface IDELayoutProps {
   topBar: React.ReactNode;
@@ -32,12 +33,16 @@ export function IDELayout({ topBar, sidebar, chat, editor, className }: IDELayou
         {topBar}
       </header>
 
-      {/* Sidebar */}
+      {/* Sidebar / Library Panel */}
       <aside
         className={cn("ide-sidebar overflow-hidden border-r flex flex-col", mobileTab === 'sidebar' && 'mobile-active')}
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}
       >
-        {sidebar}
+        {/* On mobile, Library tab shows References directly as requested. On desktop, shows full Sidebar (section list). */}
+        <div className="hidden md:block h-full">{sidebar}</div>
+        <div className="md:hidden h-full overflow-y-auto">
+          <ReferencesSection />
+        </div>
       </aside>
 
       {/* Chat panel — main interaction area */}
@@ -58,28 +63,28 @@ export function IDELayout({ topBar, sidebar, chat, editor, className }: IDELayou
 
       {/* Mobile Bottom Navigation */}
       <nav 
-        className="ide-bottomnav border-t flex items-center justify-around" 
+        className="ide-bottomnav border-t flex items-center justify-around h-[64px]" 
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}
       >
         <button 
           onClick={() => setMobileTab('sidebar')}
-          className={cn("flex flex-col items-center justify-center w-full h-full gap-1 transition-colors", mobileTab === 'sidebar' ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]")}
+          className={cn("flex flex-col items-center justify-center w-full h-full gap-1 transition-colors min-h-[44px]", mobileTab === 'sidebar' ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]")}
         >
-          <Library size={20} />
+          <Library size={22} />
           <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-mono)' }}>Library</span>
         </button>
         <button 
           onClick={() => setMobileTab('chat')}
-          className={cn("flex flex-col items-center justify-center w-full h-full gap-1 transition-colors", mobileTab === 'chat' ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]")}
+          className={cn("flex flex-col items-center justify-center w-full h-full gap-1 transition-colors min-h-[44px]", mobileTab === 'chat' ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]")}
         >
-          <MessageSquare size={20} />
+          <MessageSquare size={22} />
           <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-mono)' }}>Chat</span>
         </button>
         <button 
           onClick={() => setMobileTab('editor')}
-          className={cn("flex flex-col items-center justify-center w-full h-full gap-1 transition-colors", mobileTab === 'editor' ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]")}
+          className={cn("flex flex-col items-center justify-center w-full h-full gap-1 transition-colors min-h-[44px]", mobileTab === 'editor' ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]")}
         >
-          <PenTool size={20} />
+          <PenTool size={22} />
           <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-mono)' }}>Editor</span>
         </button>
       </nav>

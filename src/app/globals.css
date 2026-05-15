@@ -136,8 +136,13 @@ html, body {
 
 /* Mobile (<768px): stacked panels with bottom nav */
 @media (max-width: 767px) {
+  body {
+    overflow-x: hidden;
+    width: 100vw;
+  }
+
   .ide-layout {
-    grid-template-rows: 48px 1fr 56px;
+    grid-template-rows: 48px 1fr 64px;
     grid-template-columns: 1fr;
     grid-template-areas:
       "topbar"
@@ -162,6 +167,11 @@ html, body {
     grid-area: bottomnav;
     display: flex;
   }
+
+  /* Force minimum font sizes for mobile readability */
+  .text-xs { font-size: 14px !important; }
+  .text-sm { font-size: 15px !important; }
+  button, input, textarea { font-size: 16px !important; } /* Prevents iOS zoom on focus */
 }
 
 /* ─── Section label text ──────────────────────────────────── */

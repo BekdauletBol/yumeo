@@ -44,8 +44,8 @@ export function EditorPanel() {
   };
 
   return (
-    <section className="ide-editor flex flex-col overflow-hidden"
-      style={{ background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)' }}
+    <div className="flex flex-col h-full overflow-hidden"
+      style={{ background: 'var(--bg-base)' }}
     >
       {/* Tabs */}
       <div className="h-11 flex items-center px-4 md:px-5 gap-5 shrink-0"
@@ -70,6 +70,6 @@ export function EditorPanel() {
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {renderSectionContent()}
       </div>
-    </section>
+    </div>
   );
 }

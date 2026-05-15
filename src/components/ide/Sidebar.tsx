@@ -29,8 +29,8 @@ export function Sidebar() {
   const { sections, activeSectionId, setActiveSection: setActiveSectionId } = useProjectSectionsStore();
 
   return (
-    <aside className="ide-sidebar flex flex-col overflow-hidden"
-      style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border-subtle)' }}
+    <div className="flex flex-col h-full overflow-hidden"
+      style={{ background: 'var(--bg-surface)' }}
     >
       <div className="p-4 md:p-5 flex flex-col flex-1 gap-6 overflow-y-auto scrollbar-thin">
         {/* Sections */}
@@ -100,6 +100,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
