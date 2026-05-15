@@ -6,6 +6,47 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { DashboardView } from '@/components/dashboard/DashboardView';
 import { ArrowRight, Shield, BookOpen, FileText, Check, Upload, MessageSquare, Download } from 'lucide-react';
 
+function HeroTerminal() {
+  const [lines, setLines] = useState<string[]>([]);
+  const fullLines = [
+    '> initializing yumeo research ide...',
+    '> loading papers & materials...',
+    '> indexing local knowledge base...',
+    '> system ready. no hallucinations detected.'
+  ];
+
+  useEffect(() => {
+    let currentLine = 0;
+    const interval = setInterval(() => {
+      if (currentLine < fullLines.length) {
+        setLines(prev => [...prev, fullLines[currentLine]]);
+        currentLine++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 600);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[#2a2a2a] shadow-2xl flex flex-col" style={{ background: '#0d0d0d' }}>
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
+      </div>
+      <div className="p-6 font-mono text-[12px] md:text-sm text-[#888] space-y-2">
+        {lines.map((line, i) => (
+          <div key={i} className={i === lines.length - 1 ? "text-[#E8611A] animate-in fade-in duration-500" : ""}>
+            {line}
+          </div>
+        ))}
+        <div className="w-2 h-4 bg-[#E8611A] animate-pulse inline-block align-middle ml-1" />
+      </div>
+    </div>
+  );
+}
+
 function TypingDemo() {
   const [lines, setLines] = useState<string[]>([]);
   const [showBadge, setShowBadge] = useState(false);
@@ -245,36 +286,15 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right — art image */}
-            <div className="relative hidden md:flex items-center justify-center overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/landing-art.gif"
-                alt="yumeo research visualization"
-                className="w-full h-full object-cover"
-                style={{ opacity: 0.85 }}
-              />
-              {/* Gradient bleed into left panel */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-transparent to-transparent" style={{ width: '30%' }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" style={{ height: '30%', top: 'auto' }} />
+            {/* Right — Hero Terminal Visualization */}
+            <div className="relative hidden md:flex items-center justify-center p-8">
+              <HeroTerminal />
             </div>
           </div>
 
-            {/* Mobile art — shows below text on small screens */}
-          <div className="md:hidden relative h-64 overflow-hidden -mt-4 flex items-center justify-center bg-[#0a0a0a]">
-            {/* Simple animated CSS visualization as fallback/overlay */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-30">
-              <div className="w-48 h-48 rounded-full border border-[var(--accent-primary)] animate-pulse" />
-              <div className="absolute w-32 h-32 rounded-full border border-[var(--accent-secondary)] animate-ping" />
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/landing-art.GIF"
-              alt="yumeo research visualization"
-              className="w-full h-full object-cover relative z-10"
-              style={{ opacity: 0.7 }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent z-20" />
+          {/* Mobile Terminal — shows below text on small screens */}
+          <div className="md:hidden px-8 pb-16">
+            <HeroTerminal />
           </div>
         </section>
 
