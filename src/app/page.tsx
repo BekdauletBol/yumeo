@@ -59,6 +59,7 @@ function TypingDemo() {
       }
 
       const step = steps[currentStep];
+      if (!step) return;
 
       if (step.type === 'pause') {
         timeout = setTimeout(() => {
