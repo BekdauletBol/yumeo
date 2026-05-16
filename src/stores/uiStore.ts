@@ -10,48 +10,65 @@ interface UIState {
     | 'mermaid'
     | 'latex';
   isMobileSidebarOpen: boolean;
-  isCommandPaletteOpen: boolean;
+  isChatResizing: boolean;
+  mobileTab: 'sidebar' | 'chat' | 'editor';
   highlightedMaterialId: string | null;
   mermaidSource: string;
   latexSource: string;
-  mobileTab: 'sidebar' | 'chat' | 'editor';
+
+  // Citation Viewer
+  citationViewer: {
+    isOpen: boolean;
+    materialId: string | null;
+    pageNumber: number | null;
+    highlightedText: string | null;
+  };
 
   setRightPanelTab: (tab: UIState['rightPanelTab']) => void;
-  setMobileSidebarOpen: (open: boolean) => void;
-  toggleMobileSidebar: () => void;
-  setCommandPaletteOpen: (open: boolean) => void;
+  setMobileSidebarOpen: (isOpen: boolean) => void;
+  setChatResizing: (isResizing: boolean) => void;
   setHighlightedMaterialId: (id: string | null) => void;
   setMermaidSource: (source: string) => void;
   setLatexSource: (source: string) => void;
   setMobileTab: (tab: 'sidebar' | 'chat' | 'editor') => void;
+  
+  openCitationViewer: (materialId: string, pageNumber?: number, text?: string) => void;
+  closeCitationViewer: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  rightPanelTab: 'drafts',
-  mobileTab: 'chat',
+  rightPanelTab: 'references',
   isMobileSidebarOpen: false,
-  isCommandPaletteOpen: false,
+  isChatResizing: false,
+  mobileTab: 'chat',
   highlightedMaterialId: null,
-  mermaidSource: `graph TD
-  A[Upload Materials] --> B[Ask Question]
-  B --> C[Grounded Answer]
-  C --> D[Iterate Faster]`,
-  latexSource: `# LaTeX Editor
-
-Inline math example: $E = mc^2$
-
-Block math example:
-$$
-\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}
-$$`,
+  mermaidSource: '',
+  latexSource: '',
+  
+  citationViewer: {
+    isOpen: false,
+    materialId: null,
+    pageNumber: null,
+    highlightedText: null,
+  },
 
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
-  setMobileSidebarOpen: (open) => set({ isMobileSidebarOpen: open }),
-  toggleMobileSidebar: () =>
-    set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
-  setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
+  setMobileSidebarOpen: (isOpen) => set({ isMobileSidebarOpen: isOpen }),
+  setChatResizing: (isResizing) => set({ isChatResizing: isResizing }),
   setHighlightedMaterialId: (id) => set({ highlightedMaterialId: id }),
   setMermaidSource: (source) => set({ mermaidSource: source }),
   setLatexSource: (source) => set({ latexSource: source }),
   setMobileTab: (tab) => set({ mobileTab: tab }),
+
+  openCitationViewer: (materialId, pageNumber, text) => set({
+    citationViewer: {
+      isOpen: true,
+      materialId,
+      pageNumber: pageNumber || 1,
+      highlightedText: text || null,
+    }
+  }),
+  closeCitationViewer: () => set((state) => ({
+    citationViewer: { ...state.citationViewer, isOpen: false }
+  })),
 }));

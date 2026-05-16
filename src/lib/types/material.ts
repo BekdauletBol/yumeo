@@ -68,7 +68,7 @@ export interface MaterialMetadata {
 }
 
 export type CreateMaterialInput = Omit<Material, 'id' | 'createdAt'>;
-export type UpdateMaterialInput = Partial<Pick<Material, 'name' | 'content' | 'metadata'>>;
+export type UpdateMaterialInput = Partial<Pick<Material, 'name' | 'content' | 'metadata' | 'storageUrl' | 'status'>>;
 
 // Allow sectionId to be passed in create input
 export interface CreateMaterialWithSectionInput extends CreateMaterialInput {

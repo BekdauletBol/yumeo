@@ -1,49 +1,52 @@
 import type { Citation, ChatMessage } from '@/lib/types';
 import type { Material } from '@/lib/types';
 
-/** Regex matching [REF:n] patterns (1 or more digits) */
-const REF_PATTERN = /\[REF:(\d+)\]/g;
+/** Regex matching [REF:n] or [REF:n, p. X] patterns */
+const REF_PATTERN = /\[REF:(\d+)(?:,\s*p\.\s*(\d+))?\]/g;
 
 /** Regex matching the trailing "SOURCES USED: [REF:1], [REF:2]" block */
 const SOURCES_BLOCK_PATTERN = /\nSOURCES USED:.*$/s;
 
 /**
- * Parse [REF:n] markers from AI message content.
- *
+ * Parse [REF:n] or [REF:n, p. X] markers from AI message content.
+...
  * @param content   - Raw AI message string
  * @param materials - Ordered list of materials (REF:1 = materials[0])
- * @returns         - Array of Citation objects for each unique referenced material
+ * @returns         - Array of Citation objects for each unique referenced material/page
  */
 export function parseCitations(
   content: string,
   materials: Material[],
 ): Citation[] {
-  const refIndices = new Set<number>();
+  const citations: Citation[] = [];
+  const seen = new Set<string>();
   let match: RegExpExecArray | null;
 
   const pattern = new RegExp(REF_PATTERN.source, 'g');
   while ((match = pattern.exec(content)) !== null) {
     const index = parseInt(match[1] ?? '0', 10);
+    const pageNumber = match[2] ? parseInt(match[2], 10) : undefined;
+    
     if (index >= 1 && index <= materials.length) {
-      refIndices.add(index);
-    }
-  }
+      const material = materials[index - 1];
+      if (!material) continue;
 
-  return Array.from(refIndices)
-    .sort((a, b) => a - b)
-    .map((refIndex): Citation | null => {
-      const material = materials[refIndex - 1];
-      if (!material) return null;
+      const key = `${material.id}-${pageNumber || 'any'}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
 
-      return {
-        refIndex,
+      citations.push({
+        refIndex: index,
         materialId: material.id,
         materialName: material.name,
         section: material.section,
         excerpt: extractExcerpt(material.content, 200),
-      };
-    })
-    .filter((c): c is Citation => c !== null);
+        pageNumber,
+      });
+    }
+  }
+
+  return citations.sort((a, b) => a.refIndex - b.refIndex);
 }
 
 /**

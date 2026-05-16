@@ -9,6 +9,8 @@ export interface Citation {
   section: MaterialSection;
   /** Relevant excerpt from the source material */
   excerpt: string;
+  /** Optional page number if found in citation */
+  pageNumber?: number;
 }
 
 /** A message in the Yumeo research chat */

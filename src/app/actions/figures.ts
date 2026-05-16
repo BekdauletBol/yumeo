@@ -27,10 +27,10 @@ export async function createFigureAction(input: {
     
   if (projErr || !project) throw new Error('Project not found or unauthorized');
 
-  // Upload image to Storage
+  // Upload image to Storage using {userId}/{filename} path structure for RLS
   const base64Data = input.imageBase64.split(',')[1] || input.imageBase64;
   const buffer = Buffer.from(base64Data, 'base64');
-  const filename = `${input.projectId}/${nanoid()}.jpg`;
+  const filename = `${userId}/${nanoid()}.jpg`;
   
   const { error: uploadErr } = await supabase
     .storage

@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createServiceClient } from '@/lib/db/supabase';
 import type { CreateMaterialInput, Material } from '@/lib/types';
 import { chunkAndEmbedMaterial } from '@/lib/agent/rag';
+import { checkMaterialLimitAction } from './plans';
 
 // Supabase row-to-material helper
 function rowToMaterial(row: Record<string, unknown>): Material {
@@ -46,6 +47,12 @@ export async function getMaterialAction(id: string): Promise<Material> {
 export async function createMaterialAction(input: CreateMaterialInput): Promise<Material> {
   const { userId } = auth();
   if (!userId) throw new Error('Unauthorized');
+
+  // Check usage limits
+  const limitCheck = await checkMaterialLimitAction(input.projectId);
+  if (!limitCheck.allowed) {
+    throw new Error(limitCheck.message);
+  }
 
   const supabase = createServiceClient();
   

@@ -7,11 +7,12 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
 import { parsePDF, extractPDFMetadataHints } from '@/lib/parsers/pdfParser';
 import { parseDocx } from '@/lib/parsers/docxParser';
-import { analyzeImage } from '@/lib/parsers/imageAnalyzer';
 import { cn } from '@/lib/utils/cn';
-import type { MaterialSection, CreateMaterialInput } from '@/lib/types';
+import type { MaterialSection } from '@/lib/types';
 import { createMaterialAction, processMaterialAction } from '@/app/actions/materials';
-import { nanoid } from 'nanoid';
+import { uploadMaterialAction } from '@/app/actions/upload';
+import { checkMaterialLimitAction } from '@/app/actions/plans';
+import { showToast } from '@/lib/utils/toast';
 
 interface FileUploadZoneProps {
   section: MaterialSection;
@@ -30,19 +31,11 @@ interface UploadProgress {
 
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
-const MAX_PAGE_TEXT_CHARS = 120_000;
-const MAX_PDF_IMAGE_BYTES = 12 * 1024 * 1024;
-const MAX_PDF_IMAGE_PAGES = 25;
-const MAX_PDF_IMAGES = 20;
 const MAX_CONTENT_CHARS = 200_000;
 
 async function extractContent(file: File) {
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    const result = await parsePDF(file, {
-      extractImages: file.size <= MAX_PDF_IMAGE_BYTES,
-      maxImagePages: MAX_PDF_IMAGE_PAGES,
-      maxImages: MAX_PDF_IMAGES,
-    });
+    const result = await parsePDF(file, { extractImages: true });
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
     return {
       content: result.text,
@@ -62,7 +55,7 @@ async function extractContent(file: File) {
     return {
       content: `${analysis.description}\n\nExtracted text:\n${analysis.extractedText}`,
       metadata: { fileType: 'image' as const, fileSize: file.size, caption: analysis.suggestedCaption || file.name },
-      images: [base64], // Include the image itself for figure creation
+      images: [base64],
     };
   }
   if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.toLowerCase().endsWith('.docx')) {
@@ -89,11 +82,22 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
 
   const processFiles = useCallback(async (files: File[]) => {
     if (!activeProject) return;
+    
+    // Check usage limits first
+    try {
+      const limitCheck = await checkMaterialLimitAction(activeProject.id);
+      if (!limitCheck.allowed) {
+        showToast(limitCheck.message || "Plan limit reached");
+        return;
+      }
+    } catch (e) {
+      console.error('Limit check failed:', e);
+    }
+
     setStatus('processing');
     const results: UploadProgress[] = files.map((f) => ({ filename: f.name, status: 'extracting' }));
     setProgress([...results]);
 
-    // Use a dynamic import to avoid potential circular dependencies with stores
     const { useFiguresStore } = await import('@/stores/figuresStore');
 
     for (let i = 0; i < files.length; i++) {
@@ -107,10 +111,29 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
         results[i] = { filename: file.name, status: 'saving' };
         setProgress([...results]);
 
-        const materialInput = { projectId: activeProject.id, section, sectionId, name: file.name, content, metadata };
-        const created = await createMaterialAction(materialInput);
+        let created;
+        const isRawUpload = metadata.fileType === 'pdf' || metadata.fileType === 'docx';
+
+        if (isRawUpload) {
+          // Use server action to upload both metadata AND the file itself for citation support
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('projectId', activeProject.id);
+          formData.append('section', section);
+          if (sectionId) formData.append('sectionId', sectionId);
+          formData.append('content', content);
+          formData.append('metadata', JSON.stringify(metadata));
+
+          created = await uploadMaterialAction(formData);
+        } else {
+          // Normal metadata-only creation
+          const materialInput = { projectId: activeProject.id, section, sectionId, name: file.name, content, metadata };
+          created = await createMaterialAction(materialInput);
+        }
+
         addMaterial(created);
         
+        // Handle images (figures)
         if (images && images.length > 0) {
           const { createFigureAction } = await import('@/app/actions/figures');
           for (let imgIndex = 0; imgIndex < images.length; imgIndex++) {
@@ -123,8 +146,6 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
                   imageBase64: imgData,
                   caption: metadata.caption || `Figure ${imgIndex + 1} from ${file.name}`,
                 });
-                
-                // Update figures store immediately
                 useFiguresStore.getState().addFigure(newFigure);
               } catch (e) {
                 console.error('Failed to save figure:', e);

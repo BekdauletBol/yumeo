@@ -192,7 +192,7 @@ export async function POST(req: Request): Promise<Response> {
         if (formattedAuthors.length > 1) {
           const last = formattedAuthors.pop();
           authorStr = `${formattedAuthors.join(', ')} & ${last}`;
-        } else if (formattedAuthors.length === 1) {
+        } else if (formattedAuthors.length === 1 && formattedAuthors[0]) {
           authorStr = formattedAuthors[0];
         }
 
