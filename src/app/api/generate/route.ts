@@ -108,9 +108,9 @@ export async function POST(req: Request): Promise<Response> {
     
     STRICT GROUNDING RULES:
     - You must only use the provided CHUNKS for factual information.
-    - Every factual sentence must include [REF:chunk_id].
+    - Every single factual sentence or claim must include [REF:chunk_id, p. X] immediately after the sentence. Do not wait until the end of the paragraph.
     - If content for a section is missing, insert [SECTION_GAP].
-    - APA 7th CITATIONS: Use in-text citations in APA 7th format if mentioning authors.
+    - APA 7th CITATIONS: Use in-text citations in APA 7th format if mentioning authors, but always follow with the system [REF:chunk_id, p. X] tag.
     - Return JSON only, with keys: sections (array of {title, content}) and cited_chunk_ids (array).
     - Do not add a references or bibliography section inside the JSON.
     - Do not include any conversational prose outside the JSON.`;

@@ -1,13 +1,121 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import { useFiguresStore } from '@/stores/figuresStore';
 import { useProjectStore } from '@/stores/projectStore';
-import { useUIStore } from '@/stores/uiStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { getFiguresAction, updateFigureOrderAction, updateFigureAction, deleteFigureAction } from '@/app/actions/figures';
 import { cn } from '@/lib/utils/cn';
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableFigureItemProps {
+  fig: any;
+  index: number;
+  onCaptionChange: (id: string, caption: string) => void;
+  onAddToReport: (fig: any, index: number) => void;
+  onDelete: (id: string) => void;
+}
+
+function SortableFigureItem({ fig, index, onCaptionChange, onAddToReport, onDelete }: SortableFigureItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: fig.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'w-full text-left p-2.5 rounded-md transition-colors relative group',
+        isDragging ? 'opacity-30 bg-[var(--bg-overlay)]' : 'bg-[var(--bg-elevated)] border border-[var(--border-subtle)]'
+      )}
+    >
+      <div className="flex items-start gap-2">
+        {/* Handle */}
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="p-1 -ml-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-grab active:cursor-grabbing shrink-0"
+        >
+          <GripVertical size={14} />
+        </div>
+
+        <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 text-xs font-bold overflow-hidden relative"
+          style={{ background: 'rgba(95,207,128,0.1)', color: 'var(--accent-figures)' }}
+          aria-hidden="true"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={fig.url} alt="thumb" className="object-cover w-full h-full opacity-50" />
+          <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-white text-[10px] font-bold">
+            {index + 1}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0 pr-12">
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--accent-figures)', fontFamily: 'var(--font-mono)' }}>
+            Fig. {index + 1}
+          </p>
+          <input
+            value={fig.caption || ''}
+            onChange={(e) => onCaptionChange(fig.id, e.target.value)}
+            placeholder="Add caption..."
+            className="w-full text-xs mt-0.5 leading-snug bg-transparent border-none outline-none focus:border-b"
+            style={{ color: 'var(--text-secondary)', borderColor: 'var(--accent-figures)' }}
+          />
+        </div>
+
+        {/* Add to report button */}
+        <button
+          onClick={() => onAddToReport(fig, index)}
+          className="absolute right-8 top-2.5 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-white/10"
+          style={{ color: 'var(--accent-figures)' }}
+          title="Add to Report"
+        >
+          <PlusCircle size={14} />
+        </button>
+
+        {/* Delete button (visible on hover) */}
+        <button
+          onClick={() => onDelete(fig.id)}
+          className="absolute right-2 top-2.5 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-white/10"
+          style={{ color: 'var(--text-tertiary)' }}
+          aria-label={`Delete figure`}
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function FiguresSection() {
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -15,7 +123,13 @@ export function FiguresSection() {
   const setFigures = useFiguresStore((s) => s.setFigures);
   const removeFigure = useFiguresStore((s) => s.removeFigure);
   const updateFigure = useFiguresStore((s) => s.updateFigure);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     if (activeProject) {
@@ -23,44 +137,32 @@ export function FiguresSection() {
     }
   }, [activeProject, setFigures]);
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !activeProject) return;
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+    const oldIndex = figures.findIndex((f) => f.id === active.id);
+    const newIndex = figures.findIndex((f) => f.id === over.id);
 
-  const handleDrop = async (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (!draggedId || draggedId === targetId || !activeProject) return;
+    const newFigures = arrayMove(figures, oldIndex, newIndex);
+    setFigures(newFigures);
 
-    const oldIndex = figures.findIndex(f => f.id === draggedId);
-    const newIndex = figures.findIndex(f => f.id === targetId);
-    
-    if (oldIndex === -1 || newIndex === -1) return;
+    const updates = newFigures.map((fig, idx) => ({
+      id: fig.id,
+      orderIndex: idx + 1,
+    }));
 
-    const newFigures = [...figures];
-    const [draggedItem] = newFigures.splice(oldIndex, 1);
-    if (!draggedItem) return;
-    newFigures.splice(newIndex, 0, draggedItem);
-
-    const updates = newFigures.map((fig, idx) => {
-      const orderIndex = idx + 1;
-      updateFigure({ ...fig, orderIndex });
-      return { id: fig.id, orderIndex };
-    });
-
-    await updateFigureOrderAction(activeProject.id, updates);
-    setDraggedId(null);
+    try {
+      await updateFigureOrderAction(activeProject.id, updates);
+    } catch (err) {
+      console.error('Failed to update figure order:', err);
+    }
   };
 
   const handleCaptionChange = async (id: string, caption: string) => {
     const fig = figures.find(f => f.id === id);
     if (!fig) return;
-    
+
     updateFigure({ ...fig, caption });
     await updateFigureAction(id, { caption });
   };
@@ -88,67 +190,30 @@ export function FiguresSection() {
         </div>
       ) : (
         <div className="space-y-2">
-          {figures.map((fig, index) => {
-            return (
-              <div
-                key={fig.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, fig.id)}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, fig.id)}
-                className={cn('w-full text-left p-2.5 rounded-md transition-colors relative group', draggedId === fig.id && 'opacity-50')}
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 text-xs font-bold cursor-grab overflow-hidden"
-                    style={{ background: 'rgba(95,207,128,0.1)', color: 'var(--accent-figures)' }}
-                    aria-hidden="true"
-                  >
-                    <img src={fig.url} alt="thumb" className="object-cover w-full h-full opacity-50" />
-                    <span className="absolute">{index + 1}</span>
-                  </div>
-                  <div className="flex-1 min-w-0 pr-12">
-                    <p className="text-xs font-medium" style={{ color: 'var(--accent-figures)', fontFamily: 'var(--font-mono)' }}>
-                      Fig. {index + 1}
-                    </p>
-                    <input
-                      value={fig.caption || ''}
-                      onChange={(e) => handleCaptionChange(fig.id, e.target.value)}
-                      placeholder="Add caption..."
-                      className="w-full text-xs mt-0.5 leading-snug bg-transparent border-none outline-none focus:border-b"
-                      style={{ color: 'var(--text-secondary)', borderColor: 'var(--accent-figures)' }}
-                    />
-                  </div>
-                  
-                  {/* Add to report button */}
-                  <button
-                    onClick={() => handleAddToReport(fig, index)}
-                    className="absolute right-8 top-2.5 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-white/10"
-                    style={{ color: 'var(--accent-figures)' }}
-                    title="Add to Report"
-                  >
-                    <PlusCircle size={14} />
-                  </button>
-
-                  {/* Delete button (visible on hover) */}
-                  <button
-                    onClick={async () => {
-                      removeFigure(fig.id);
-                      await deleteFigureAction(fig.id);
-                    }}
-                    className="absolute right-2 top-2.5 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-white/10"
-                    style={{ color: 'var(--text-tertiary)' }}
-                    aria-label={`Delete figure`}
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={figures.map((f) => f.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {figures.map((fig, index) => (
+                <SortableFigureItem
+                  key={fig.id}
+                  fig={fig}
+                  index={index}
+                  onCaptionChange={handleCaptionChange}
+                  onAddToReport={handleAddToReport}
+                  onDelete={async (id) => {
+                    removeFigure(id);
+                    await deleteFigureAction(id);
+                  }}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
           <FileUploadZone section="figures" compact />
         </div>
       )}
