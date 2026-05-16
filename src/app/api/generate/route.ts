@@ -93,24 +93,27 @@ export async function POST(req: Request): Promise<Response> {
       .join('\n\n');
 
     const hasPlaceholders = /\{\{\s*\w+\s*\}\}/.test(templateBody);
-    const pass1System = `You are Yumeo, a strict research assistant. 
+    const pass1System = `You are Yumeo, a strict academic research assistant. 
     
     TASK:
-    Generate a report based on the provided TEMPLATE and CHUNKS.
+    Generate a research report based on the provided TEMPLATE and CHUNKS.
     
-    STYLE & STRUCTURE:
-    - ${hasPlaceholders ? 'Follow the exact structure defined by the placeholders in the TEMPLATE.' : 'Adopt the writing style, tone, and structural flow of the provided TEMPLATE.'}
-    - If the TEMPLATE is a full document, treat it as a style and structure guide.
-    - If the TEMPLATE has placeholders like {{section}}, fill them.
-    - If no specific TEMPLATE structure is clear, use a standard academic structure (Abstract, Intro, Methods, Results, Discussion, Conclusion).
+    WRITING STYLE RULES:
+    - ACADEMIC PROSE: Write in flowing academic prose. DO NOT use bullet points or robotic lists.
+    - TRANSITIONS: Use smooth, logical transitions between paragraphs to ensure a cohesive narrative flow.
+    - PARAGRAPH STRUCTURE: Each paragraph should typically be 4-6 sentences long, developing a single clear idea.
+    - TONE: Maintain a formal, objective, but readable academic tone.
+    - HEADERS: DO NOT use markdown headers (e.g., ##) in your response unless you are writing a full, multi-page report.
+    - ${hasPlaceholders ? 'Follow the exact structure defined by the placeholders in the TEMPLATE.' : 'Adopt the writing style and tone of the provided TEMPLATE.'}
     
-    STRICT RULES:
+    STRICT GROUNDING RULES:
     - You must only use the provided CHUNKS for factual information.
     - Every factual sentence must include [REF:chunk_id].
     - If content for a section is missing, insert [SECTION_GAP].
+    - APA 7th CITATIONS: Use in-text citations in APA 7th format if mentioning authors.
     - Return JSON only, with keys: sections (array of {title, content}) and cited_chunk_ids (array).
-    - Do not add references or bibliography.
-    - Do not include any prose outside JSON.`;
+    - Do not add a references or bibliography section inside the JSON.
+    - Do not include any conversational prose outside the JSON.`;
 
     const pass1User = `TEMPLATE GUIDE:\n${templateBody || 'NONE (Use standard academic format)'}\n\nCHUNKS:\n${context}`;
 
@@ -169,11 +172,36 @@ export async function POST(req: Request): Promise<Response> {
     const bibliography = typedChunkRows
       .map((chunk) => {
         const meta = chunk.metadata ?? {};
-        const author = meta.author ?? (meta.authors?.[0] ?? 'Unknown author');
-        const year = meta.year ? `(${meta.year})` : '';
-        const doi = meta.doi ? ` DOI: ${meta.doi}` : '';
-        const file = meta.file_name ?? 'Unknown file';
-        return `${author} ${year} ${file}.${doi}`.trim();
+        const authors = meta.authors || (meta.author ? [meta.author] : []);
+        
+        // 1. Format authors: Last, F. M.
+        const formattedAuthors = authors.map(a => {
+          if (a.includes(',')) {
+            const [last, first] = a.split(',').map(s => s.trim());
+            const initials = first ? first.split(/\s+/).map(n => `${n[0]}.`).join(' ') : '';
+            return `${last}, ${initials}`.trim();
+          } else {
+            const names = a.split(/\s+/);
+            const last = names.pop() || '';
+            const initials = names.map(n => `${n[0]}.`).join(' ');
+            return `${last}, ${initials}`.trim();
+          }
+        }).filter(Boolean);
+
+        let authorStr = 'Unknown author';
+        if (formattedAuthors.length > 1) {
+          const last = formattedAuthors.pop();
+          authorStr = `${formattedAuthors.join(', ')} & ${last}`;
+        } else if (formattedAuthors.length === 1) {
+          authorStr = formattedAuthors[0];
+        }
+
+        const year = meta.year ? `(${meta.year}).` : '';
+        const title = meta.file_name ? `${meta.file_name.replace(/\.[^/.]+$/, '')}.` : 'Untitled source.';
+        const doi = meta.doi ? (meta.doi.startsWith('http') ? meta.doi : ` https://doi.org/${meta.doi}`) : '';
+        
+        // Follow APA 7th: Author, A. A. (Year). Title. https://doi.org/DOI
+        return `${authorStr} ${year} ${title}${doi}`.trim();
       })
       .filter(Boolean)
       .filter((value, index, self) => self.indexOf(value) === index);

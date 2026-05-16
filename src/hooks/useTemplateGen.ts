@@ -70,7 +70,7 @@ export function useTemplateGen(): UseTemplateGenResult {
 
       setReportResult(data);
       const bibliography = data.bibliography?.length
-        ? `\n\nReferences:\n${data.bibliography.map((ref) => `- ${ref}`).join('\n')}`
+        ? `\n\nReferences\n\n${data.bibliography.join('\n\n')}`
         : '';
       setGeneratedContent(`${data.draft.raw}${bibliography}`.trim());
     } catch (err) {
