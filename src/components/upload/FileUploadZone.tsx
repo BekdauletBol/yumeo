@@ -51,10 +51,18 @@ async function extractContent(file: File) {
     };
   }
   if (file.type.startsWith('image/')) {
-    const analysis = await analyzeImage(file);
+    const { fileToBase64, analyzeImage } = await import('@/lib/parsers/imageAnalyzer');
+    const base64 = await fileToBase64(file);
+    let analysis = { description: '', extractedText: '', suggestedCaption: '' };
+    try {
+      analysis = await analyzeImage(file);
+    } catch (e) {
+      console.warn('Image analysis failed, proceeding with raw upload:', e);
+    }
     return {
       content: `${analysis.description}\n\nExtracted text:\n${analysis.extractedText}`,
-      metadata: { fileType: 'image' as const, fileSize: file.size, caption: analysis.suggestedCaption },
+      metadata: { fileType: 'image' as const, fileSize: file.size, caption: analysis.suggestedCaption || file.name },
+      images: [base64], // Include the image itself for figure creation
     };
   }
   if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.toLowerCase().endsWith('.docx')) {
@@ -78,13 +86,15 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
   const [progress, setProgress] = useState<UploadProgress[]>([]);
   const addMaterial = useMaterialsStore((s) => s.addMaterial);
   const activeProject = useProjectStore((s) => s.activeProject);
-  const sections = useProjectSectionsStore((s) => s.sections);
 
   const processFiles = useCallback(async (files: File[]) => {
     if (!activeProject) return;
     setStatus('processing');
     const results: UploadProgress[] = files.map((f) => ({ filename: f.name, status: 'extracting' }));
     setProgress([...results]);
+
+    // Use a dynamic import to avoid potential circular dependencies with stores
+    const { useFiguresStore } = await import('@/stores/figuresStore');
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -107,12 +117,15 @@ export function FileUploadZone({ section, sectionId, compact = false, onUploadCo
             const imgData = images[imgIndex];
             if (imgData) {
               try {
-                await createFigureAction({
+                const newFigure = await createFigureAction({
                   projectId: activeProject.id,
                   materialId: created.id,
                   imageBase64: imgData,
-                  caption: `Figure ${imgIndex + 1} from ${file.name}`,
+                  caption: metadata.caption || `Figure ${imgIndex + 1} from ${file.name}`,
                 });
+                
+                // Update figures store immediately
+                useFiguresStore.getState().addFigure(newFigure);
               } catch (e) {
                 console.error('Failed to save figure:', e);
               }

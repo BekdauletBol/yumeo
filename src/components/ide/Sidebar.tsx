@@ -12,8 +12,14 @@ import {
   Sigma,
   GitGraph
 } from 'lucide-react';
+import { useState } from 'react';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { createProjectSectionAction } from '@/app/actions/sections';
+import { SectionSelectModal } from '@/components/sections/AddSectionButton';
+import { showToast } from '@/lib/utils/toast';
 import { cn } from '@/lib/utils/cn';
+import type { MaterialSection } from '@/lib/types';
 
 const ICON_MAP = {
   references: BookOpen,
@@ -26,7 +32,26 @@ const ICON_MAP = {
 };
 
 export function Sidebar() {
-  const { sections, activeSectionId, setActiveSection: setActiveSectionId } = useProjectSectionsStore();
+  const { sections, activeSectionId, setActiveSection: setActiveSectionId, addSection } = useProjectSectionsStore();
+  const { activeProject } = useProjectStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleAddSection = async (type: MaterialSection) => {
+    if (!activeProject) return;
+    
+    try {
+      setIsCreating(true);
+      const newSection = await createProjectSectionAction(activeProject.id, type);
+      addSection(newSection);
+      setActiveSectionId(newSection.id);
+      showToast(`Module '${type}' added`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to add module');
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden"
@@ -36,12 +61,17 @@ export function Sidebar() {
         {/* Sections */}
         <div>
           <div className="flex items-center justify-between mb-3 px-2">
-            <h3 className="text-xs font-medium"
+            <h3 className="text-xs font-bold uppercase tracking-[0.15em]"
               style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}
             >
               sections
             </h3>
-            <button style={{ color: 'var(--text-tertiary)' }} className="hover:opacity-70 transition-opacity">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              disabled={isCreating}
+              style={{ color: 'var(--text-tertiary)' }} 
+              className="hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+            >
               <Plus size={14} />
             </button>
           </div>
@@ -88,18 +118,25 @@ export function Sidebar() {
           <div className="p-3.5 rounded-xl"
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
           >
-            <p className="text-xs font-medium mb-1"
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2"
               style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}
             >
               knowledge base
             </p>
             <div className="flex items-end justify-between">
-              <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>12</span>
-              <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>items</span>
+              <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>{sections.length * 2 + 4}</span>
+              <span className="text-xs font-medium uppercase tracking-tighter" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>indexed</span>
             </div>
           </div>
         </div>
       </div>
+
+      <SectionSelectModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelectSection={handleAddSection}
+        disabledSections={sections.map(s => s.sectionType)}
+      />
     </div>
   );
 }

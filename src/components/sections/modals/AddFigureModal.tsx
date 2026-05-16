@@ -2,10 +2,10 @@
 
 import { useState, useRef } from 'react';
 import { X, Upload } from 'lucide-react';
-import { createMaterialAction } from '@/app/actions/materials';
-import { useMaterialsStore } from '@/stores/materialsStore';
+import { createFigureAction } from '@/app/actions/figures';
+import { useFiguresStore } from '@/stores/figuresStore';
 import { useProjectStore } from '@/stores/projectStore';
-import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
+import { showToast } from '@/lib/utils/toast';
 
 interface AddFigureModalProps {
   isOpen: boolean;
@@ -19,16 +19,14 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const addMaterial = useMaterialsStore((s) => s.addMaterial);
+  const addFigure = useFiguresStore((s) => s.addFigure);
   const activeProject = useProjectStore((s) => s.activeProject);
-  const sections = useProjectSectionsStore((s) => s.sections);
-  const figuresSection = sections.find(s => s.sectionType === 'figures');
 
   if (!isOpen) return null;
 
   const handleImageSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showToast('Please select an image file');
       return;
     }
     setImage(file);
@@ -39,30 +37,28 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image || !caption.trim() || !activeProject || !figuresSection) return;
+    if (!image || !caption.trim() || !activeProject) return;
 
     try {
       setIsLoading(true);
-      const base64 = await new Promise<string>((resolve) => {
+      const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (ev) => resolve(ev.target?.result as string);
+        reader.onload = (ev) => {
+          const res = ev.target?.result as string;
+          resolve(res.split(',')[1] || res);
+        };
+        reader.onerror = reject;
         reader.readAsDataURL(image);
       });
 
-      const material = await createMaterialAction({
+      const newFigure = await createFigureAction({
         projectId: activeProject.id,
-        section: 'figures',
-        sectionId: figuresSection.id,
-        name: caption,
-        content: base64,
-        metadata: { 
-          fileType: 'image',
-          fileSize: image.size,
-          caption,
-        },
+        imageBase64: base64,
+        caption,
       });
       
-      addMaterial(material);
+      addFigure(newFigure);
+      showToast('Figure added successfully');
       setCaption('');
       setImage(null);
       setPreview('');
@@ -70,29 +66,29 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
       onClose();
     } catch (err) {
       console.error('Failed to add figure:', err);
-      alert(err instanceof Error ? err.message : 'Failed to add figure');
+      showToast(err instanceof Error ? err.message : 'Failed to add figure');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div
-        className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
-        style={{ background: 'var(--bg-primary)' }}
+        className="rounded-2xl border border-[var(--border-subtle)] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        style={{ background: 'var(--bg-surface)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="px-6 py-5 border-b border-[var(--border-subtle)] flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Add Figure</h2>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-              Upload an image (PNG, JPG, GIF, etc.)
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Add Figure</h2>
+            <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-widest font-medium mt-0.5">
+              Upload image or diagram
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:opacity-70"
+            className="p-2 rounded-full hover:bg-[var(--bg-elevated)] transition-colors text-[var(--text-tertiary)]"
             aria-label="Close modal"
           >
             <X size={20} />
@@ -100,31 +96,34 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Image upload */}
           <div>
-            <label className="block text-sm font-medium mb-2">Image</label>
             <div
-              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors hover:opacity-80"
+              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all hover:bg-[var(--bg-elevated)] hover:border-[var(--accent-primary)] group"
               style={{
-                borderColor: 'var(--border-subtle)',
-                background: 'var(--bg-secondary)',
+                borderColor: preview ? 'transparent' : 'var(--border-subtle)',
+                background: preview ? 'transparent' : 'var(--bg-elevated)',
               }}
               onClick={() => fileInputRef.current?.click()}
             >
               {preview ? (
-                <div className="relative w-full h-48">
+                <div className="relative w-full aspect-video">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={preview}
                     alt="preview"
-                    className="max-w-full max-h-48 mx-auto rounded"
+                    className="w-full h-full object-contain rounded-lg shadow-sm"
                   />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                    <p className="text-xs font-bold text-white uppercase tracking-widest">Change Image</p>
+                  </div>
                 </div>
               ) : (
-                <div>
-                  <Upload size={24} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Click or drag image here</p>
+                <div className="py-4">
+                  <Upload size={32} className="mx-auto mb-3 text-[var(--text-tertiary)] group-hover:text-[var(--accent-primary)] transition-colors" />
+                  <p className="text-sm font-medium text-[var(--text-primary)]">Drop image here or click to browse</p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Supports PNG, JPG, GIF up to 10MB</p>
                 </div>
               )}
             </div>
@@ -141,29 +140,24 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
           </div>
 
           {/* Caption */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Caption</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-tertiary)] px-1">Caption</label>
             <input
               type="text"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Describe the figure..."
-              className="w-full px-3 py-2 rounded-lg border"
-              style={{
-                borderColor: 'var(--border-subtle)',
-                background: 'var(--bg-secondary)',
-              }}
+              placeholder="e.g. Correlation between carbon and heat"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-sm outline-none focus:border-[var(--accent-primary)] transition-all"
               disabled={isLoading}
             />
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 justify-end pt-4">
+          <div className="flex gap-3 justify-end pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border-2 transition-colors"
-              style={{ borderColor: 'var(--border-subtle)' }}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               disabled={isLoading}
             >
               Cancel
@@ -171,10 +165,10 @@ export function AddFigureModal({ isOpen, onClose }: AddFigureModalProps) {
             <button
               type="submit"
               disabled={!image || !caption.trim() || isLoading}
-              className="px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 rounded-xl transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: 'var(--accent-primary)',
-                color: 'var(--text-on-accent)',
+                color: 'white',
               }}
             >
               {isLoading ? 'Saving...' : 'Add Figure'}

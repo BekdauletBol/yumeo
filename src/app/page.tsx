@@ -54,7 +54,7 @@ function HeroTerminal() {
   }, []);
 
   return (
-    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: 'var(--bg-base)' }}>
+    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: '#0d0d0d' }}>
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
@@ -163,7 +163,7 @@ function TypingDemo() {
   }, [isInView]);
 
   return (
-    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: 'var(--bg-surface)' }}>
+    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: '#0d0d0d' }}>
       {/* Window Header */}
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
@@ -332,8 +332,8 @@ export default function HomePage() {
           className="px-8 md:px-16 py-24 md:py-32"
           style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-center text-xs font-medium mb-12 uppercase tracking-widest" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
+          <div className="max-w-5xl mx-auto text-center">
+            <h2 className="text-base md:text-lg font-medium mb-16 uppercase tracking-widest" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
               see how it works
             </h2>
             <TypingDemo />
@@ -432,7 +432,7 @@ export default function HomePage() {
               <br />
               your research.
             </h2>
-            <p className="text-sm leading-relaxed mb-8" style={{ fontFamily: font, color: 'var(--text-secondary)' }}>
+            <p className="text-sm leading-relaxed mb-8" style={{ fontFamily: font, color: '#777' }}>
               every paper you upload, every question you ask, every draft you write.
               yumeo builds a private knowledge base and uses it to give you answers
               you can actually cite in your work.

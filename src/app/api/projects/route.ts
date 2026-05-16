@@ -4,16 +4,25 @@ import { NextResponse } from 'next/server';
 import type { Project } from '@/lib/types';
 
 function rowToProject(row: Record<string, unknown>): Project {
+  if (!row) throw new Error('Invalid project data');
+  
   return {
-    id: row['id'] as string,
-    userId: row['user_id'] as string,
-    name: row['name'] as string,
+    id: (row['id'] as string) || '',
+    userId: (row['user_id'] as string) || '',
+    name: (row['name'] as string) || 'Untitled Project',
     description: (row['description'] as string | null) ?? undefined,
-    settings: row['settings'] as Project['settings'],
-    createdAt: new Date(row['created_at'] as string),
-    updatedAt: new Date(row['updated_at'] as string),
+    settings: (row['settings'] as Project['settings']) || {
+      agentModel: 'openai/gpt-4o',
+      strictGrounding: true,
+      language: 'en',
+      exportFormat: 'markdown',
+    },
+    createdAt: row['created_at'] ? new Date(row['created_at'] as string) : new Date(),
+    updatedAt: row['updated_at'] ? new Date(row['updated_at'] as string) : new Date(),
   };
 }
+
+const CONFIG_ERROR_MSG = 'Database configuration is incomplete. Please ensure Supabase environment variables are set.';
 
 export async function GET() {
   try {
@@ -26,7 +35,16 @@ export async function GET() {
       );
     }
 
-    const supabase = createServiceClient();
+    let supabase;
+    try {
+      supabase = createServiceClient();
+    } catch (e) {
+      return NextResponse.json(
+        { error: CONFIG_ERROR_MSG },
+        { status: 503 }
+      );
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -34,9 +52,16 @@ export async function GET() {
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('Supabase query error:', error);
+      // If table doesn't exist, error.code is '42P01'
+      if (error.code === '42P01') {
+        return NextResponse.json(
+          { error: 'Projects database is not initialized. Please run the schema.sql migration in Supabase.' },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Failed to fetch projects' },
+        { error: 'Unable to fetch projects from database' },
         { status: 500 }
       );
     }
@@ -44,9 +69,9 @@ export async function GET() {
     const projects = (data ?? []).map(rowToProject);
     return NextResponse.json(projects);
   } catch (error) {
-    console.error('Failed to fetch projects:', error);
+    console.error('Projects API GET Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch projects' },
+      { error: 'A server error occurred while fetching projects' },
       { status: 500 }
     );
   }
@@ -72,7 +97,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = createServiceClient();
+    let supabase;
+    try {
+      supabase = createServiceClient();
+    } catch (e) {
+      return NextResponse.json(
+        { error: CONFIG_ERROR_MSG },
+        { status: 503 }
+      );
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .insert({
@@ -90,18 +124,18 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('Supabase insert error:', error);
       return NextResponse.json(
-        { error: 'Failed to create project' },
+        { error: 'Failed to save project to database' },
         { status: 500 }
       );
     }
 
     return NextResponse.json(rowToProject(data), { status: 201 });
   } catch (error) {
-    console.error('Failed to create project:', error);
+    console.error('Projects API POST Error:', error);
     return NextResponse.json(
-      { error: 'Failed to create project' },
+      { error: 'A server error occurred while creating the project' },
       { status: 500 }
     );
   }
@@ -128,7 +162,15 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const supabase = createServiceClient();
+    let supabase;
+    try {
+      supabase = createServiceClient();
+    } catch (e) {
+      return NextResponse.json(
+        { error: CONFIG_ERROR_MSG },
+        { status: 503 }
+      );
+    }
     
     // Verify project belongs to user
     const { data: project, error: fetchError } = await supabase
@@ -140,7 +182,7 @@ export async function DELETE(req: Request) {
 
     if (fetchError || !project) {
       return NextResponse.json(
-        { error: 'Project not found or unauthorized' },
+        { error: 'Project not found or access denied' },
         { status: 404 }
       );
     }
@@ -153,19 +195,20 @@ export async function DELETE(req: Request) {
       .eq('user_id', userId);
 
     if (deleteError) {
-      console.error('Supabase error:', deleteError);
+      console.error('Supabase delete error:', deleteError);
       return NextResponse.json(
-        { error: 'Failed to delete project' },
+        { error: 'Failed to delete project from database' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to delete project:', error);
+    console.error('Projects API DELETE Error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete project' },
+      { error: 'A server error occurred while deleting the project' },
       { status: 500 }
     );
   }
 }
+

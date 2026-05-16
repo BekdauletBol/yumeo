@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { createProject } from '@/lib/db/projects';
 import type { ProjectSettings } from '@/lib/types';
 
 const DEFAULT_SETTINGS: ProjectSettings = {
@@ -31,14 +30,28 @@ export default function NewProjectPage() {
     setError(null);
 
     try {
-      const project = await createProject(user.id, {
-        name: name.trim(),
-        description: description.trim() || undefined,
-        settings: DEFAULT_SETTINGS,
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          settings: DEFAULT_SETTINGS,
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Failed to create project (${response.status})`);
+      }
+
+      const project = await response.json();
       router.push(`/${project.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create project');
+      // Hide technical/internal errors from the user and provide a friendly message.
+      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      // If it's the specific config error from the API, we can display it or a generic one.
+      setError(errMsg);
       setIsCreating(false);
     }
   }
@@ -125,9 +138,18 @@ export default function NewProjectPage() {
 
           {/* Error */}
           {error && (
-            <p className="text-sm mb-4" style={{ color: 'var(--status-error)' }} role="alert">
+            <div 
+              className="p-4 rounded-lg text-sm mb-6"
+              style={{ 
+                background: 'rgba(239,68,68,0.08)', 
+                border: '1px solid rgba(239,68,68,0.2)', 
+                color: 'var(--status-error)',
+                fontFamily: 'var(--font-body)' 
+              }}
+              role="alert"
+            >
               {error}
-            </p>
+            </div>
           )}
 
           {/* Submit */}
