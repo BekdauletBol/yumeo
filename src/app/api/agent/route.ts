@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { checkRateLimit, rateLimitResponse } from '@/lib/security/rateLimit';
 import { retrieveRelevantChunks } from '@/lib/agent/rag';
 import { BLOCKED_TOPICS } from '@/lib/agent/buildSystemPrompt';
+import { checkMessageLimitAction } from '@/app/actions/plans';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // Extend timeout for agent responses
@@ -40,6 +41,15 @@ export async function POST(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({ error: 'Unauthorized', code: 'UNAUTHORIZED' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Check daily message limit
+  const limitCheck = await checkMessageLimitAction();
+  if (!limitCheck.allowed) {
+    return new Response(
+      JSON.stringify({ error: limitCheck.message, code: 'LIMIT_EXCEEDED' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
     );
   }
 

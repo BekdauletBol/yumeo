@@ -111,25 +111,43 @@ export async function deleteMaterial(id: string): Promise<void> {
 
 /**
  * Upload a raw file to Supabase Storage and return the public URL.
- * Path format: {projectId}/{materialId}/{filename}
+ * Path format: {userId}/{projectId}/{materialId}/original.{ext}
+ * This format complies with the RLS policy: auth.uid()::text = (storage.foldername(name))[1]
  */
 export async function uploadMaterialFile(
+  userId: string,
   projectId: string,
   materialId: string,
-  file: File,
+  file: File | Buffer,
+  fileName: string,
 ): Promise<string> {
   const serviceClient = createServiceClient();
-  const ext = file.name.split('.').pop() ?? 'bin';
-  const path = `${projectId}/${materialId}/original.${ext}`;
+  const ext = fileName.split('.').pop() ?? 'bin';
+  const path = `${userId}/${projectId}/${materialId}/original.${ext}`;
 
   const { error } = await serviceClient.storage
     .from('materials')
-    .upload(path, file, { upsert: true });
+    .upload(path, file, { 
+      upsert: true,
+      contentType: getContentType(ext)
+    });
 
   if (error) throw new Error(`Failed to upload file: ${error.message}`);
 
   const { data } = serviceClient.storage.from('materials').getPublicUrl(path);
   return data.publicUrl;
+}
+
+function getContentType(ext: string): string {
+  const map: Record<string, string> = {
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+  };
+  return map[ext.toLowerCase()] || 'application/octet-stream';
 }
 
 // ─── Private helpers ────────────────────────────────────────────────────────
@@ -153,6 +171,7 @@ function storagePathFromUrl(url: string): string | null {
   try {
     const u = new URL(url);
     // Supabase storage URLs: /storage/v1/object/public/{bucket}/{path}
+    // Expected path structure: userId/projectId/materialId/original.ext
     const match = u.pathname.match(/\/storage\/v1\/object\/public\/materials\/(.+)/);
     return match?.[1] ?? null;
   } catch {

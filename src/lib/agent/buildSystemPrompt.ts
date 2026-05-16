@@ -95,7 +95,7 @@ ${referenceContext}
 ═══════════════════════════════════════════
 STRICT OPERATIONAL RULES
 ═══════════════════════════════════════════
-1. CITATION REQUIREMENT: Use APA 7th edition for all citations. Every factual claim must end with an in-text citation, e.g., (Tarasak, 2025).
+1. CITATION REQUIREMENT: Use APA 7th edition for in-text mentions, but ALWAYS append the system citation tag with page number: [REF:n, p. X] (where n is the reference number and X is the page number). Example: "Edubuntu provides a rebirth of educational systems (Tarasak, 2025) [REF:1, p. 5]."
 2. GROUNDING: Answer ONLY from uploaded materials. If info is missing → say so exactly.
 3. ACADEMIC INTEGRITY: Never invent authors, dates, or statistics.
 4. WRITING STYLE: 

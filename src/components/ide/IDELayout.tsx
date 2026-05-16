@@ -5,6 +5,7 @@ import { Library, MessageSquare, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useUIStore } from '@/stores/uiStore';
 import { ReferencesSection } from '@/components/sections/ReferencesSection';
+import { CitationViewer } from './CitationViewer';
 
 interface IDELayoutProps {
   topBar: React.ReactNode;
@@ -60,6 +61,9 @@ export function IDELayout({ topBar, sidebar, chat, editor, className }: IDELayou
       >
         {editor}
       </aside>
+
+      {/* Citation viewer side panel */}
+      <CitationViewer />
 
       {/* Mobile Bottom Navigation */}
       <nav 

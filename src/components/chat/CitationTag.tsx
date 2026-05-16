@@ -5,6 +5,7 @@ import type { Citation } from '@/lib/types';
 import { useUIStore } from '@/stores/uiStore';
 import { SECTION_LABELS } from '@/lib/types/material';
 import { cn } from '@/lib/utils/cn';
+import { ExternalLink } from 'lucide-react';
 
 interface CitationTagProps {
   citation: Citation;
@@ -16,6 +17,7 @@ export function CitationTag({ citation, className }: CitationTagProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const setHighlightedMaterialId = useUIStore((s) => s.setHighlightedMaterialId);
+  const openCitationViewer = useUIStore((s) => s.openCitationViewer);
 
   useEffect(() => {
     if (!open) return;
@@ -35,25 +37,30 @@ export function CitationTag({ citation, className }: CitationTagProps) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open]);
 
-  function handleClick() {
+  function handleTagClick() {
     setOpen((v) => !v);
     setHighlightedMaterialId(open ? null : citation.materialId);
+  }
+
+  function handleViewClick() {
+    openCitationViewer(citation.materialId, citation.pageNumber, citation.excerpt);
+    setOpen(false);
   }
 
   return (
     <span className="relative inline-block">
       <button
         ref={ref}
-        onClick={handleClick}
+        onClick={handleTagClick}
         className={cn(
-          "px-2 py-0.5 rounded-lg font-mono font-bold text-[10px] transition-all border",
+          "px-2 py-0.5 rounded-lg font-mono font-bold text-[10px] transition-all border shrink-0",
           open 
             ? "bg-accent-primary text-white border-accent-primary" 
             : "bg-bg-elevated text-text-secondary border-border-subtle hover:text-text-primary hover:border-border-default",
           className
         )}
       >
-        REF:{citation.refIndex}
+        REF:{citation.refIndex}{citation.pageNumber ? `, p. ${citation.pageNumber}` : ''}
       </button>
 
       {open && (
@@ -83,10 +90,13 @@ export function CitationTag({ citation, className }: CitationTagProps) {
               </blockquote>
             )}
 
-            <div className="mt-4 flex items-center justify-between">
-               <p className="text-[9px] font-mono font-bold text-text-tertiary uppercase tracking-tighter">
-                Click sidebar item for full context
-              </p>
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <button 
+                onClick={handleViewClick}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[var(--accent-primary)] text-white text-[10px] font-bold uppercase tracking-widest transition-all hover:opacity-90"
+              >
+                <ExternalLink size={12} /> View Source
+              </button>
               <p className="text-[9px] font-mono text-text-tertiary">ESC TO CLOSE</p>
             </div>
           </div>
