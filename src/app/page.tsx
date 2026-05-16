@@ -54,13 +54,13 @@ function HeroTerminal() {
   }, []);
 
   return (
-    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: '#0d0d0d' }}>
+    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: 'var(--bg-base)' }}>
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
       </div>
-      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--text-secondary)] space-y-2">
+      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--text-secondary)] space-y-2 text-left">
         {lines.map((line, i) => (
           <div key={i} className={i === lines.length - 1 ? "text-[var(--accent-primary)] animate-in fade-in duration-500" : ""}>
             {line}
@@ -163,9 +163,9 @@ function TypingDemo() {
   }, [isInView]);
 
   return (
-    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: '#0d0d0d' }}>
+    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: 'var(--bg-base)' }}>
       {/* Window Header */}
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
@@ -174,7 +174,7 @@ function TypingDemo() {
         </div>
       </div>
       {/* Window Content */}
-      <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[400px] flex flex-col">
+      <div className="p-6 md:px-8 md:py-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[400px] flex flex-col text-left">
         <div className="flex-1 space-y-4">
           {lines.map((line, i) => (
             <div key={i} className="whitespace-pre-wrap leading-relaxed" style={{ color: i < 3 ? 'var(--text-tertiary)' : i === 4 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
