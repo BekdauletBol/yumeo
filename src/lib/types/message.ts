@@ -14,7 +14,7 @@ export interface Citation {
 }
 
 /** A message in the Yumeo research chat */
-...
+export interface ChatMessage {
   id: string;
   projectId: string;
   role: 'user' | 'assistant' | 'system';

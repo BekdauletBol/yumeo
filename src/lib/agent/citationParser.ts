@@ -4,9 +4,12 @@ import type { Material } from '@/lib/types';
 /** Regex matching [REF:n] or [REF:n, p. X] patterns */
 const REF_PATTERN = /\[REF:(\d+)(?:,\s*p\.\s*(\d+))?\]/g;
 
+/** Regex matching the trailing "SOURCES USED: [REF:1], [REF:2]" block */
+const SOURCES_BLOCK_PATTERN = /\nSOURCES USED:.*$/s;
+
 /**
  * Parse [REF:n] or [REF:n, p. X] markers from AI message content.
- *
+...
  * @param content   - Raw AI message string
  * @param materials - Ordered list of materials (REF:1 = materials[0])
  * @returns         - Array of Citation objects for each unique referenced material/page
