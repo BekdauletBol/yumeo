@@ -64,9 +64,9 @@ export function YuportEditor() {
         </div>
       </div>
 
-      {/* Paginated Content Area */}
-      <div className="flex-1 overflow-y-auto p-8 md:p-12 scrollbar-thin">
-        <div className="max-w-4xl mx-auto space-y-12">
+      {/* Paginated Content Area — darker bg so A4 sheets "float" */}
+      <div className="flex-1 overflow-y-auto overflow-x-auto p-8 md:p-12 scrollbar-thin" style={{ background: 'var(--bg-base)' }}>
+        <div className="mx-auto space-y-12" style={{ maxWidth: '860px' }}>
           {pages.map((content, idx) => (
             <div 
               key={idx} 

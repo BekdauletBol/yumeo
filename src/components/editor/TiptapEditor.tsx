@@ -52,7 +52,8 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[600px] font-body leading-relaxed text-text-primary p-12 md:p-16',
+          'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[1050px] font-body leading-relaxed text-text-primary',
+          'px-[72px] py-[64px]',
           'selection:bg-accent-primary/30 selection:text-white',
         ),
       },
@@ -112,7 +113,7 @@ export function TiptapEditor({
   if (!editor) return null;
 
   return (
-    <div className={cn('tiptap-page relative bg-bg-surface border border-border-subtle shadow-2xl transition-all duration-300', isActive ? 'ring-2 ring-accent-primary/20' : 'opacity-80 scale-[0.98]', className)}>
+    <div className={cn('tiptap-page relative bg-white dark:bg-[#1e1e1e] border border-border-default rounded-sm transition-all duration-300 mx-auto', 'w-[794px] min-h-[1123px]', 'shadow-[0_4px_24px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.08)]', isActive ? 'ring-2 ring-accent-primary/20' : 'opacity-60 scale-[0.97]', className)}>
       <EditorContent editor={editor} />
 
       {/* AI Inline Prompt */}
@@ -151,6 +152,21 @@ export function TiptapEditor({
       </div>
       
       <style jsx global>{`
+        /* ── A4 Page Dimensions ── */
+        .tiptap-page {
+          /* A4 at 96dpi = 794 × 1123 px */
+          width: 794px;
+          min-height: 1123px;
+          position: relative;
+        }
+
+        @media (max-width: 860px) {
+          .tiptap-page {
+            width: 100% !important;
+            min-height: auto !important;
+          }
+        }
+
         .tiptap p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;
@@ -184,6 +200,12 @@ export function TiptapEditor({
           font-family: inherit;
           font-size: inherit;
           line-height: inherit;
+        }
+
+        /* Light mode: true white page */
+        .light .tiptap-page {
+          background: #ffffff;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
         }
       `}</style>
     </div>
