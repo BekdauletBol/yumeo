@@ -26,7 +26,7 @@ function getContextBudget(model: string): number {
  */
 export function buildSystemPrompt(
   materials: Material[],
-  _settings: ProjectSettings,
+  settings: ProjectSettings,
   activeSections?: ProjectSection[],
   model?: string,
   figures?: Figure[]
@@ -60,7 +60,12 @@ export function buildSystemPrompt(
 
   const templateSection = activeTemplate
     ? `Template being used: ${activeTemplate.name}\nTemplate structure:\n${truncateToTokens(activeTemplate.content, 2000)}`
-    : 'No template uploaded. Infer appropriate academic structure (IEEE, APA, etc.).';
+    : 'No template uploaded.';
+
+  const formatPreference = settings.outputFormatPreference || 'structured';
+  const formatInstruction = formatPreference === 'plain'
+    ? 'FORMATTING: DO NOT use any markdown headers, bolding, or complex structure. Provide plain academic prose only.'
+    : 'FORMATTING: Use clear markdown headers (##) to structure your response into logical sections.';
 
   // Reference content: use remaining budget split evenly across files
   const referenceContext = buildMaterialContext(references, contextBudget);
@@ -103,7 +108,7 @@ STRICT OPERATIONAL RULES
    - Use smooth transitions between paragraphs to ensure a cohesive narrative flow.
    - Each paragraph should typically be 4-6 sentences long.
    - Maintain a formal but readable academic tone.
-   - DO NOT use markdown headers (e.g., # or ##) in your response unless you are writing a full report.
+   - ${formatInstruction}
 5. NO CONVERSATION: Never output conversational filler. Do NOT say "Here is the report" or "Let me know if you need anything else." Output ONLY the requested document text.
 6. APA 7th BIBLIOGRAPHY: When asked for a list of references, strictly follow APA 7th edition:
    * Authors: Last name, First initial. Middle initial. (e.g., Tarasak, P.)
@@ -112,7 +117,8 @@ STRICT OPERATIONAL RULES
    * DOI: Full URL at the end (e.g., https://doi.org/...).
 
 7. FIGURE INSERTION: If the user asks to insert a specific figure from a file, output exactly: [FIGURE: filename, Figure X]. AI must recognize the figure list provided in the Workspace Materials.
-8. STYLE & STRUCTURE: If a template is provided, strictly follow its writing style and structure. If no template is provided, use standard academic format and add a [WARNING: No template provided, using default structure] at the very beginning of the response.
+8. STYLE & STRUCTURE: If a template is provided, strictly follow its writing style and structure. 
+9. PAGE BREAKS: If you feel a logical section has ended and a new page is required (e.g., transition from Abstract to Introduction), output the marker <!-- PAGE_BREAK --> exactly.
 
 Help the researcher produce rigorous, evidence-backed academic work.`;
 

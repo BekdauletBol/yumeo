@@ -1,26 +1,29 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { X, Download, Wand2, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Download, Wand2, Save, FileText, CheckCircle2 } from 'lucide-react';
 import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useReportEditorStore } from '@/stores/reportEditorStore';
 import { useReportAutoSave } from '@/hooks/useReportAutoSave';
-import { useTextSelection } from '@/hooks/useTextSelection';
-import { TextSelectionPopup } from '@/components/chat/TextSelectionPopup';
-import { ReportAISidebar } from './ReportAISidebar';
+import { YuportEditor } from '@/components/editor/YuportEditor';
 import { ExportModal } from './ExportModal';
 import { cn } from '@/lib/utils/cn';
 import { nanoid } from 'nanoid';
-import ReactMarkdown from 'react-markdown';
 
 /**
- * Full-screen report editor modal.
- * Opens automatically after AI generation or when user opens a draft.
- * Supports: inline text-selection actions, AI sidebar, autocomplete, export.
+ * Full-screen report editor modal featuring the paginated Yuport Tiptap editor.
+ * Includes AI writing assistant, multi-page support, and grounded citations.
  */
 export function ReportEditorModal() {
-  const { isOpen, initialContent, initialTitle, draftId, close } = useReportEditorStore();
+  const { 
+    isOpen, 
+    pages, 
+    initialTitle, 
+    draftId, 
+    close,
+    activePageIndex
+  } = useReportEditorStore();
 
   const activeProject = useProjectStore((s) => s.activeProject);
   const materials = useMaterialsStore((s) => s.materials);
@@ -30,570 +33,127 @@ export function ReportEditorModal() {
   const draft = draftId ? materials.find((m) => m.id === draftId) : null;
 
   const [title, setTitle] = useState(initialTitle);
-  const [content, setContent] = useState(initialContent);
-  const [showAISidebar, setShowAISidebar] = useState(false);
   const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftId);
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
-
-  // Autocomplete state
-  const [ghost, setGhost] = useState('');
-  const [isAutocompleting, setIsAutocompleting] = useState(false);
-  const autocompleteTimer = useRef<ReturnType<typeof setTimeout>>();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Text-selection popup
-  const { selection, containerRef, clearSelection } = useTextSelection();
-
   const [showExportModal, setShowExportModal] = useState(false);
 
-  // Sync state when modal opens
+  // Sync title and draft ID when modal opens or draft changes
   useEffect(() => {
     if (!isOpen) return;
     if (draft) {
       setTitle(draft.name);
-      setContent(draft.content ?? '');
       setActiveDraftId(draft.id);
     } else {
       setTitle(initialTitle);
-      setContent(initialContent);
       setActiveDraftId(undefined);
     }
-    setGhost('');
-  }, [isOpen, initialContent, initialTitle, draft]);
+  }, [isOpen, initialTitle, draft]);
 
-  // Auto-save
+  // Unified content for auto-save (combine pages with logical markers)
+  const fullContent = pages.join('<!-- PAGE_BREAK -->');
+
+  // Auto-save logic
   const { isSaved } = useReportAutoSave({
     projectId: activeProject?.id,
     draftId: activeDraftId,
     title,
-    content,
+    content: fullContent,
     onSave: async (updatedContent) => {
       if (activeDraftId) {
         const existing = materials.find((m) => m.id === activeDraftId);
         if (existing) updateMaterial({ ...existing, content: updatedContent });
       }
-      setContent(updatedContent);
     },
   });
 
-  // Save as new draft if no existing draft
   const handleManualSave = () => {
-    if (!activeProject) return;
-    if (activeDraftId) return; // already auto-saves
+    if (!activeProject || activeDraftId) return;
     const id = nanoid();
     addMaterial({
       id,
       projectId: activeProject.id,
       section: 'drafts',
       name: title,
-      content,
-      metadata: { fileType: 'markdown', fileSize: new Blob([content]).size },
+      content: fullContent,
+      metadata: { fileType: 'html', fileSize: new Blob([fullContent]).size },
       createdAt: new Date(),
     });
     setActiveDraftId(id);
   };
 
-  // ── AI Autocomplete ────────────────────────────────────────────────────────
-  const triggerAutocomplete = (currentContent: string) => {
-    if (autocompleteTimer.current) clearTimeout(autocompleteTimer.current);
-    autocompleteTimer.current = setTimeout(async () => {
-      const last500 = currentContent.slice(-500);
-      if (!last500.trim() || !activeProject) return;
-      try {
-        setIsAutocompleting(true);
-        const res = await fetch('/api/agent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: 'user',
-                content: `Continue writing the following text with 1-2 sentences. Match the style and tone exactly. Only return the continuation text, nothing else:\n\n...${last500}`,
-              },
-            ],
-            systemPrompt:
-              'You are an AI writing assistant. Complete the text continuation in the same academic style. Return only the completion text, no preamble.',
-            projectId: activeProject.id,
-            userQuery: 'autocomplete',
-            model: activeProject.settings.agentModel,
-          }),
-        });
-        if (!res.ok || !res.body) return;
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let suggestion = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          suggestion += decoder.decode(value, { stream: true });
-        }
-        setGhost(suggestion.trim());
-      } catch {
-        // Autocomplete is best-effort — never block writing
-      } finally {
-        setIsAutocompleting(false);
-      }
-    }, 300);
-  };
-
-  const handleContentChange = (val: string) => {
-    setContent(val);
-    setGhost('');
-    triggerAutocomplete(val);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab' && ghost) {
-      e.preventDefault();
-      setContent((prev) => prev + ghost);
-      setGhost('');
-      return;
-    }
-    if (e.key === 'Escape' && ghost) {
-      setGhost('');
-    }
-  };
-
-  // ── Selection popup actions ────────────────────────────────────────────────
-  const handleAskAboutSelection = (text: string) => {
-    clearSelection();
-    setShowAISidebar(true);
-    // The sidebar will pick this up via selectedText prop
-    setSelectedPassage(text);
-  };
-  const [selectedPassage, setSelectedPassage] = useState('');
-
-  const handleRewriteSelection = async (text: string) => {
-    if (!activeProject) return;
-    clearSelection();
-    try {
-      const res = await fetch('/api/agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'user',
-              content: `Rewrite the following passage in the same academic style and length. Return ONLY the rewritten text:\n\n"${text}"`,
-            },
-          ],
-          systemPrompt: 'You are an academic writing editor. Rewrite the given passage. Return only the rewritten text, no preamble.',
-          projectId: activeProject.id,
-          userQuery: `rewrite: ${text}`,
-          model: activeProject.settings.agentModel,
-        }),
-      });
-      if (!res.ok || !res.body) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let rewritten = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        rewritten += decoder.decode(value, { stream: true });
-      }
-      setContent((prev) => prev.replace(text, rewritten.trim()));
-    } catch {
-      // best-effort
-    }
-  };
-
-  const handleExpandSelection = async (text: string) => {
-    if (!activeProject) return;
-    clearSelection();
-    try {
-      const res = await fetch('/api/agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'user',
-              content: `Expand the following passage with more detail and supporting evidence from the uploaded materials. Return the original text plus the expansion:\n\n"${text}"`,
-            },
-          ],
-          systemPrompt: 'You are an academic writing assistant. Expand the passage using material from the uploaded references. Return the original plus expansion.',
-          projectId: activeProject.id,
-          userQuery: `expand: ${text}`,
-          model: activeProject.settings.agentModel,
-        }),
-      });
-      if (!res.ok || !res.body) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let expanded = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        expanded += decoder.decode(value, { stream: true });
-      }
-      setContent((prev) => prev.replace(text, expanded.trim()));
-    } catch {
-      // best-effort
-    }
-  };
-
-  // ── Verification ────────────────────────────────────────────────────────────
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifiedSentences, setVerifiedSentences] = useState<Array<{text: string, verified: boolean, score: number, source: string, page: number}>>([]);
-
-  const handleVerify = async () => {
-    if (!activeProject || !content) return;
-    setIsVerifying(true);
-    setVerifiedSentences([]);
-    
-    // Simple sentence split
-    const sentences = content.match(/[^.!?]+[.!?]+/g) || [content];
-    const results = [];
-    
-    for (const sentence of sentences) {
-      if (sentence.trim().length < 10) continue; // skip very short sentences
-      
-      try {
-        const res = await fetch('/api/verify-sentence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sentence: sentence.trim(), projectId: activeProject.id }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          results.push({
-            text: sentence.trim(),
-            verified: data.verified,
-            score: data.score,
-            source: data.source,
-            page: data.page
-          });
-        }
-      } catch (err) {
-        console.error('Verify error:', err);
-      }
-    }
-    setVerifiedSentences(results);
-    setIsVerifying(false);
-  };
-
-  const renderVerificationOverlay = (text: string) => {
-    if (!verifiedSentences.length) return text;
-    let result: React.ReactNode[] = [];
-    let remaining = text;
-    
-    for (const v of verifiedSentences) {
-      const idx = remaining.indexOf(v.text);
-      if (idx !== -1) {
-        result.push(<span key={nanoid()}>{remaining.substring(0, idx)}</span>);
-        result.push(
-          <span 
-            key={nanoid()} 
-            className={v.verified ? "bg-[#22c55e]/20" : "bg-[#ef4444]/20"}
-            title={v.verified ? `Source: ${v.source} (p.${v.page}) - Score: ${v.score.toFixed(2)}` : "Unverified"}
-            style={{ pointerEvents: 'auto', color: 'transparent' }}
-          >
-            {v.text}
-          </span>
-        );
-        remaining = remaining.substring(idx + v.text.length);
-      }
-    }
-    result.push(<span key={nanoid()}>{remaining}</span>);
-    return result;
-  };
-
   if (!isOpen) return null;
-
-  const hasReferences = materials.some((m) => m.section === 'references');
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-[100] flex flex-col bg-bg-base animate-in fade-in duration-300"
     >
-      <div
-        className="w-full h-full max-w-7xl max-h-screen flex flex-col"
-        style={{ background: 'var(--bg-base)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-default)' }}
-      >
-        {/* ── Header ── */}
-        <div
-          className="flex items-center gap-3 px-5 py-3 border-b shrink-0"
-          style={{ borderColor: 'var(--border-subtle)' }}
-        >
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="flex-1 bg-transparent text-base font-medium outline-none"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
-            placeholder="Report title…"
-            aria-label="Report title"
-          />
+      {/* ── Top Navigation Bar ── */}
+      <div className="h-14 border-b border-border-subtle bg-bg-surface flex items-center justify-between px-6 shrink-0 z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-xl bg-accent-primary flex items-center justify-center text-white shadow-lg shadow-accent-primary/20">
+               <FileText size={18} />
+             </div>
+             <input
+               value={title}
+               onChange={(e) => setTitle(e.target.value)}
+               className="bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-accent-primary transition-all py-1 min-w-[200px]"
+               placeholder="Report Title..."
+             />
+          </div>
 
-          <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            {isAutocompleting && <span>thinking…</span>}
-            {isSaved && activeDraftId && <span>Saved</span>}
-            {ghost && (
-              <span style={{ color: 'var(--accent-refs)' }}>
-                Tab to accept suggestion
-              </span>
+          <div className="h-4 w-px bg-border-subtle" />
+
+          <div className="flex items-center gap-4">
+            {isSaved ? (
+              <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-status-success uppercase tracking-tighter">
+                <CheckCircle2 size={12} />
+                Synced to Cloud
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-text-tertiary uppercase tracking-tighter">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-pulse" />
+                Saving Changes...
+              </div>
             )}
           </div>
+        </div>
 
-          <div className="flex ml-auto items-center p-0.5 rounded-lg" style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)' }}>
-            <button
-              onClick={() => setViewMode('edit')}
-              className={cn("px-3 py-1 text-xs rounded-md transition-all", viewMode === 'edit' ? "shadow-sm font-medium" : "opacity-70")}
-              style={{
-                background: viewMode === 'edit' ? 'var(--bg-elevated)' : 'transparent',
-                color: viewMode === 'edit' ? 'var(--text-primary)' : 'var(--text-secondary)'
-              }}
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => setViewMode('preview')}
-              className={cn("px-3 py-1 text-xs rounded-md transition-all", viewMode === 'preview' ? "shadow-sm font-medium" : "opacity-70")}
-              style={{
-                background: viewMode === 'preview' ? 'var(--bg-elevated)' : 'transparent',
-                color: viewMode === 'preview' ? 'var(--text-primary)' : 'var(--text-secondary)'
-              }}
-            >
-              Preview
-            </button>
-          </div>
-
-          {/* Verification Counter & Button */}
-          {verifiedSentences.length > 0 ? (
-            <div className="flex items-center gap-2 text-xs px-2">
-              <span className="text-status-success">{verifiedSentences.filter(v => v.verified).length} verified ✓</span>
-              <span className="text-status-error">{verifiedSentences.filter(v => !v.verified).length} unverified ⚠️</span>
-              <button onClick={() => setVerifiedSentences([])} className="text-text-tertiary hover:text-text-primary ml-2">Clear</button>
-            </div>
-          ) : (
-            <button
-              onClick={handleVerify}
-              disabled={isVerifying}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
-            >
-              {isVerifying ? 'Verifying...' : 'Verify Sources'}
-            </button>
-          )}
-
-          {/* Save as draft */}
+        <div className="flex items-center gap-3">
           {!activeDraftId && (
             <button
               onClick={handleManualSave}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
-              aria-label="Save as draft"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-bg-elevated border border-border-subtle text-xs font-bold uppercase tracking-widest hover:border-accent-primary transition-all"
             >
-              <Save size={13} />
-              Save draft
+              <Save size={14} /> Save Draft
             </button>
           )}
-
-          {/* Export — opens format picker */}
+          
           <button
-            onClick={() => {
-              if (verifiedSentences.some(v => !v.verified)) {
-                alert("Cannot export: Please fix unverified (red) sentences before exporting.");
-                return;
-              }
-              setShowExportModal(true);
-            }}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
-            aria-label="Export report"
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-bg-elevated border border-border-subtle text-xs font-bold uppercase tracking-widest hover:border-accent-primary transition-all"
           >
-            <Download size={13} />
-            Export
-          </button>
-
-          {/* AI Sidebar toggle */}
-          <button
-            onClick={() => setShowAISidebar((v) => !v)}
-            className={cn(
-              'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all',
-              showAISidebar
-                ? 'text-white'
-                : 'hover:opacity-80',
-            )}
-            style={{
-              background: showAISidebar ? 'var(--accent-refs)' : 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              color: showAISidebar ? '#fff' : 'var(--text-secondary)',
-            }}
-            aria-label="Toggle AI assistant"
-          >
-            <Wand2 size={13} />
-            AI
+            <Download size={14} /> Export
           </button>
 
           <button
             onClick={close}
-            className="p-1.5 rounded-lg hover:opacity-70 transition-opacity"
-            aria-label="Close editor"
+            className="p-2 rounded-xl bg-bg-elevated border border-border-subtle hover:bg-red-500/10 hover:text-red-500 transition-all"
           >
-            <X size={18} style={{ color: 'var(--text-primary)' }} />
+            <X size={20} />
           </button>
-        </div>
-
-        {/* ── Smart Empty State (no references) ── */}
-        {!hasReferences && !content && (
-          <div
-            className="mx-auto mt-8 p-6 rounded-xl max-w-md text-center"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
-          >
-            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-              You haven&apos;t uploaded any references yet.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => {
-                  // Allow writing from scratch — just dismiss the warning
-                  if (confirm('I\'ll write without grounded sources. Citations may not be verifiable. Continue?')) {
-                    if (textareaRef.current) textareaRef.current.focus();
-                  }
-                }}
-                className="text-xs px-4 py-2 rounded-lg"
-                style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
-              >
-                Write from scratch
-              </button>
-              <button
-                onClick={close}
-                className="text-xs px-4 py-2 rounded-lg"
-                style={{ background: 'var(--accent-refs)', color: '#fff' }}
-              >
-                Upload references first
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Main area ── */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Editor */}
-          <div ref={containerRef} className="flex-1 relative overflow-y-auto px-12 py-8">
-            {viewMode === 'edit' ? (
-              <>
-                {/* Verification Overlay */}
-                {verifiedSentences.length > 0 && (
-                  <div
-                    className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      color: 'transparent',
-                      lineHeight: '1.75',
-                    }}
-                  >
-                    {renderVerificationOverlay(content)}
-                  </div>
-                )}
-                
-                {/* Ghost text overlay (autocomplete) */}
-                {ghost && (
-                  <div
-                    className="absolute inset-0 pointer-events-none px-12 py-8 text-sm whitespace-pre-wrap break-words"
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      color: 'transparent',
-                      lineHeight: '1.75',
-                    }}
-                  >
-                    {content}
-                    <span style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}>
-                      {ghost}
-                    </span>
-                  </div>
-                )}
-
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    hasReferences
-                      ? 'Start writing… AI will suggest continuations as you type (Tab to accept).'
-                      : 'Write here…'
-                  }
-                  className="w-full h-full bg-transparent outline-none resize-none text-sm leading-7 relative z-10"
-                  style={{
-                    color: verifiedSentences.length > 0 ? 'var(--text-primary)' : 'var(--text-primary)',
-                    fontFamily: 'var(--font-mono)',
-                    minHeight: 400,
-                    caretColor: 'var(--accent-refs)',
-                  }}
-                  aria-label="Report content"
-                />
-              </>
-            ) : (
-              <div
-                className="w-full h-full prose prose-sm max-w-none"
-                style={{
-                  color: 'var(--text-primary)',
-                  '--tw-prose-body': 'var(--text-primary)',
-                  '--tw-prose-headings': 'var(--text-primary)',
-                  '--tw-prose-bold': 'var(--text-primary)',
-                  '--tw-prose-code': 'var(--accent-refs)',
-                  '--tw-prose-pre-bg': 'var(--bg-overlay)',
-                  '--tw-prose-bullets': 'var(--text-tertiary)',
-                } as React.CSSProperties}
-              >
-                <ReactMarkdown
-                  components={{
-                    h1: ({ children }) => <h1 style={{ fontSize: '1.5em', fontWeight: 700, marginBottom: '0.5em', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3em' }}>{children}</h1>,
-                    h2: ({ children }) => <h2 style={{ fontSize: '1.25em', fontWeight: 600, marginTop: '1.5em', marginBottom: '0.5em' }}>{children}</h2>,
-                    h3: ({ children }) => <h3 style={{ fontSize: '1.1em', fontWeight: 600, marginTop: '1.2em', marginBottom: '0.5em', color: 'var(--text-secondary)' }}>{children}</h3>,
-                    p: ({ children }) => <p style={{ marginBottom: '1em', lineHeight: 1.7 }}>{children}</p>,
-                    ul: ({ children }) => <ul style={{ paddingLeft: '1.5em', marginBottom: '1em' }}>{children}</ul>,
-                    ol: ({ children }) => <ol style={{ paddingLeft: '1.5em', marginBottom: '1em' }}>{children}</ol>,
-                    li: ({ children }) => <li style={{ marginBottom: '0.25em' }}>{children}</li>,
-                    blockquote: ({ children }) => <blockquote style={{ borderLeft: '3px solid var(--accent-refs)', paddingLeft: '1em', color: 'var(--text-secondary)', fontStyle: 'italic', margin: '1em 0' }}>{children}</blockquote>,
-                    code: ({ children, ...props }) => <code {...props} style={{ background: 'var(--bg-overlay)', padding: '0.2em 0.4em', borderRadius: '3px', fontSize: '0.9em', fontFamily: 'var(--font-mono)' }}>{children}</code>,
-                    pre: ({ children }) => <pre style={{ background: 'var(--bg-overlay)', padding: '1em', borderRadius: '6px', overflowX: 'auto', marginBottom: '1em', border: '1px solid var(--border-subtle)' }}>{children}</pre>,
-                    hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '2em 0' }} />,
-                    strong: ({ children }) => <strong style={{ fontWeight: 700 }}>{children}</strong>,
-                    em: ({ children }) => <em style={{ fontStyle: 'italic' }}>{children}</em>,
-                  }}
-                >
-                  {content}
-                </ReactMarkdown>
-              </div>
-            )}
-
-            {/* Text selection popup */}
-            {selection && (
-              <TextSelectionPopup
-                selectedText={selection.text}
-                position={selection.position}
-                onAskYumeo={handleAskAboutSelection}
-                onRewrite={handleRewriteSelection}
-                onExpand={handleExpandSelection}
-                onCopy={(text) => { void navigator.clipboard.writeText(text); clearSelection(); }}
-                onAddToDraft={(text) => { setContent((prev) => prev + '\n\n' + text); clearSelection(); }}
-                onClose={clearSelection}
-              />
-            )}
-          </div>
-
-          {/* AI Sidebar */}
-          {showAISidebar && (
-            <ReportAISidebar
-              projectId={activeProject?.id}
-              cursorPosition={content.length}
-              selectedPassage={selectedPassage}
-              onInsertContent={(text) => setContent((prev) => prev + '\n\n' + text)}
-              onClose={() => { setShowAISidebar(false); setSelectedPassage(''); }}
-            />
-          )}
         </div>
       </div>
 
-      {/* Export format picker modal */}
+      {/* ── Main Yuport Editor ── */}
+      <div className="flex-1 overflow-hidden relative">
+        <YuportEditor />
+      </div>
+
+      {/* ── Secondary Modals ── */}
       {showExportModal && (
         <ExportModal
           title={title}
-          content={content}
+          content={fullContent}
           onClose={() => setShowExportModal(false)}
         />
       )}

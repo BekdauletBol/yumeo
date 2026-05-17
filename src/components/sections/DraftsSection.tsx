@@ -53,7 +53,7 @@ export function DraftsSection() {
         </div>
         <div className="flex-1 overflow-y-auto p-3">
           <TiptapEditor 
-            content={activeDraft.content} 
+            initialContent={activeDraft.content} 
             onChange={handleSave} 
           />
         </div>
