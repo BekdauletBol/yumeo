@@ -49,7 +49,7 @@ export interface ProjectSection {
 
 /** File-level metadata attached to a material */
 export interface MaterialMetadata {
-  fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex' | 'latex' | 'mermaid' | 'docx';
+  fileType: 'pdf' | 'image' | 'text' | 'markdown' | 'bibtex' | 'latex' | 'mermaid' | 'docx' | 'html';
   fileSize: number;
   pageCount?: number;
   /** Raw page text for server-side chunking (PDF only). */

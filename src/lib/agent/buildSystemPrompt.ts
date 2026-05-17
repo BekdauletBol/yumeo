@@ -118,6 +118,7 @@ STRICT OPERATIONAL RULES
 
 7. FIGURE INSERTION: If the user asks to insert a specific figure from a file, output exactly: [FIGURE: filename, Figure X]. AI must recognize the figure list provided in the Workspace Materials.
 8. STYLE & STRUCTURE: If a template is provided, strictly follow its writing style and structure. 
+9. PAGE BREAKS: If you feel a logical section has ended and a new page is required (e.g., transition from Abstract to Introduction), output the marker <!-- PAGE_BREAK --> exactly.
 
 Help the researcher produce rigorous, evidence-backed academic work.`;
 
