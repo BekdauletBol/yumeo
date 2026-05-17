@@ -9,6 +9,7 @@ import { useFiguresStore } from '@/stores/figuresStore';
 import { buildSystemPrompt } from '@/lib/agent/buildSystemPrompt';
 import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
 import type { ChatMessage } from '@/lib/types';
+import { showToast } from '@/lib/utils/toast';
 
 /**
  * Encapsulates the full streaming chat lifecycle.
@@ -120,6 +121,15 @@ export function useStreamingChat() {
           isStreaming: false,
         });
         finalizeStreamingMessage(assistantId);
+
+        // Auto-insert into Yuport editor if response is significant
+        if (full.length > 200) {
+          window.dispatchEvent(new CustomEvent('insert-editor-content', { 
+            detail: { content: `\n\n${full}\n\n` } 
+          }));
+          showToast('Added to your draft in Yuport');
+        }
+
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Network error';
         updateMessage(assistantId, {

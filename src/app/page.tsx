@@ -54,13 +54,13 @@ function HeroTerminal() {
   }, []);
 
   return (
-    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: '#0d0d0d' }}>
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-default)] shadow-2xl flex flex-col" style={{ background: 'var(--terminal-bg)' }}>
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--terminal-header)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
       </div>
-      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--text-secondary)] space-y-2">
+      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--terminal-text)] space-y-2 text-left">
         {lines.map((line, i) => (
           <div key={i} className={i === lines.length - 1 ? "text-[var(--accent-primary)] animate-in fade-in duration-500" : ""}>
             {line}
@@ -163,9 +163,9 @@ function TypingDemo() {
   }, [isInView]);
 
   return (
-    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: '#0d0d0d' }}>
+    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-default)]" style={{ background: 'var(--terminal-bg)' }}>
       {/* Window Header */}
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--terminal-header)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
@@ -174,17 +174,17 @@ function TypingDemo() {
         </div>
       </div>
       {/* Window Content */}
-      <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[400px] flex flex-col">
-        <div className="flex-1 space-y-4">
+      <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[440px] text-left flex flex-col items-start" style={{ paddingLeft: '1.5rem' }}>
+        <div className="w-full space-y-4">
           {lines.map((line, i) => (
-            <div key={i} className="whitespace-pre-wrap leading-relaxed" style={{ color: i < 3 ? 'var(--text-tertiary)' : i === 4 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+            <div key={i} className="whitespace-pre-wrap leading-relaxed w-full text-left" style={{ color: i < 3 ? 'var(--text-tertiary)' : i === 4 ? 'var(--accent-primary)' : 'var(--terminal-text)' }}>
               {line}
             </div>
           ))}
         </div>
         
         {showBadge && (
-           <div className="mt-8 self-start px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: 'var(--accent-primary)' }}>
+           <div className="mt-10 inline-block px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: 'var(--accent-primary)' }}>
              ✓ verified · grounded in your materials
            </div>
         )}
@@ -329,14 +329,46 @@ export default function HomePage() {
         {/* ── Product Demo ──────────────────────────────────── */}
         <section 
           id="demo"
-          className="px-8 md:px-16 py-24 md:py-32"
+          className="px-8 md:px-16 py-24 md:py-32 overflow-hidden"
           style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
-          <div className="max-w-5xl mx-auto text-center">
-            <h2 className="text-base md:text-lg font-medium mb-16 uppercase tracking-widest" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
-              see how it works
-            </h2>
-            <TypingDemo />
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Left — Text content with animations */}
+            <div className="flex flex-col space-y-6">
+              <h2 className="text-xs font-bold uppercase tracking-[0.3em] mb-2 animate-in fade-in slide-in-from-bottom-4 duration-1000" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
+                workflow
+              </h2>
+              <h3 className="text-3xl md:text-5xl font-medium leading-[1.1] animate-in fade-in slide-in-from-bottom-4 delay-200 duration-1000" style={{ fontFamily: font, letterSpacing: '-0.03em' }}>
+                Your research,
+                <br />
+                now interactive.
+              </h3>
+              <p className="text-base md:text-lg leading-relaxed text-[var(--text-secondary)] max-w-md animate-in fade-in slide-in-from-bottom-4 delay-500 duration-1000" style={{ fontFamily: font }}>
+                Stop searching for that one sentence in a 50-page PDF. 
+                Yumeo indexes your personal library so you can query 
+                it like a colleague.
+              </p>
+              
+              <div className="pt-8 flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 delay-700 duration-1000">
+                {[
+                  'Instant citation indexing',
+                  'Source-grounded synthesis',
+                  'Automatic draft generation'
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 group">
+                    <div className="w-5 h-5 rounded-full border border-[var(--accent-primary)]/30 flex items-center justify-center group-hover:bg-[var(--accent-primary)]/10 transition-colors">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                    </div>
+                    <span className="text-sm font-medium text-[var(--text-primary)]" style={{ fontFamily: font }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Terminal Mockup with animation */}
+            <div className="relative animate-in fade-in slide-in-from-right-12 duration-1000 delay-300">
+              <TypingDemo />
+            </div>
           </div>
         </section>
 

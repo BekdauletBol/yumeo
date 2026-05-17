@@ -32,6 +32,14 @@ export function ChatInput({ onSubmit }: { onSubmit?: (text: string) => Promise<v
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Cmd+Enter (Mac) or Ctrl+Enter (Win/Linux) to send
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      void handleSend();
+      return;
+    }
+    
+    // Normal Enter (without shift) to send as well, for convenience
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       void handleSend();
@@ -61,8 +69,8 @@ export function ChatInput({ onSubmit }: { onSubmit?: (text: string) => Promise<v
             className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text-primary placeholder:text-text-tertiary resize-none py-2 min-h-[40px] font-body"
           />
 
-          <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-lg text-[10px] font-mono font-bold text-text-tertiary border border-border-subtle select-none" style={{ background: 'var(--bg-overlay)' }}>
-            <Command size={10} /> ENTER
+          <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono font-bold text-text-tertiary border border-border-subtle select-none" style={{ background: 'var(--bg-overlay)' }}>
+            <Command size={10} /> + ENTER
           </div>
 
           <button
