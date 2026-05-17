@@ -16,6 +16,7 @@ export interface Project {
     strictGrounding: boolean;
     language: string;
     exportFormat: 'markdown' | 'docx' | 'latex';
+    outputFormatPreference?: 'structured' | 'plain';
   }
   
   /** Partial used when creating a new project */
