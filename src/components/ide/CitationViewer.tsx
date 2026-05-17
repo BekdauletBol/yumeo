@@ -70,6 +70,33 @@ export function CitationViewer() {
     };
   }, [citationViewer.isOpen, activeMaterial?.storageUrl, currentPage]);
 
+  /**
+   * Normalize text for fuzzy matching: lowercase, collapse whitespace, strip punctuation edges.
+   */
+  function normalizeText(t: string): string {
+    return t.toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * Build a single string from PDF text items and keep a mapping
+   * of character-offset → item index so we can trace matches back.
+   */
+  function buildTextMap(items: any[]) {
+    let full = '';
+    const charToItem: { itemIdx: number; localOffset: number }[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const str: string = items[i].str;
+      for (let c = 0; c < str.length; c++) {
+        charToItem.push({ itemIdx: i, localOffset: c });
+      }
+      full += str;
+      // Add a space between items (PDF often separates words as items)
+      charToItem.push({ itemIdx: i, localOffset: str.length });
+      full += ' ';
+    }
+    return { full, charToItem };
+  }
+
   async function renderPage(pdf: any, pageNum: number) {
     try {
       const page = await pdf.getPage(pageNum);
@@ -105,6 +132,92 @@ export function CitationViewer() {
 
       renderTaskRef.current = page.render(renderContext);
       await renderTaskRef.current.promise;
+
+      // ── Highlight citation text on top of rendered page ──
+      const highlightText = citationViewer.highlightedText;
+      if (highlightText && highlightText.length > 10) {
+        try {
+          const textContent = await page.getTextContent();
+          const items = textContent.items.filter((it: any) => typeof it.str === 'string' && it.str.length > 0);
+          if (items.length === 0) return;
+
+          const { full, charToItem } = buildTextMap(items);
+          const normalizedFull = normalizeText(full);
+          const normalizedQuery = normalizeText(highlightText);
+
+          // Find match position in the concatenated text
+          const matchStart = normalizedFull.indexOf(normalizedQuery);
+
+          // Collect item indices that are part of the match
+          const matchedItemIndices = new Set<number>();
+          if (matchStart !== -1) {
+            // Direct substring match — highlight all items that fall inside
+            for (let ci = matchStart; ci < matchStart + normalizedQuery.length && ci < charToItem.length; ci++) {
+              const entry = charToItem[ci];
+              if (entry) matchedItemIndices.add(entry.itemIdx);
+            }
+          } else {
+            // Fallback: match individual significant words (≥4 chars)
+            const words = normalizedQuery.split(/\s+/).filter(w => w.length >= 4);
+            for (const word of words) {
+              let searchFrom = 0;
+              while (true) {
+                const pos = normalizedFull.indexOf(word, searchFrom);
+                if (pos === -1) break;
+                for (let ci = pos; ci < pos + word.length && ci < charToItem.length; ci++) {
+                  const entry = charToItem[ci];
+                  if (entry) matchedItemIndices.add(entry.itemIdx);
+                }
+                searchFrom = pos + word.length;
+              }
+            }
+          }
+
+          if (matchedItemIndices.size > 0) {
+            // Draw highlights
+            context.save();
+            context.globalAlpha = 0.30;
+            context.fillStyle = '#FACC15'; // Yellow-400
+            context.globalCompositeOperation = 'multiply';
+
+            for (const idx of matchedItemIndices) {
+              const item = items[idx];
+              const tx = item.transform; // [scaleX, skewX, skewY, scaleY, translateX, translateY]
+              if (!tx) continue;
+
+              // Convert PDF coordinates → viewport coordinates
+              const [a, b, c, d, e, f] = tx;
+              const fontSize = Math.sqrt(d * d + c * c);
+              const itemWidth = item.width ?? (item.str.length * fontSize * 0.6);
+              const itemHeight = fontSize * 1.3;
+
+              // PDF coords: origin at bottom-left. Viewport transform handles this.
+              const x = viewport.convertToViewportPoint(e, f)[0];
+              const y = viewport.convertToViewportPoint(e, f)[1] - itemHeight * (viewport.scale / unscaledViewport.scale) * 0.75;
+              const w = itemWidth * (viewport.scale / unscaledViewport.scale);
+              const h = itemHeight * (viewport.scale / unscaledViewport.scale);
+
+              // Rounded rect highlight
+              const r = 2;
+              context.beginPath();
+              context.moveTo(x + r, y);
+              context.lineTo(x + w - r, y);
+              context.quadraticCurveTo(x + w, y, x + w, y + r);
+              context.lineTo(x + w, y + h - r);
+              context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+              context.lineTo(x + r, y + h);
+              context.quadraticCurveTo(x, y + h, x, y + h - r);
+              context.lineTo(x, y + r);
+              context.quadraticCurveTo(x, y, x + r, y);
+              context.closePath();
+              context.fill();
+            }
+            context.restore();
+          }
+        } catch (hlErr) {
+          console.warn('Citation highlight failed (non-critical):', hlErr);
+        }
+      }
     } catch (err) {
       if (err instanceof Error && err.name === 'RenderingCancelledException') return;
       console.error('Error rendering page:', err);
