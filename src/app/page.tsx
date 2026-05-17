@@ -329,14 +329,46 @@ export default function HomePage() {
         {/* ── Product Demo ──────────────────────────────────── */}
         <section 
           id="demo"
-          className="px-8 md:px-16 py-24 md:py-32"
+          className="px-8 md:px-16 py-24 md:py-32 overflow-hidden"
           style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
-          <div className="max-w-5xl mx-auto text-center">
-            <h2 className="text-base md:text-lg font-medium mb-16 uppercase tracking-widest" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
-              see how it works
-            </h2>
-            <TypingDemo />
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Left — Text content with animations */}
+            <div className="flex flex-col space-y-6">
+              <h2 className="text-xs font-bold uppercase tracking-[0.3em] mb-2 animate-in fade-in slide-in-from-bottom-4 duration-1000" style={{ color: 'var(--accent-primary)', fontFamily: font }}>
+                workflow
+              </h2>
+              <h3 className="text-3xl md:text-5xl font-medium leading-[1.1] animate-in fade-in slide-in-from-bottom-4 delay-200 duration-1000" style={{ fontFamily: font, letterSpacing: '-0.03em' }}>
+                Your research,
+                <br />
+                now interactive.
+              </h3>
+              <p className="text-base md:text-lg leading-relaxed text-[var(--text-secondary)] max-w-md animate-in fade-in slide-in-from-bottom-4 delay-500 duration-1000" style={{ fontFamily: font }}>
+                Stop searching for that one sentence in a 50-page PDF. 
+                Yumeo indexes your personal library so you can query 
+                it like a colleague.
+              </p>
+              
+              <div className="pt-8 flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 delay-700 duration-1000">
+                {[
+                  'Instant citation indexing',
+                  'Source-grounded synthesis',
+                  'Automatic draft generation'
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 group">
+                    <div className="w-5 h-5 rounded-full border border-[var(--accent-primary)]/30 flex items-center justify-center group-hover:bg-[var(--accent-primary)]/10 transition-colors">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                    </div>
+                    <span className="text-sm font-medium text-[var(--text-primary)]" style={{ fontFamily: font }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Terminal Mockup with animation */}
+            <div className="relative animate-in fade-in slide-in-from-right-12 duration-1000 delay-300">
+              <TypingDemo />
+            </div>
           </div>
         </section>
 
