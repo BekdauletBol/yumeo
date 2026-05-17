@@ -54,13 +54,13 @@ function HeroTerminal() {
   }, []);
 
   return (
-    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-2xl flex flex-col" style={{ background: '#0d0d0d' }}>
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+    <div className="w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-[var(--border-default)] shadow-2xl flex flex-col" style={{ background: 'var(--terminal-bg)' }}>
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--terminal-header)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
       </div>
-      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--text-secondary)] space-y-2">
+      <div className="p-6 font-mono text-[12px] md:text-sm text-[var(--terminal-text)] space-y-2 text-left">
         {lines.map((line, i) => (
           <div key={i} className={i === lines.length - 1 ? "text-[var(--accent-primary)] animate-in fade-in duration-500" : ""}>
             {line}
