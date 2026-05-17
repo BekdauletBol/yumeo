@@ -163,9 +163,9 @@ function TypingDemo() {
   }, [isInView]);
 
   return (
-    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-subtle)]" style={{ background: '#0d0d0d' }}>
+    <div ref={containerRef} className="relative mx-auto max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-[var(--border-default)]" style={{ background: 'var(--terminal-bg)' }}>
       {/* Window Header */}
-      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--terminal-header)]">
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
@@ -174,17 +174,17 @@ function TypingDemo() {
         </div>
       </div>
       {/* Window Content */}
-      <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[400px] flex flex-col">
-        <div className="flex-1 space-y-4">
+      <div className="p-6 md:p-10 font-mono text-[13px] md:text-sm min-h-[320px] md:min-h-[440px] text-left flex flex-col items-start" style={{ paddingLeft: '1.5rem' }}>
+        <div className="w-full space-y-4">
           {lines.map((line, i) => (
-            <div key={i} className="whitespace-pre-wrap leading-relaxed" style={{ color: i < 3 ? 'var(--text-tertiary)' : i === 4 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+            <div key={i} className="whitespace-pre-wrap leading-relaxed w-full text-left" style={{ color: i < 3 ? 'var(--text-tertiary)' : i === 4 ? 'var(--accent-primary)' : 'var(--terminal-text)' }}>
               {line}
             </div>
           ))}
         </div>
         
         {showBadge && (
-           <div className="mt-8 self-start px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: 'var(--accent-primary)' }}>
+           <div className="mt-10 inline-block px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ color: 'var(--accent-primary)' }}>
              ✓ verified · grounded in your materials
            </div>
         )}
