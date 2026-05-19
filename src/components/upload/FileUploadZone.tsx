@@ -38,8 +38,13 @@ async function extractContent(file: File) {
     const result = await parsePDF(file, { extractImages: true });
     const hints = extractPDFMetadataHints(result.pages[0] ?? '', file.name);
     return {
-      content: result.text,
-      metadata: { fileType: 'pdf' as const, fileSize: file.size, pageCount: result.pageCount, ...hints },
+      content: result.pages.join('<!-- PAGE_BREAK -->'),
+      metadata: { 
+        fileType: 'pdf' as const, 
+        fileSize: file.size, 
+        pageCount: result.pageCount, 
+        ...hints 
+      },
       images: result.images,
     };
   }

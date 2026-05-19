@@ -14,59 +14,16 @@ export function DraftsSection() {
     [materials],
   );
   
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const openEditor = useReportEditorStore((s) => s.openWithContent);
-  const updateMaterial = useMaterialsStore((s) => s.updateMaterial);
+  const openWithDraft = useReportEditorStore((s) => s.openWithDraft);
+  const openWithContent = useReportEditorStore((s) => s.openWithContent);
   const removeMaterial = useMaterialsStore((s) => s.removeMaterial);
-
-  const activeDraft = useMemo(
-    () => drafts.find(d => d.id === editingId),
-    [drafts, editingId]
-  );
-
-  const handleSave = async (content: string) => {
-    if (!editingId) return;
-    const draft = drafts.find(d => d.id === editingId);
-    if (!draft) return;
-
-    const updated = { ...draft, content };
-    updateMaterial(updated);
-    await updateMaterialAction(editingId, { content });
-  };
-
-  if (editingId && activeDraft) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-          <button 
-            onClick={() => setEditingId(null)}
-            className="flex items-center gap-1 text-xs hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <ArrowLeft size={12} />
-            Back to list
-          </button>
-          <span className="text-xs font-medium truncate max-w-[150px]" style={{ color: 'var(--text-primary)' }}>
-            {activeDraft.name}
-          </span>
-          <div className="w-8" /> {/* Spacer */}
-        </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <TiptapEditor 
-            initialContent={activeDraft.content} 
-            onChange={handleSave} 
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-3 space-y-3 h-full overflow-y-auto">
       {/* Write Report Button */}
       <button
         onClick={() => {
-          openEditor('', 'New Report');
+          openWithContent('', 'New Report');
         }}
         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md font-medium text-xs transition-colors"
         style={{
@@ -105,7 +62,7 @@ export function DraftsSection() {
           {drafts.map((draft) => (
             <button
               key={draft.id}
-              onClick={() => setEditingId(draft.id)}
+              onClick={() => openWithDraft(draft.id)}
               aria-label={draft.name}
               className="w-full text-left p-2.5 rounded-md transition-colors relative group"
               style={{

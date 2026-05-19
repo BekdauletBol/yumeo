@@ -12,6 +12,7 @@ interface IDELayoutProps {
   sidebar: React.ReactNode;
   chat: React.ReactNode;
   editor: React.ReactNode;
+  yuportEditor?: React.ReactNode;
   className?: string;
 }
 
@@ -23,7 +24,7 @@ interface IDELayoutProps {
  *
  * On mobile (<768px): Uses a bottom navigation bar to switch between panels.
  */
-export function IDELayout({ topBar, sidebar, chat, editor, className }: IDELayoutProps) {
+export function IDELayout({ topBar, sidebar, chat, editor, yuportEditor, className }: IDELayoutProps) {
   const mobileTab = useUIStore((s) => s.mobileTab);
   const setMobileTab = useUIStore((s) => s.setMobileTab);
 
@@ -60,6 +61,14 @@ export function IDELayout({ topBar, sidebar, chat, editor, className }: IDELayou
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}
       >
         {editor}
+      </aside>
+
+      {/* Yuport Editor Panel — Always visible on desktop */}
+      <aside
+        className={cn("ide-yuport overflow-hidden border-l hidden xl:flex flex-col")}
+        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+      >
+        {yuportEditor}
       </aside>
 
       {/* Citation viewer side panel */}

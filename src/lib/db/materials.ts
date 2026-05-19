@@ -77,13 +77,16 @@ export async function updateMaterial(
       ...(input.name !== undefined && { name: input.name }),
       ...(input.content !== undefined && { content: input.content }),
       ...(input.metadata !== undefined && { metadata: input.metadata }),
+      ...(input.storageUrl !== undefined && { storage_url: input.storageUrl }),
+      ...(input.status !== undefined && { status: input.status }),
     })
     .eq('id', id)
-    .select()
-    .single();
+    .select();
 
   if (error) throw new Error(`Failed to update material: ${error.message}`);
-  return rowToMaterial(data);
+  if (!data || data.length === 0) throw new Error('Material not found for update');
+  
+  return rowToMaterial(data[0]);
 }
 
 /**

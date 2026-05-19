@@ -136,7 +136,18 @@ html, body {
 .ide-sidebar   { grid-area: sidebar; }
 .ide-chat      { grid-area: chat; }
 .ide-editor    { grid-area: editor; }
+.ide-yuport    { grid-area: yuport; }
 .ide-bottomnav { display: none; }
+
+/* Large Desktop (1280px+): 4-column layout */
+@media (min-width: 1280px) {
+  .ide-layout {
+    grid-template-columns: 220px 420px 280px 1fr;
+    grid-template-areas:
+      "topbar  topbar  topbar  topbar"
+      "sidebar chat    editor  yuport";
+  }
+}
 
 /* Tablet (768–1024): narrower sidebar */
 @media (max-width: 1024px) {

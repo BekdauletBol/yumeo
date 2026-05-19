@@ -5,6 +5,7 @@ interface ReportEditorStore {
   /** Array of HTML strings, one for each page */
   pages: string[];
   initialTitle: string;
+  title: string;
   draftId: string | undefined;
   activePageIndex: number;
 
@@ -13,6 +14,7 @@ interface ReportEditorStore {
   /** Open the editor pointing to an existing draft material id */
   openWithDraft: (draftId: string) => void;
   
+  setTitle: (title: string) => void;
   setPages: (pages: string[]) => void;
   updatePage: (index: number, content: string) => void;
   addPage: (afterIndex?: number) => void;
@@ -26,6 +28,7 @@ export const useReportEditorStore = create<ReportEditorStore>((set) => ({
   isOpen: false,
   pages: [''],
   initialTitle: 'Untitled Report',
+  title: 'Untitled Report',
   draftId: undefined,
   activePageIndex: 0,
 
@@ -39,13 +42,16 @@ export const useReportEditorStore = create<ReportEditorStore>((set) => ({
       isOpen: true, 
       pages: splitPages.length > 0 ? splitPages : [''], 
       initialTitle: title, 
+      title: title,
       draftId: undefined,
       activePageIndex: 0
     });
   },
 
   openWithDraft: (draftId) =>
-    set({ isOpen: true, draftId, pages: [''], initialTitle: 'Untitled Report', activePageIndex: 0 }),
+    set({ isOpen: true, draftId, pages: [''], initialTitle: 'Untitled Report', title: 'Untitled Report', activePageIndex: 0 }),
+
+  setTitle: (title) => set({ title }),
 
   setPages: (pages) => set({ pages }),
 

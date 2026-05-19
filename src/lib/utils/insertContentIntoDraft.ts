@@ -3,7 +3,7 @@
  */
 
 export type ContentToInsert = {
-  type: 'figure' | 'table' | 'equation' | 'diagram' | 'reference';
+  type: 'figure' | 'table' | 'equation' | 'diagram' | 'reference' | 'text';
   title: string;
   content: string;
   caption?: string;
@@ -16,6 +16,9 @@ export type ContentToInsert = {
  */
 export function formatContentForInsertion(item: ContentToInsert): string {
   switch (item.type) {
+    case 'text':
+      return item.content;
+
     case 'figure':
       return `[Figure ${item.figureNumber}: ${item.caption || item.title}]\n${item.content}\n`;
 

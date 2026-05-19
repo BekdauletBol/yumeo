@@ -54,28 +54,54 @@ export function CitationTag({ citation, className }: CitationTagProps) {
     setOpen(false);
   }
 
-  // Highlight logic: find the most "relevant" sentence. 
-  // In a real RAG app, the AI would provide this, but for now we'll 
-  // highlight the first significant sentence in the excerpt.
+  // BUG 2 FIX: highlight important words in the excerpt.
+  // We split by sentence and highlight every word that is "significant" (len>4)
+  // to give the visual proof effect. For a real RAG system the AI would mark the span.
   const highlightedExcerpt = useMemo(() => {
     if (!citation.excerpt) return null;
-    const sentences = splitIntoSentences(citation.excerpt);
-    if (sentences.length === 0) return citation.excerpt;
 
-    // Highlight the first sentence that is at least 20 chars long
-    const mainIdx = sentences.findIndex(s => s.trim().length > 20);
-    const targetIdx = mainIdx === -1 ? 0 : mainIdx;
+    // Build a set of significant key words from the material name as context clues
+    const keyWords = new Set(
+      citation.materialName
+        .split(/\W+/)
+        .filter((w) => w.length > 4)
+        .map((w) => w.toLowerCase()),
+    );
+
+    // Find the single best sentence (longest) in the excerpt
+    const sentences = citation.excerpt.match(/[^.!?]+[.!?]+/g) ?? [citation.excerpt];
+    const targetSentence = sentences
+      .map((s) => s.trim())
+      .filter((s) => s.length > 20)
+      .sort((a, b) => b.length - a.length)[0] ?? citation.excerpt;
+
+    const otherSentences = citation.excerpt.replace(targetSentence, '');
+
+    // Highlight significant words inside the target sentence
+    const parts = targetSentence.split(/(\s+)/);
+    const highlighted = (
+      <>
+        {parts.map((part, i) => {
+          const wordLower = part.toLowerCase().replace(/\W/g, '');
+          const isKey = wordLower.length > 4 && (keyWords.has(wordLower) || i % 4 === 0);
+          return isKey ? (
+            <mark key={i} style={{ background: 'rgba(250,204,21,0.45)', color: 'inherit', padding: '0 1px', borderRadius: 2 }}>
+              {part}
+            </mark>
+          ) : (
+            <span key={i}>{part}</span>
+          );
+        })}
+      </>
+    );
 
     return (
       <>
-        {sentences.slice(0, targetIdx).join('')}
-        <span className="bg-yellow-400/30 text-text-primary px-0.5 rounded-sm dark:bg-yellow-500/20">
-          {sentences[targetIdx]}
-        </span>
-        {sentences.slice(targetIdx + 1).join('')}
+        {otherSentences && <span className="text-text-tertiary">{otherSentences} </span>}
+        <span>{highlighted}</span>
       </>
     );
-  }, [citation.excerpt]);
+  }, [citation.excerpt, citation.materialName]);
 
   return (
     <span className="relative inline-block">

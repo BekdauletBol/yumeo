@@ -40,7 +40,7 @@ export function parseCitations(
         materialId: material.id,
         materialName: material.name,
         section: material.section,
-        excerpt: extractExcerpt(material.content, 200),
+        excerpt: extractPageExcerpt(material.content, pageNumber, 300),
         pageNumber,
       });
     }
@@ -90,11 +90,54 @@ export function enrichMessageWithCitations(
 // ─── Private helpers ────────────────────────────────────────────────────────
 
 /**
- * Extract a short excerpt from material content.
- * Picks the first `maxLength` characters of non-empty content.
+ * Extract the best excerpt for a citation, using page context when available.
+ * Strategy:
+ *   1. If a pageNumber is given, estimate the character offset in the document
+ *      (rough heuristic: ~2500 chars per page), extract a window around it.
+ *   2. Within that window, find the most information-dense sentence (longest one).
+ *   3. Return up to maxLength chars from that sentence.
  */
+export function extractPageExcerpt(
+  content: string,
+  pageNumber: number | undefined,
+  maxLength = 300,
+): string {
+  const clean = content.replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+
+  if (pageNumber && pageNumber > 1) {
+    // Rough heuristic: each PDF page ≈ 2500 chars of extracted text
+    const CHARS_PER_PAGE = 2500;
+    const windowStart = Math.max(0, (pageNumber - 1) * CHARS_PER_PAGE);
+    const windowEnd = Math.min(clean.length, windowStart + CHARS_PER_PAGE * 2);
+    const window = clean.slice(windowStart, windowEnd);
+
+    // Split into sentences and pick the most substantial one
+    const sentences = window.match(/[^.!?]+[.!?]+/g) ?? [window];
+    const best = sentences
+      .map((s) => s.trim())
+      .filter((s) => s.length > 30)
+      .sort((a, b) => b.length - a.length)[0];
+
+    if (best) {
+      return best.length <= maxLength ? best : best.slice(0, maxLength - 1) + '…';
+    }
+    // Fallback to the window if no clear sentence
+    return window.length <= maxLength ? window : window.slice(0, maxLength - 1) + '…';
+  }
+
+  // No page number: pick the most substantive sentence from the first 5000 chars
+  const head = clean.slice(0, 5000);
+  const sentences = head.match(/[^.!?]+[.!?]+/g) ?? [head];
+  const best = sentences
+    .map((s) => s.trim())
+    .filter((s) => s.length > 30)
+    .sort((a, b) => b.length - a.length)[0] ?? head;
+
+  return best.length <= maxLength ? best : best.slice(0, maxLength - 1) + '…';
+}
+
+/** @deprecated Use extractPageExcerpt instead */
 function extractExcerpt(content: string, maxLength: number): string {
-  const trimmed = content.replace(/\s+/g, ' ').trim();
-  if (trimmed.length <= maxLength) return trimmed;
-  return trimmed.slice(0, maxLength - 1) + '…';
+  return extractPageExcerpt(content, undefined, maxLength);
 }

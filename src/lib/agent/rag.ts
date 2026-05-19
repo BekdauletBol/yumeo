@@ -58,6 +58,12 @@ function collectParagraphs(text: string, pages?: string[]): Paragraph[] {
     return pages.flatMap((pageText, index) => splitPageIntoParagraphs(pageText, index + 1));
   }
 
+  // Fallback: Check if content has <!-- PAGE_BREAK --> markers (our new standard for PDFs)
+  if (text.includes('<!-- PAGE_BREAK -->')) {
+    const split = text.split('<!-- PAGE_BREAK -->');
+    return split.flatMap((pageText, index) => splitPageIntoParagraphs(pageText, index + 1));
+  }
+
   return splitPageIntoParagraphs(text, 1);
 }
 

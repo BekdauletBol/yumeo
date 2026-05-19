@@ -6,8 +6,17 @@ import { DraftsSection } from '@/components/sections/DraftsSection';
 import { FiguresSection } from '@/components/sections/FiguresSection';
 import { TablesSection } from '@/components/sections/TablesSection';
 import { TemplatesSection } from '@/components/sections/TemplatesSection';
-import { LatexSection } from '@/components/sections/LatexSection';
-import { MermaidSection } from '@/components/sections/MermaidSection';
+import dynamic from 'next/dynamic';
+
+const LatexSection = dynamic(() => import('@/components/sections/LatexSection').then(mod => mod.LatexSection), {
+  ssr: false,
+  loading: () => <div className="p-6 text-xs animate-pulse">Loading Equations Editor...</div>
+});
+
+const MermaidSection = dynamic(() => import('@/components/sections/MermaidSection').then(mod => mod.MermaidSection), {
+  ssr: false,
+  loading: () => <div className="p-6 text-xs animate-pulse">Loading Diagrams Editor...</div>
+});
 
 export function EditorPanel() {
   const { activeSectionId, sections } = useProjectSectionsStore();
