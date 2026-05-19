@@ -129,7 +129,7 @@ export function SettingsDialog({ onClose }: { onClose?: () => void }) {
                 Project API Keys
               </label>
               <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                Generate an API key to query this project's references externally.
+                Generate an API key to query this project&apos;s references externally.
               </p>
               <button
                 onClick={async () => {
@@ -137,7 +137,7 @@ export function SettingsDialog({ onClose }: { onClose?: () => void }) {
                     const { generateApiKeyAction } = await import('@/app/actions/settings');
                     const key = await generateApiKeyAction(activeProject.id);
                     // Use prompt to let user copy the key easily
-                    window.prompt("Copy your new API key now. You won't be able to see it again:", key);
+                    window.prompt("Copy your new API key now. You will not be able to see it again:", key);
                   } catch (err: any) {
                     showToast(err.message);
                   }
