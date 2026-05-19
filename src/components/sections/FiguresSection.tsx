@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
+import { useEffect } from 'react';
+import { Trash2, ImagePlus, GripVertical } from 'lucide-react';
 import { useFiguresStore } from '@/stores/figuresStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { getFiguresAction, updateFigureOrderAction, updateFigureAction, deleteFigureAction } from '@/app/actions/figures';
+import { useAddToReportStore } from '@/stores/addToReportStore';
+import { showToast } from '@/lib/utils/toast';
 import { cn } from '@/lib/utils/cn';
 
 import {
@@ -93,14 +95,17 @@ function SortableFigureItem({ fig, index, onCaptionChange, onAddToReport, onDele
           />
         </div>
 
-        {/* Add to report button */}
+        {/* Insert figure button */}
         <button
           onClick={() => onAddToReport(fig, index)}
-          className="absolute right-8 top-2.5 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-white/10"
-          style={{ color: 'var(--accent-figures)' }}
-          title="Add to Report"
+          className={cn(
+            'absolute right-8 top-2.5 flex items-center gap-1 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg text-[10px] font-bold uppercase tracking-widest',
+          )}
+          style={{ background: 'rgba(95,207,128,0.12)', color: 'var(--accent-figures)' }}
+          title="Insert figure into editor"
         >
-          <PlusCircle size={14} />
+          <ImagePlus size={12} />
+          <span>Insert</span>
         </button>
 
         {/* Delete button (visible on hover) */}
@@ -123,6 +128,7 @@ export function FiguresSection() {
   const setFigures = useFiguresStore((s) => s.setFigures);
   const removeFigure = useFiguresStore((s) => s.removeFigure);
   const updateFigure = useFiguresStore((s) => s.updateFigure);
+  const queueInsertion = useAddToReportStore((s) => s.queueInsertion);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -167,9 +173,20 @@ export function FiguresSection() {
     await updateFigureAction(id, { caption });
   };
 
+  // BUG 3 FIX: Use addToReportStore queue so TiptapEditor picks it up
   const handleAddToReport = (fig: any, index: number) => {
-    const content = `<img src="${fig.url}" alt="Figure ${index + 1}: ${fig.caption}" /><br/><em>[Figure ${index + 1}: ${fig.caption}]</em><br/>`;
-    window.dispatchEvent(new CustomEvent('insert-editor-content', { detail: { content } }));
+    const figureNumber = index + 1;
+    const caption = fig.caption || `Figure ${figureNumber}`;
+    // Insert as markdown image + caption
+    const mdContent = `<img src="${fig.url}" alt="Figure ${figureNumber}: ${caption}" /><br/><em>Figure ${figureNumber}: ${caption}</em><br/>`;
+    queueInsertion({
+      type: 'figure',
+      title: `Figure ${figureNumber}`,
+      content: mdContent,
+      caption,
+      figureNumber,
+    });
+    showToast(`Figure ${figureNumber} inserted into draft ✓`);
   };
 
   return (

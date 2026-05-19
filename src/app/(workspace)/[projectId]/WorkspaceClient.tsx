@@ -8,6 +8,7 @@ import { ChatPanel } from '@/components/ide/ChatPanel';
 import { EditorPanel } from '@/components/ide/EditorPanel';
 import { SectionInputModals } from '@/components/sections/SectionInputModals';
 import { ReportEditorModal } from '@/components/report/ReportEditorModal';
+import { YuportEditor } from '@/components/editor/YuportEditor';
 import { useProjectStore } from '@/stores/projectStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectSectionsStore } from '@/stores/projectSectionsStore';
@@ -59,11 +60,15 @@ export function WorkspaceClient({ project, initialMaterials }: WorkspaceClientPr
         sidebar={<Sidebar />}
         chat={<ChatPanel />}
         editor={<EditorPanel />}
+        yuportEditor={<YuportEditor />}
       />
       {/* Section-level add-content modals */}
       <SectionInputModals />
-      {/* Report editor — opens automatically after AI generation or when user opens a draft */}
-      <ReportEditorModal />
+      
+      {/* Report editor — on smaller screens it still opens as a modal */}
+      <div className="xl:hidden">
+        <ReportEditorModal />
+      </div>
     </>
   );
 }

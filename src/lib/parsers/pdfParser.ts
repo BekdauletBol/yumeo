@@ -93,10 +93,13 @@ export async function parsePDF(file: File, options: PDFParseOptions = {}): Promi
                     reject(err);
                   }
                 }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Image extraction timeout')), 5000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Image extraction timeout')), 15000))
               ]);
               
               if (imgObj && imgObj.data && imgObj.width && imgObj.height) {
+                // Skip very small images (icons, spacers, etc)
+                if (imgObj.width < 10 || imgObj.height < 10) continue;
+
                 // Downscale to max 800px width/height to save space
                 const MAX_DIM = 800;
                 let targetW = imgObj.width;

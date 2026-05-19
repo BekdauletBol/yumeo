@@ -1,18 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import mermaid from 'mermaid';
+import { useEffect, useState, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useMaterialsStore } from '@/stores/materialsStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { createMaterialAction } from '@/app/actions/materials';
 import { showToast } from '@/lib/utils/toast';
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  securityLevel: 'strict',
-});
 
 export function MermaidSection() {
   const source = useUIStore((s) => s.mermaidSource);
@@ -22,6 +15,26 @@ export function MermaidSection() {
   const addMaterial = useMaterialsStore((s) => s.addMaterial);
   const activeProject = useProjectStore((s) => s.activeProject);
   const diagramsLength = useMaterialsStore((s) => s.materials.filter(m => m.section === 'diagrams').length);
+  
+  const mermaidRef = useRef<any>(null);
+
+  // Initialize mermaid on mount
+  useEffect(() => {
+    const initMermaid = async () => {
+      try {
+        const mermaid = (await import('mermaid')).default;
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'dark',
+          securityLevel: 'strict',
+        });
+        mermaidRef.current = mermaid;
+      } catch (err) {
+        console.error('Failed to initialize mermaid:', err);
+      }
+    };
+    initMermaid();
+  }, []);
 
   const handleSave = async () => {
     if (!activeProject || !source.trim()) {
@@ -40,7 +53,6 @@ export function MermaidSection() {
       });
       addMaterial(material);
       showToast(`Diagram "${name}" saved successfully`);
-      // Optional: don't clear source automatically so they can keep editing if they want
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save diagram';
       console.error('Save failed:', err);
@@ -61,7 +73,7 @@ export function MermaidSection() {
     URL.revokeObjectURL(url);
   };
 
-  // Debounce mermaid rendering to avoid freezing the UI on every keystroke
+  // Debounce mermaid rendering
   useEffect(() => {
     if (!source.trim()) {
       setSvg('');
@@ -71,10 +83,12 @@ export function MermaidSection() {
 
     let cancelled = false;
     const timeoutId = setTimeout(() => {
+      if (!mermaidRef.current) return;
+      
       const id = `mermaid-${Math.random().toString(36).slice(2)}`;
-      mermaid
+      mermaidRef.current
         .render(id, source)
-        .then((result) => {
+        .then((result: any) => {
           if (cancelled) return;
           setSvg(result.svg);
           setError(null);
@@ -83,9 +97,8 @@ export function MermaidSection() {
           if (cancelled) return;
           const message = err instanceof Error ? err.message : 'Failed to render mermaid';
           setError(message);
-          // Keep previous SVG if there's a syntax error while typing
         });
-    }, 500); // 500ms debounce
+    }, 500);
 
     return () => {
       cancelled = true;

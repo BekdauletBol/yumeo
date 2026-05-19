@@ -13,6 +13,10 @@ import { enrichMessageWithCitations } from '@/lib/agent/citationParser';
 import type { ChatMessage, AnthropicMessage } from '@/lib/types';
 import { EmptyState } from '@/components/ide/EmptyState';
 import { showToast } from '@/lib/utils/toast';
+import { useAddToReportStore } from '@/stores/addToReportStore';
+import { useReportEditorStore } from '@/stores/reportEditorStore';
+import { stripPreamble } from '@/lib/utils/markdownParser';
+import { Link, Loader2 } from 'lucide-react';
 
 const TASK_VERB_PATTERN = '(write|generate|create|summari[sz]e|draft|make|build)';
 const TASK_PREFIX_RE = new RegExp(`^(please\\s+)?${TASK_VERB_PATTERN}\\b`, 'i');
@@ -71,12 +75,19 @@ export function ChatPanel() {
   } = useChatStore();
 
   const materials = useMaterialsStore((s) => s.materials);
+  const addMaterial = useMaterialsStore((s) => s.addMaterial);
   const activeProject = useProjectStore((s) => s.activeProject);
   const sections = useProjectSectionsStore((s) => s.sections);
   const activeSections = sections.filter((s) => s.isActive);
   const chatMode = useChatStore((s) => s.chatMode);
   const [agentRunId, setAgentRunId] = useState<string | null>(null);
   const [agentProgressIndex, setAgentProgressIndex] = useState(0);
+  const queueInsertion = useAddToReportStore((s) => s.queueInsertion);
+  const editorPages = useReportEditorStore((s) => s.pages);
+
+  // URL research state
+  const [urlInput, setUrlInput] = useState('');
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
 
   // Track when the first reference is uploaded to show the toast once
   const prevRefCount = useRef(0);
@@ -87,6 +98,36 @@ export function ChatPanel() {
     }
     prevRefCount.current = references.length;
   }, [references.length]);
+
+  // FEATURE 3: Fetch URL content and add as temporary reference
+  const handleUrlFetch = useCallback(async () => {
+    if (!urlInput.trim() || !activeProject) return;
+    setIsFetchingUrl(true);
+    try {
+      const res = await fetch('/api/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.trim() }),
+      });
+      const data = (await res.json()) as { content?: string; error?: string };
+      if (!res.ok || !data.content) throw new Error(data.error ?? 'Failed to fetch URL');
+      addMaterial({
+        id: nanoid(),
+        projectId: activeProject.id,
+        section: 'references',
+        name: urlInput.trim(),
+        content: data.content,
+        metadata: { fileType: 'url', fileSize: data.content.length },
+        createdAt: new Date(),
+      });
+      showToast(`Using content from ${urlInput.trim()} as reference. For better results, upload a PDF.`);
+      setUrlInput('');
+    } catch (err) {
+      showToast(`Failed to fetch URL: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  }, [urlInput, activeProject, addMaterial]);
 
   const handleSubmit = useCallback(
     async (userText: string) => {
@@ -125,12 +166,18 @@ export function ChatPanel() {
       addMessage(assistantMessage);
       setIsStreaming(true);
 
+      // Build current draft content for AI context
+      const currentDraftContent = editorPages.join('\n\n').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const draftSection = currentDraftContent.length > 50
+        ? `\n\n═══════════════════════════════════════════\nCURRENT DRAFT IN EDITOR\n═══════════════════════════════════════════\n${currentDraftContent.slice(0, 8000)}${currentDraftContent.length > 8000 ? '\n[Draft truncated...]' : ''}\n\nWhen user asks to improve, rewrite, or add to the draft → work with this content directly.\nWhen generating new content → match the style and tone of the existing draft.`
+        : '';
+
       const systemPrompt = `${buildSystemPrompt(
         materials,
         activeProject.settings,
         activeSections,
         activeProject.settings.agentModel,
-      )}${buildModeGuidance(chatMode)}`;
+      )}${buildModeGuidance(chatMode)}${draftSection}`;
 
       const history: AnthropicMessage[] = messages
         .filter((m) => m.role !== 'system' && m.content && m.projectId === activeProject.id)
@@ -216,6 +263,15 @@ export function ChatPanel() {
           isStreaming: false,
         });
         finalizeStreamingMessage(assistantId);
+
+        // BUG 1 FIX: Auto-append AI responses >150 chars to editor draft
+        const cleanForEditor = stripPreamble(
+          enriched.content.replace(/\[REF:\d+(?:,\s*p\.\s*\d+)?\]/g, '')
+        );
+        if (cleanForEditor.length > 150) {
+          queueInsertion({ type: 'text', title: 'AI Draft', content: cleanForEditor });
+          showToast('Added to draft ✓');
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Network error';
         // eslint-disable-next-line no-console
@@ -239,12 +295,43 @@ export function ChatPanel() {
       activeSections,
       chatMode,
       setAgentProgressIndex,
+      queueInsertion,
+      editorPages,
     ],
   );
 
-  // Show onboarding until at least one reference exists
+  // Show onboarding + URL input when no references
   if (references.length === 0) {
-    return <EmptyState />;
+    return (
+      <div className="flex flex-col h-full">
+        <EmptyState />
+        {/* FEATURE 3: URL search fallback */}
+        <div className="p-4 border-t" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-surface)' }}>
+          <p className="text-[10px] font-mono font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-tertiary)' }}>
+            Or search from a website instead
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && void handleUrlFetch()}
+              placeholder="Paste a URL to use as reference..."
+              className="flex-1 text-xs px-3 py-2 rounded-lg bg-bg-elevated border border-border-subtle outline-none focus:ring-1 focus:ring-accent-primary transition-all"
+              style={{ color: 'var(--text-primary)' }}
+            />
+            <button
+              onClick={() => void handleUrlFetch()}
+              disabled={isFetchingUrl || !urlInput.trim()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary text-white text-[10px] font-bold uppercase tracking-widest disabled:opacity-50 hover:opacity-90 transition-all"
+            >
+              {isFetchingUrl ? <Loader2 size={12} className="animate-spin" /> : <Link size={12} />}
+              Fetch
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const showAgentProgress = chatMode === 'agent' && agentRunId && isStreaming;

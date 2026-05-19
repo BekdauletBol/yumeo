@@ -7,7 +7,8 @@ import { CitationTag } from './CitationTag';
 import { cn } from '@/lib/utils/cn';
 import { useReportEditorStore } from '@/stores/reportEditorStore';
 import { stripPreamble } from '@/lib/utils/markdownParser';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, PlusSquare } from 'lucide-react';
+import { useAddToReportStore } from '@/stores/addToReportStore';
 
 interface StreamingMessageProps {
   message: ChatMessage;
@@ -20,6 +21,7 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
   const isStreaming = message.isStreaming === true;
   const content = liveContent ?? message.content;
   const openEditor = useReportEditorStore((s) => s.openWithContent);
+  const queueInsertion = useAddToReportStore((s) => s.queueInsertion);
 
   // Pre-process content to convert [REF:n, p. X] into a special markdown link format
   // that we can intercept in the components prop.
@@ -115,6 +117,21 @@ export function StreamingMessage({ message, liveContent, className }: StreamingM
             >
               <ExternalLink size={12} /> Open in Yuport
             </button>
+
+            {content.length > 150 && (
+              <button
+                onClick={() => {
+                  queueInsertion({
+                    type: 'text',
+                    title: 'AI Draft',
+                    content: editorContent,
+                  });
+                }}
+                className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-widest px-4 py-2 bg-bg-elevated border border-border-subtle text-text-primary rounded-xl transition-all hover:border-accent-primary active:scale-95 shadow-sm"
+              >
+                <PlusSquare size={12} className="text-accent-primary" /> Add to Draft
+              </button>
+            )}
             
             {message.citations.length > 0 && (
               <span className="text-[10px] font-mono text-text-tertiary uppercase tracking-tighter">
